@@ -5,7 +5,7 @@ from hmac import compare_digest
 
 from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Request, Response, status
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db
@@ -16,6 +16,8 @@ from app.models.user_session import UserSession
 from app.models.account_token import AccountToken
 from app.models.mfa_challenge import MFAChallenge
 from app.models.mfa_recovery_code import MFARecoveryCode
+from app.models.analysis_job import AnalysisJob
+from app.models.audit import AuditRecord
 from app.services.email_sender import email_is_configured, send_account_email
 from app.services.mfa import (
     consume_recovery_code,
@@ -54,6 +56,11 @@ class PasswordResetRequest(TokenRequest):
 
 class MFACodeRequest(BaseModel):
     code: str = Field(min_length=6, max_length=64)
+
+
+class DeleteAccountRequest(BaseModel):
+    password: str = Field(min_length=12, max_length=128)
+    mfa_code: str | None = Field(default=None, min_length=6, max_length=64)
 
 
 class MFAChallengeRequest(MFACodeRequest):
@@ -283,6 +290,33 @@ def get_current_user(request: Request,
 def me(user: User = Depends(get_current_user)):
     return {"id": user.id, "email": user.email,
         "email_verified": user.email_verified_at is not None, "mfa_enabled": user.mfa_enabled}
+
+
+@router.delete("/me")
+def delete_account(payload: DeleteAccountRequest, response: Response,
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    locked_user = db.scalar(select(User).where(User.id == user.id).with_for_update())
+    if not verify_password(payload.password, locked_user.password_hash):
+        raise HTTPException(status_code=401, detail="Senha atual incorreta.")
+    running_jobs = db.scalar(select(func.count()).select_from(AnalysisJob).where(
+        AnalysisJob.user_id == user.id, AnalysisJob.status == "running"
+    )) or 0
+    if running_jobs:
+        raise HTTPException(status_code=409, detail="Aguarde as análises em execução terminarem antes de excluir a conta.")
+    if locked_user.mfa_enabled and (not payload.mfa_code or not _verify_mfa_factor(db, locked_user, payload.mfa_code)):
+        raise HTTPException(status_code=401, detail="Código MFA inválido.")
+    db.query(AuditRecord).filter(AuditRecord.user_id == user.id).delete(synchronize_session=False)
+    db.query(AnalysisJob).filter(AnalysisJob.user_id == user.id).delete(synchronize_session=False)
+    db.query(UserSession).filter(UserSession.user_id == user.id).delete(synchronize_session=False)
+    db.query(AccountToken).filter(AccountToken.user_id == user.id).delete(synchronize_session=False)
+    db.query(MFAChallenge).filter(MFAChallenge.user_id == user.id).delete(synchronize_session=False)
+    db.query(MFARecoveryCode).filter(MFARecoveryCode.user_id == user.id).delete(synchronize_session=False)
+    db.delete(locked_user)
+    db.commit()
+    secure = settings.session_cookie_secure or settings.app_env.lower() == "production"
+    response.delete_cookie(SESSION_COOKIE, path="/", secure=secure, httponly=True, samesite="lax")
+    response.delete_cookie(CSRF_COOKIE, path="/", secure=secure, httponly=False, samesite="lax")
+    return {"message": "Conta e dados associados foram excluídos."}
 
 
 @router.post("/mfa/setup")

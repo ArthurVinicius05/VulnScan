@@ -38,3 +38,8 @@ The API has no direct external network. It reaches a dedicated SMTP proxy over a
 ## Metrics and recovery
 
 Prometheus scrapes internal HTTP request/latency and database-backed job-state metrics. Its UI is bound to loopback on port 9090 and is not proxied by the public frontend. Queue-backlog and HTTP 5xx alert rules are loaded, but notification delivery requires a separately configured Alertmanager. PostgreSQL backups are encrypted with age and have a restore smoke test in CI; the operator must schedule off-site backups and perform real restore drills.
+
+
+## Account deletion
+
+Authenticated users can delete their account after confirming the current password and, when enabled, MFA. The API removes queued jobs, saved reports, sessions, account tokens, MFA challenges and recovery codes from the live database. Deletion is rejected while a job is running; users can retry after it finishes. Encrypted off-site backups may retain historical copies until their configured expiry, which must be disclosed and operationally verified.

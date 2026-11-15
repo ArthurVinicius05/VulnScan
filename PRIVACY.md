@@ -47,7 +47,7 @@ The deployment may use a hosting provider, SMTP relay, DNS provider, backup stor
 
 ## Data subject requests
 
-For access, correction, deletion or other privacy requests, contact **[PRIVACY CONTACT EMAIL]**. The deployment must establish and test an account/data deletion process before public launch, including its treatment of backups and logs.
+Authenticated users can request deletion from account security; the operation requires the current password and, when enabled, a TOTP or recovery code. It removes the account, queued jobs, saved audit reports, sessions, tokens and MFA records from the live database. Deletion is blocked while an analysis is running. Encrypted off-site backups may retain copies until their configured expiry, and log-provider retention may differ. For other access, correction or privacy requests, contact **[PRIVACY CONTACT EMAIL]**. The operator must verify deletion across backups and logs before launch.
 
 ## Changes
 

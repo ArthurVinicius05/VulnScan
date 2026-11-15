@@ -37,6 +37,7 @@ O ambiente local pode ativar contas automaticamente quando SMTP não está confi
 - Senhas com Argon2id; tokens de sessão e de confirmação armazenados somente como hashes.
 - Cookies HttpOnly, CSRF, SameSite=Lax e Secure em produção.
 - MFA TOTP com segredo criptografado por Fernet, proteção contra replay, desafios de login com expiração/limite de tentativas e códigos de recuperação de uso único.
+- Exclusão de conta autenticada por senha e MFA, removendo jobs, relatórios, sessões, tokens e dados MFA do banco ativo; jobs em execução precisam terminar antes.
 - A chave MFA_ENCRYPTION_KEY é crítica: guarde-a em gerenciador de segredos e inclua-a em backups seguros. Perdê-la impede a descriptografia dos segredos TOTP existentes.
 - Rate limiting compartilhado por Redis; Redis indisponível em produção faz rotas protegidas falharem de forma segura.
 
@@ -137,6 +138,7 @@ Consulte:
 - TERMS.md — termos e escopo de uso.
 - docs/ARCHITECTURE.md — arquitetura.
 - docs/PRODUCTION_READINESS.md — gates de lançamento.
+- docs/DEPENDENCY_MANAGEMENT.md — atualização e validação de dependências.
 
 ## Pendências antes de abrir ao público
 

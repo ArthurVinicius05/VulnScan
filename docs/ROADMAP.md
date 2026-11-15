@@ -22,7 +22,7 @@
 1. [ ] Job cancellation, dead-letter inspection and administrative recovery controls.
 2. [ ] Host firewall allowlisting and real deployment egress verification.
 3. [ ] Pin container images by digest and implement provenance/update/rollback checks.
-4. [ ] Add account/data deletion workflow and validate retention across backups/logs.
+4. [x] Add authenticated account deletion for live database records. [ ] Verify deletion across backups/logs and document backup expiry.
 5. [ ] Configure Alertmanager, centralized logs and incident-response runbooks.
 6. [ ] Complete SSRF/redirect/DNS-rebinding, load, abuse and failure-recovery tests.
 7. [ ] Test HTTPS, SMTP deliverability, backup and restore on real production infrastructure.

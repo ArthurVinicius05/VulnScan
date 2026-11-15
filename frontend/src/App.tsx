@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import AccountRecovery from './AccountRecovery'
 import { ShieldCheck, LayoutDashboard, Globe, FolderCode, History, Settings, Bell, Search, UploadCloud, FileArchive, Activity, ChevronRight, LockKeyhole, ScanSearch, AlertTriangle } from 'lucide-react'
-import { ApiError, authenticate, checkSession, completeMfaLogin, fetchMfaStatus, beginMfaSetup, confirmMfaSetup, disableMfa, fetchAuditDetail, fetchAuditHistory, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
+import { ApiError, authenticate, checkSession, completeMfaLogin, fetchMfaStatus, beginMfaSetup, confirmMfaSetup, disableMfa, fetchAuditDetail, fetchAuditHistory, deleteAccount, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
 
 type Finding = {
   rule_id: string
@@ -61,6 +61,9 @@ export default function App() {
   const [mfaActionCode, setMfaActionCode] = useState('')
   const [mfaMessage, setMfaMessage] = useState('')
   const [mfaError, setMfaError] = useState('')
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteMfaCode, setDeleteMfaCode] = useState('')
 
   async function refreshHistory() {
     try { setHistory(await fetchAuditHistory()); setHistoryError('') }
@@ -131,6 +134,16 @@ export default function App() {
       setMfaEnabled(false); setAuthenticated(false); setHistory([]); setResult(null)
       setMfaActionCode(''); setMfaRecoveryCodes([]); setMfaMessage(message)
     } catch (e) { setMfaError(e instanceof Error ? e.message : 'Não foi possível desativar MFA.') }
+  }
+
+  async function removeAccount() {
+    setMfaError(''); setMfaMessage('')
+    try {
+      const message = await deleteAccount(deletePassword, deleteMfaCode)
+      setAuthenticated(false); setHistory([]); setResult(null); setMfaEnabled(false)
+      setDeleteAccountOpen(false); setDeletePassword(''); setDeleteMfaCode('')
+      setAuthNotice(message)
+    } catch (e) { setMfaError(e instanceof Error ? e.message : 'Não foi possível excluir a conta.') }
   }
 
   async function endSession() { await logout(); setAuthenticated(false); setHistory([]); setResult(null) }
@@ -205,6 +218,15 @@ export default function App() {
           {mfaError && <div className="error">{mfaError}</div>}
           {mfaMessage && <div className="success">{mfaMessage}</div>}
           {mfaRecoveryCodes.length > 0 && <details open><summary>Recovery codes — save them now</summary><ul>{mfaRecoveryCodes.map(code=><li key={code}><code>{code}</code></li>)}</ul><small>Each code can be used once. They will not be shown again.</small></details>}
+          <div className="account-danger-zone">
+            {!deleteAccountOpen ? <button className="secondary-btn" onClick={()=>setDeleteAccountOpen(true)}>Delete account and audit data</button> : <div>
+              <p>This permanently removes your account, queued jobs and saved audit reports. Running analyses must finish first. Encrypted backups may retain copies until their configured retention period expires.</p>
+              <label>Current password<input type="password" autoComplete="current-password" value={deletePassword} onChange={e=>setDeletePassword(e.target.value)} maxLength={128}/></label>
+              {mfaEnabled && <label>Authenticator or recovery code<input value={deleteMfaCode} onChange={e=>setDeleteMfaCode(e.target.value)} maxLength={64}/></label>}
+              <button className="secondary-btn" disabled={deletePassword.length < 12 || (mfaEnabled && deleteMfaCode.length < 6)} onClick={()=>void removeAccount()}>Permanently delete account</button>
+              <button className="auth-switch" onClick={()=>{setDeleteAccountOpen(false);setDeletePassword('');setDeleteMfaCode('')}}>Cancel</button>
+            </div>}
+          </div>
         </section>
         <div className="section-heading"><div><h2>Start an assessment</h2><p>Choose a target type to begin your security review.</p></div></div>
         <div className="scan-grid">

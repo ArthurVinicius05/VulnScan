@@ -31,7 +31,7 @@ You are responsible for protecting your credentials and MFA recovery codes and f
 
 ## Suspension and termination
 
-The operator may suspend access for unauthorized scanning, abuse, security risk or violation of these terms. The public service must document the account deletion and appeal process before launch.
+The operator may suspend access for unauthorized scanning, abuse, security risk or violation of these terms. Users can request account deletion from account security after confirming their password and, if enabled, MFA. Deletion may be delayed while a running analysis finishes; encrypted backups may retain copies until their configured expiry.
 
 ## Liability and governing law
 

@@ -26,7 +26,7 @@ This checklist is a release gate, not a claim that the current deployment is cer
 - [ ] Run load, abuse, concurrency, failure-recovery and backup/restore drills against a production-like environment.
 - [ ] Configure Alertmanager notifications, centralized logs, on-call ownership and incident response runbooks.
 - [ ] Validate real HTTPS/TLS, SMTP deliverability (SPF/DKIM/DMARC), secret rotation and PostgreSQL restore in the actual hosting environment.
-- [ ] Add an account/data deletion workflow and verify user data deletion across database, backups and logs.
+- [x] Add authenticated account deletion for live database records; [ ] verify deletion across off-site backups and logs and document backup expiry/restore implications.
 - [ ] Complete privacy/terms review for LGPD, identify the data controller/operator, publish contact details and confirm lawful basis/retention.
 - [ ] Commission an independent security review or penetration test, fix findings, and re-run regression/security tests.
 

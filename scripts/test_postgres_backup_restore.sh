@@ -15,6 +15,7 @@ command -v dropdb >/dev/null
 
 KEY_FILE="$(mktemp)"
 DUMP_FILE="$(mktemp)"
+rm -f "$KEY_FILE" "$DUMP_FILE"
 RESTORE_DB="vulnscan_restore_${RANDOM}"
 cleanup() {
   dropdb --if-exists "$RESTORE_DB" >/dev/null 2>&1 || true

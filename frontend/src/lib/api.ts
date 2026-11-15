@@ -202,3 +202,14 @@ export async function disableMfa(code: string): Promise<string> {
   ensureSuccess(response, payload, 'Não foi possível desativar MFA.')
   return typeof payload.message === 'string' ? payload.message : 'MFA desativado.'
 }
+
+export async function deleteAccount(password: string, mfaCode?: string): Promise<string> {
+  const response = await fetch(`${API_URL}/api/auth/me`, {
+    method: 'DELETE', credentials: 'include',
+    headers: { ...csrfHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password, mfa_code: mfaCode || null }),
+  })
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Não foi possível excluir a conta.')
+  return typeof payload.message === 'string' ? payload.message : 'Conta excluída.'
+}
