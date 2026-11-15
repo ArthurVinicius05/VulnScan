@@ -57,23 +57,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: docker/setup-buildx-action@v3
-      - name: Resolve current container image digests
+      - name: Install Skopeo
+        run: sudo apt-get update && sudo apt-get install -y skopeo
+      - name: Resolve linux/amd64 container image digests
         run: |
           set -euo pipefail
           : > images.lock
           images=(
             ghcr.io/gitleaks/gitleaks:v8.24.2
-            python:3.12-slim
-            golang:1.27.3-alpine3.23
-            node:22-alpine
+            docker.io/library/python:3.12-slim
+            docker.io/library/golang:1.27.3-alpine3.23
+            docker.io/library/node:22-alpine
             nginxinc/nginx-unprivileged:1.27-alpine
-            postgres:16-alpine
-            redis:7-alpine
+            docker.io/library/postgres:16-alpine
+            docker.io/library/redis:7-alpine
             prom/prometheus:v3.5.0
           )
           for image in "${images[@]}"; do
-            digest="$(docker buildx imagetools inspect "$image" | awk '/^Digest:/ {print $2; exit}')"
+            digest="$(skopeo inspect --override-arch amd64 --override-os linux --format '{{.Digest}}' "docker://$image")"
             test -n "$digest"
             printf '%s %s\n' "$image" "$digest" | tee -a images.lock
             echo "IMAGE_DIGEST $image $digest"
