@@ -9,6 +9,13 @@ services:
       DATABASE_URL: ${DATABASE_URL:-sqlite:///./vulnscan.db}
       REDIS_URL: redis://redis:6379/0
       CORS_ORIGINS: http://localhost:5173
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      MAIL_FROM: ${MAIL_FROM:-}
       SCANNER_WORKER_URL: http://scanner-worker:8001
       SCANNER_WORKER_TIMEOUT_SECONDS: 30
       ENABLE_OSV_SCAN: ${ENABLE_OSV_SCAN:-false}
