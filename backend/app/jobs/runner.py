@@ -51,7 +51,8 @@ def _finish_job(job_id: str, result: dict) -> None:
 def _retry_or_fail(job_id: str, attempts: int, error: Exception) -> None:
     with SessionLocal() as db:
         job = db.get(AnalysisJob, job_id)
-        if job is None: return
+        if job is None:
+            return
         job.error = "A análise não pôde ser concluída. Tente novamente ou contate o suporte."
         job.lease_expires_at = None
         if attempts < job.max_attempts:
