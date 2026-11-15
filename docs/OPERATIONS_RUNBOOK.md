@@ -35,7 +35,43 @@ Use independent random values for POSTGRES_PASSWORD, SCANNER_WORKER_TOKEN and OP
 - Keep .env.production, the age private identity and the rclone configuration out of Git.
 - Restrict the environment file to the deployment operator (chmod 600 .env.production).
 - Store a protected copy of the age private identity separately from the host.
-- The MFA encryption key is not an ordinary password: changing it without decrypting and re-encrypting existing TOTP secrets will lock users out of MFA. There is no automatic key-rotation workflow yet.
+- The MFA encryption key is not an ordinary password: use the transactional rotation procedure below; never replace it directly while encrypted TOTP secrets exist.
+
+### Rotate the MFA encryption key
+
+1. Take and verify a fresh encrypted PostgreSQL backup.
+2. Stop the API and analysis worker while leaving PostgreSQL running:
+
+~~~bash
+docker compose --env-file .env.production -f docker-compose.production.yml stop backend analysis-worker
+~~~
+
+3. Create a chmod-600 temporary file outside Git containing OLD_MFA_ENCRYPTION_KEY and NEW_MFA_ENCRYPTION_KEY. Load it into the shell without printing either value:
+
+~~~bash
+set -a
+source ./mfa-rotation.env
+set +a
+~~~
+
+4. Run a validation-only dry run, then apply the transaction:
+
+~~~bash
+docker compose --env-file .env.production -f docker-compose.production.yml run --rm --no-deps -e OLD_MFA_ENCRYPTION_KEY -e NEW_MFA_ENCRYPTION_KEY backend python -m app.rotate_mfa_key
+docker compose --env-file .env.production -f docker-compose.production.yml run --rm --no-deps -e OLD_MFA_ENCRYPTION_KEY -e NEW_MFA_ENCRYPTION_KEY backend python -m app.rotate_mfa_key --apply
+~~~
+
+5. Only after the apply command succeeds, replace MFA_ENCRYPTION_KEY in .env.production with NEW_MFA_ENCRYPTION_KEY, remove the temporary file, unset both temporary variables and restart the services:
+
+~~~bash
+unset OLD_MFA_ENCRYPTION_KEY NEW_MFA_ENCRYPTION_KEY
+rm -f ./mfa-rotation.env
+docker compose --env-file .env.production -f docker-compose.production.yml up -d backend analysis-worker
+~~~
+
+6. Verify TOTP login for a test account. If the dry run or apply fails, the transaction is rolled back; keep the old key active and investigate before restarting.
+
+Rotate SCANNER_WORKER_TOKEN by changing the same value for backend and scanner-worker and restarting both. Rotate OPS_ADMIN_TOKEN by changing the backend environment and restarting it. Do not log or paste secrets into tickets.
 - Never put OPS_ADMIN_TOKEN in the frontend, browser storage, screenshots or support logs.
 
 ## 3. Validate and start the production profile
