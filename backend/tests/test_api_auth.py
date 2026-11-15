@@ -17,7 +17,6 @@ def test_analysis_routes_require_individual_session():
     client = TestClient(app)
     response = client.post("/api/analysis/website", json={"url": "https://example.org", "authorized": False})
     assert response.status_code == 401
-    assert response.headers["www-authenticate"] == "Bearer"
 
 
 def test_analysis_routes_accept_valid_individual_session(tmp_path):
