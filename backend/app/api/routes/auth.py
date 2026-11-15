@@ -81,7 +81,7 @@ def _consume_account_token(db: Session, raw: str, purpose: str) -> AccountToken:
 def _send_link(email: str, purpose: str, raw: str) -> None:
     action = "verify" if purpose == "verify_email" else "reset"
     subject = "Confirme seu e-mail - VulnScan" if action == "verify" else "Redefinição de senha - VulnScan"
-    link = f"{settings.frontend_url.rstrip('/')}/?{action}={raw}"
+    link = f"{settings.frontend_url.rstrip('/')}/#{action}={raw}"
     send_account_email(email, subject, f"Abra este link: {link}\nO link expira em {TOKEN_MINUTES} minutos. Se não solicitou, ignore este e-mail.")
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
