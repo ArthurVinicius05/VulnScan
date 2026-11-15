@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     api_key: str | None = None
     database_url: str = "sqlite:///./vulnscan.db"
+    redis_url: str | None = None
     cors_origins: list[str] = ["http://localhost:5173"]
     session_cookie_secure: bool = False
     max_upload_mb: int = 25
