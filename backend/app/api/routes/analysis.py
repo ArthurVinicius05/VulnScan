@@ -1,6 +1,7 @@
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.core.config import settings
+from app.services.scanner_integrations import run_python_tools
 from app.services.source_analyzer import analyze_source_zip
 from app.services.zip_inspector import inspect_zip
 
@@ -23,16 +24,19 @@ async def analyze_source_zip_endpoint(file: UploadFile = File(...)):
             max_files=settings.max_archive_files,
             max_uncompressed_bytes=settings.max_extracted_mb * 1024 * 1024,
         )
-        findings = analyze_source_zip(content)
+        heuristic_findings = analyze_source_zip(content)
+        tool_result = run_python_tools(content)
     except (ValueError, OSError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    findings = heuristic_findings + tool_result.get("findings", [])
     return {
         "status": "completed",
         "analysis_type": "static_source_analysis",
         "filename": file.filename,
-        "notice": "Análise estática heurística concluída. Os achados não são prova de exploração e exigem validação manual.",
+        "notice": "Achados heurísticos e resultados de ferramentas estáticas. Eles não comprovam explorabilidade e exigem validação manual.",
         "finding_count": len(findings),
         "findings": findings,
+        "scanner_tools": tool_result,
         **metadata,
     }
