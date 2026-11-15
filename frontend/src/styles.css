@@ -45,3 +45,5 @@
   cursor: pointer;
 }
 .auth-logout { padding: 8px 12px; }
+
+.history-item{display:flex;align-items:center;gap:14px;justify-content:space-between;padding:12px 0;border-bottom:1px solid #202e48}.history-item>div{display:grid;gap:5px;min-width:0}.history-item>div b{font-size:11px;overflow-wrap:anywhere}.history-item>div small,.audit-detail-heading small{font-size:9px;color:#8192ad}.history-view{border:1px solid #345078;background:#152640;color:#9bd5ff;border-radius:6px;padding:7px 10px;font-size:10px;cursor:pointer;white-space:nowrap}.audit-detail{margin-top:16px;padding:16px;border:1px solid #2b4263;border-radius:9px;background:#0b1424}.audit-detail-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}.audit-detail-heading h3{font:600 15px 'Space Grotesk';margin:0 0 5px;overflow-wrap:anywhere}.audit-detail>p{font-size:10px;color:#93a7c1}
