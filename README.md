@@ -19,7 +19,7 @@ Run: `docker compose up --build`
 Dashboard: http://localhost:5173  
 API docs: http://localhost:8000/docs
 
-The API sends Python archives to a private `scanner-worker` service. The worker is not published to the host and is attached only to an internal Docker network.
+The API sends Python archives to a private `scanner-worker` service. The worker is not published to the host and is attached only to an internal Docker network.\n\nOSV scanning is opt-in: set `ENABLE_OSV_SCAN=true` and start Compose with `--profile osv-online`. This starts a separate `osv-worker` with outbound network access for OSV vulnerability matching. The default scanner-worker remains isolated without an external route. Docker networking does not enforce a domain allowlist; production deployments must add an egress firewall/proxy policy if outbound traffic must be restricted to OSV endpoints.
 
 ### Run without Docker
 Install backend requirements from `backend/requirements.txt`, then run `uvicorn app.main:app --reload` from the backend directory.
@@ -36,7 +36,7 @@ Run `npm install` and `npm run dev` from the frontend directory.
 - Run bounded, read-only heuristic checks on selected source/text files
 - Run Bandit and Ruff against a bounded set of Python files in a dedicated scanner-worker container
 - Run Gitleaks against a bounded set of text/source files in the worker; secret values are never copied into finding evidence
-- Report OSV-Scanner as disabled until an explicit, separately controlled vulnerability-database network policy is implemented
+- Optionally run OSV-Scanner v2.7.1 in a separate, opt-in network-enabled worker to match supported lockfiles against OSV vulnerability data; dependency resolution is disabled
 - Keep scanner status separate from findings; an unavailable worker does not prevent heuristic analysis
 - Inventory dependency manifests and lockfiles for npm, Python, Rust, Go, Ruby, PHP, Maven, and Gradle without installing packages or making network requests
 - Redact detected credential values from finding evidence
@@ -58,7 +58,7 @@ These controls reduce exposure but are not a complete sandbox or a substitute fo
 - Findings are heuristic indicators, not proof that a vulnerability is exploitable. False positives and false negatives are expected.
 - The initial heuristic ruleset is intentionally small and is not a replacement for a professional security review.
 - Bandit, Ruff, and Gitleaks run in the isolated worker image. Gitleaks is copied from a pinned upstream image tag; tool status is reported explicitly when a scanner is unavailable or cannot complete.
-- OSV-Scanner is intentionally not executed yet. Dependency inventory remains metadata-only; no package installation or vulnerability database lookup occurs.
+- OSV-Scanner runs only when explicitly enabled through the `osv-online` profile and `ENABLE_OSV_SCAN=true`. It scans a bounded set of recognized lockfiles, disables package/registry resolution, and queries OSV data. The OSV worker has outbound network access; Docker Compose alone does not restrict destination domains.
 - The worker is a dedicated container but is not yet a disposable per-job VM or hardened sandbox; do not expose this development deployment to untrusted public traffic.
 - Dependency inventory is metadata-only; OSV vulnerability database matching is not integrated yet. External database access is intentionally not enabled.
 - Website scanning, authentication, persistence, AI analysis, and PDF/JSON reporting are not implemented yet.
@@ -68,7 +68,7 @@ These controls reduce exposure but are not a complete sandbox or a substitute fo
 Only assess systems you own or are explicitly authorized to test. Treat uploaded archives as untrusted input.
 
 ## Roadmap
-1. Add OSV dependency vulnerability matching through a separately isolated, explicitly approved network-enabled job
+1. Add egress firewall/proxy allowlisting and integration tests for OSV API access
 2. Implement authorized website scanning with strict SSRF protections and scope controls
 3. Add evidence-grounded AI explanations via OpenRouter
 4. Add reports, audit history, authentication, persistence, and further hardening
