@@ -4,7 +4,7 @@ import { requestPasswordReset, resetPassword, verifyEmail, resendVerification } 
 type Props = { onBack: () => void }
 
 export default function AccountRecovery({ onBack }: Props) {
-  const params = new URLSearchParams(window.location.search)
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''))
   const verifyToken = params.get('verify') ?? ''
   const resetToken = params.get('reset') ?? ''
   const [email, setEmail] = useState('')
