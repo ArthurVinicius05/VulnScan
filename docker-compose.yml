@@ -21,6 +21,7 @@ services:
       MAX_EXTRACTED_MB: ${MAX_EXTRACTED_MB:-100}
       SCANNER_WORKER_URL: http://scanner-worker:8001
       SCANNER_WORKER_TIMEOUT_SECONDS: 30
+      SCANNER_WORKER_TOKEN: ${SCANNER_WORKER_TOKEN:-}
       ENABLE_OSV_SCAN: ${ENABLE_OSV_SCAN:-false}
       OSV_WORKER_URL: http://osv-worker:8002
       ENABLE_WEBSITE_SCAN: ${ENABLE_WEBSITE_SCAN:-false}
@@ -58,7 +59,8 @@ services:
     build: ./backend
     command: uvicorn app.worker:app --host 0.0.0.0 --port 8001
     environment:
-      APP_ENV: production
+      APP_ENV: ${APP_ENV:-development}
+      SCANNER_WORKER_TOKEN: ${SCANNER_WORKER_TOKEN:-}
     user: "10001:10001"
     expose:
       - "8001"
