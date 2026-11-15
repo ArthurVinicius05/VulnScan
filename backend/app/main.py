@@ -7,6 +7,7 @@ from app.api.routes.analysis import router as analysis_router
 from app.api.routes.history import router as history_router
 from app.api.routes.auth import router as auth_router
 from app.middleware.rate_limit import RateLimitMiddleware
+from app.middleware.upload_auth import UploadAuthenticationMiddleware
 
 app = FastAPI(
     title="VulnScan Pro API",
@@ -32,3 +33,6 @@ app.include_router(auth_router, prefix="/api")
 @app.get("/")
 def root():
     return {"name": "VulnScan Pro API", "version": app.version, "docs": "/docs"}
+
+# Runs before FastAPI multipart parsing for the source archive upload endpoint.
+app.add_middleware(UploadAuthenticationMiddleware)
