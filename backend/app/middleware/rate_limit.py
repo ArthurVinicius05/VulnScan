@@ -41,11 +41,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if self._redis is None:
             from redis.asyncio import Redis
             self._redis = Redis.from_url(settings.redis_url, decode_responses=True)
-        pipe = self._redis.pipeline()
-        pipe.incr(key)
-        pipe.expire(key, window)
-        result = await pipe.execute()
-        return int(result[0]) <= limit
+        count = await self._redis.eval(
+            "local n = redis.call('INCR', KEYS[1]); "
+            "if n == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]); end; "
+            "return n",
+            1,
+            key,
+            window,
+        )
+        return int(count) <= limit
 
     async def dispatch(self, request: Request, call_next):
         policy = self._policy(request.url.path)
