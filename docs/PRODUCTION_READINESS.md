@@ -23,6 +23,7 @@ This checklist is a release gate, not a claim that the current deployment is cer
 
 - [ ] Apply and verify host-firewall allowlisting for SMTP proxy destination IPs/ports and DNS; keep website/OSV disabled until SSRF/redirect/DNS-rebinding tests and a separate egress policy pass.
 - [x] Pin every container image by digest and verify registry digests in CI through `images.lock`.
+- [x] Pin GitHub Actions to immutable commit SHAs and configure weekly Dependabot updates for actions, packages and container images.
 - [ ] Verify image provenance/signatures where available and document update/rollback cadence.
 - [x] Automated PostgreSQL concurrency/worker-claim tests and encrypted backup/restore smoke test in CI.
 - [ ] Run load/abuse and full failure-recovery/restore drills against a production-like environment.
