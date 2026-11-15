@@ -72,3 +72,43 @@ export async function fetchAuditHistory(): Promise<AuditHistoryItem[]> {
   if (!response.ok) throw new Error(payload.detail ?? 'Falha ao carregar o histórico.')
   return payload.items ?? []
 }
+
+export async function requestPasswordReset(email: string): Promise<string> {
+  const response = await fetch(`${API_URL}/api/auth/request-password-reset`, {
+    method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  const payload = await response.json()
+  if (!response.ok) throw new Error(payload.detail ?? 'Não foi possível solicitar a redefinição.')
+  return payload.message
+}
+
+export async function resetPassword(token: string, password: string): Promise<string> {
+  const response = await fetch(`${API_URL}/api/auth/reset-password`, {
+    method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, password }),
+  })
+  const payload = await response.json()
+  if (!response.ok) throw new Error(payload.detail ?? 'Link inválido ou expirado.')
+  return payload.message
+}
+
+export async function verifyEmail(token: string): Promise<string> {
+  const response = await fetch(`${API_URL}/api/auth/verify-email`, {
+    method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  })
+  const payload = await response.json()
+  if (!response.ok) throw new Error(payload.detail ?? 'Não foi possível confirmar o e-mail.')
+  return payload.message
+}
+
+export async function resendVerification(email: string): Promise<string> {
+  const response = await fetch(`${API_URL}/api/auth/resend-verification`, {
+    method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  const payload = await response.json()
+  if (!response.ok) throw new Error(payload.detail ?? 'Não foi possível reenviar.')
+  return payload.message
+}
