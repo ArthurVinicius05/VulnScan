@@ -62,6 +62,12 @@ class PinnedHTTPConnection(http.client.HTTPConnection):
             self.sock = raw
 
 
+def _host_header(target: ValidatedTarget) -> str:
+    host = f"[{target.hostname}]" if ":" in target.hostname else target.hostname
+    default_port = 443 if target.scheme == "https" else 80
+    return host if target.port == default_port else f"{host}:{target.port}"
+
+
 def _request_once(target: ValidatedTarget) -> HTTPResult:
     last_error = None
     for address in target.resolved_addresses:
@@ -77,8 +83,7 @@ def _request_once(target: ValidatedTarget) -> HTTPResult:
                 "GET",
                 path,
                 headers={
-                    "Host": target.hostname if target.port in (80, 443)
-                    else f"{target.hostname}:{target.port}",
+                    "Host": _host_header(target),
                     "User-Agent": "VulnScan-Pro/0.4 (authorized passive audit)",
                     "Accept": "*/*",
                     "Connection": "close",

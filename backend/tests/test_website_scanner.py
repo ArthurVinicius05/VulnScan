@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import pytest
 
 from app.services.target_validation import TargetValidationError, ValidatedTarget
-from app.services.website_scanner import HTTPResult, scan_website
+from app.services.website_scanner import HTTPResult, _host_header, scan_website
 
 
 def target(url):
@@ -75,3 +75,16 @@ def test_cookie_flags_are_reported():
     assert "WEB-COOKIE-SECURE" in rules
     assert "WEB-COOKIE-HTTPONLY" in rules
     assert "WEB-COOKIE-SAMESITE" in rules
+
+
+@pytest.mark.parametrize(
+    ("scheme", "port", "expected"),
+    [("https", 443, "example.org"), ("https", 80, "example.org:80"),
+     ("http", 80, "example.org"), ("http", 443, "example.org:443")],
+)
+def test_host_header_uses_scheme_default_port(scheme, port, expected):
+    validated = ValidatedTarget(
+        url=f"{scheme}://example.org:{port}/", scheme=scheme,
+        hostname="example.org", port=port, resolved_addresses=("93.184.216.34",),
+    )
+    assert _host_header(validated) == expected

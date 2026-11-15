@@ -86,7 +86,10 @@ def validate_target_url(
     if not hostname:
         raise TargetValidationError("A URL precisa informar um domínio ou endereço IP.")
 
-    hostname = hostname.rstrip(".").encode("idna").decode("ascii").lower()
+    try:
+        hostname = hostname.rstrip(".").encode("idna").decode("ascii").lower()
+    except UnicodeError as exc:
+        raise TargetValidationError("O domínio informado contém caracteres inválidos.") from exc
     if not hostname or any(hostname.endswith(suffix) for suffix in BLOCKED_SUFFIXES):
         raise TargetValidationError("Domínios locais ou reservados não podem ser escaneados.")
     if "%" in hostname:

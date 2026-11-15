@@ -54,3 +54,8 @@ def test_rejects_invalid_dns_resolution():
 
     with pytest.raises(TargetValidationError):
         validate_target_url("https://example.org", resolver=failed_resolver)
+
+
+def test_rejects_invalid_idna_hostname():
+    with pytest.raises(TargetValidationError, match="caracteres inválidos"):
+        validate_target_url("https://\ud800.example.org", resolver=public_resolver)
