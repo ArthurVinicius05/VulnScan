@@ -1,5 +1,7 @@
 import hashlib
 from datetime import datetime, timezone
+
+import anyio
 from hmac import compare_digest
 
 from starlette.responses import JSONResponse
@@ -88,7 +90,9 @@ class UploadAuthenticationMiddleware:
                 await self._response(scope, receive, send, 400, "Content-Length inválido.")
                 return
 
-        authenticated, status_code, detail = self._authenticated(scope)
+        authenticated, status_code, detail = await anyio.to_thread.run_sync(
+            self._authenticated, scope
+        )
         if not authenticated:
             await self._response(scope, receive, send, status_code, detail)
             return
