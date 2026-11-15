@@ -5,6 +5,7 @@ from app.core.config import settings
 from app.api.routes.health import router as health_router
 from app.api.routes.analysis import router as analysis_router
 from app.api.routes.history import router as history_router
+from app.api.routes.auth import router as auth_router
 
 app = FastAPI(
     title="VulnScan Pro API",
@@ -23,6 +24,7 @@ app.add_middleware(
 app.include_router(health_router, prefix="/api")
 app.include_router(analysis_router, prefix="/api")
 app.include_router(history_router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
 
 
 @app.get("/")
