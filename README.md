@@ -47,14 +47,17 @@ O ambiente local pode ativar contas automaticamente quando SMTP não está confi
 ### Análise e fila
 - Upload ZIP com validação de caminhos, links simbólicos, arquivos criptografados, expansão suspeita e limites de tamanho.
 - O endpoint de análise de código-fonte responde HTTP 202 e persiste o job no PostgreSQL.
-- O worker usa bloqueio de linha, leases com expiração, retries limitados e gravação idempotente do resultado.
+- O worker usa bloqueio de linha, leases renováveis, propriedade por tentativa, retries limitados e gravação atômica/idempotente do resultado.
+- Jobs que esgotam tentativas vão para dead-letter; operadores autenticados podem inspecionar e reprocessar jobs pelo endpoint interno de operações. O token `OPS_ADMIN_TOKEN` deve ser mantido em segredo e nunca colocado no frontend.
+- O arquivo original de um job em dead-letter fica disponível por no máximo 72 horas (configurável por `DEAD_LETTER_ARCHIVE_RETENTION_HOURS`); depois disso, só é possível recuperar com novo upload.
 - Análises ainda na fila podem ser canceladas pelo usuário; o upload temporário é descartado e a vaga de concorrência liberada. Jobs em execução não podem ser cancelados nesta versão.
-- Os arquivos originais são removidos quando o job termina ou falha definitivamente.
+- Os arquivos originais são removidos quando a análise termina normalmente; em dead-letter, permanecem apenas durante a janela curta de recuperação e depois são apagados.
 - Quotas padrão por conta: 30 análises/mês, 2 análises simultâneas e 50 MB de arquivos pendentes. O limite padrão de upload individual é 25 MB. Ajuste os valores conforme a capacidade real.
 - O histórico é isolado por usuário; os resultados heurísticos podem conter falsos positivos e negativos.
 
 ### Retenção
-- Jobs concluídos/falhos: metadados removidos após 30 dias.
+- Jobs concluídos, falhos, cancelados e dead-letter: metadados removidos após 30 dias.
+- Arquivos originais de jobs dead-letter: apagados após 72 horas por padrão.
 - Relatórios de auditoria: retidos por 180 dias.
 - Desafios MFA, sessões e tokens expirados: limpeza diária pelo worker.
 - Os prazos são configuráveis por ANALYSIS_JOB_RETENTION_DAYS e AUDIT_RETENTION_DAYS. A política pública de privacidade deve refletir os valores reais da implantação.
@@ -86,15 +89,16 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 ~~~
 
 5. Configure SMTP_UPSTREAM_HOST, SMTP_UPSTREAM_PORT, SMTP_TLS_SERVER_NAME, credenciais SMTP e BACKUP_RECIPIENT.
-6. Ajuste CORS_ORIGINS e FRONTEND_URL para o domínio real.
-7. Configure o firewall do host para restringir o egress do proxy SMTP ao relay autorizado.
-8. Inicie:
+6. Para inspecionar a fila morta, use `GET /api/ops/dead-letter` com `X-Operations-Token`. Para reprocessar um job que ainda retenha o arquivo, use `POST /api/ops/jobs/{job_id}/retry` com o mesmo header. A API não disponibiliza uma interface web para esse token.
+7. Ajuste CORS_ORIGINS e FRONTEND_URL para o domínio real.
+8. Configure o firewall do host para restringir o egress do proxy SMTP ao relay autorizado.
+9. Inicie:
 
 ~~~bash
 docker compose --env-file .env.production -f docker-compose.production.yml up --build -d
 ~~~
 
-9. Coloque um proxy TLS gerenciado (Caddy, Nginx ou equivalente) na frente de 127.0.0.1:8080. O cookie é Secure; não exponha sem HTTPS.
+10. Coloque um proxy TLS gerenciado (Caddy, Nginx ou equivalente) na frente de 127.0.0.1:8080. O cookie é Secure; não exponha sem HTTPS.
 
 O perfil de produção mantém API, PostgreSQL, Redis, scanner, worker e Prometheus em redes internas. A interface Prometheus fica em loopback. A API confia em headers forwarded somente do proxy frontend reservado.
 
