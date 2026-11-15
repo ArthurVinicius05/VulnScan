@@ -8,7 +8,7 @@ services:
       API_KEY: ${VULNSCAN_API_KEY:-}
       DATABASE_URL: ${DATABASE_URL:-sqlite:///./vulnscan.db}
       REDIS_URL: redis://redis:6379/0
-      CORS_ORIGINS: http://localhost:5173
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:5173"]}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
@@ -16,6 +16,9 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
       MAIL_FROM: ${MAIL_FROM:-}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
+      MAX_ARCHIVE_FILES: ${MAX_ARCHIVE_FILES:-3000}
+      MAX_EXTRACTED_MB: ${MAX_EXTRACTED_MB:-100}
       SCANNER_WORKER_URL: http://scanner-worker:8001
       SCANNER_WORKER_TIMEOUT_SECONDS: 30
       ENABLE_OSV_SCAN: ${ENABLE_OSV_SCAN:-false}
