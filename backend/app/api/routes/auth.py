@@ -184,7 +184,9 @@ def get_current_user(request: Request,
     if user is None:
         raise HTTPException(status_code=401, detail="Conta não encontrada.")
     if request.method not in {"GET", "HEAD", "OPTIONS"} and (
-        not csrf_cookie or not csrf_header or not compare_digest(csrf_cookie, csrf_header)):
+        not csrf_cookie or not csrf_header or not compare_digest(
+            csrf_cookie.encode("utf-8"), csrf_header.encode("utf-8")
+        )):
         raise HTTPException(status_code=403, detail="Token CSRF ausente ou inválido.")
     return user
 
