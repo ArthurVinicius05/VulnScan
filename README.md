@@ -157,6 +157,7 @@ Consulte:
 - TERMS.md — termos e escopo de uso.
 - docs/ARCHITECTURE.md — arquitetura.
 - docs/PRODUCTION_READINESS.md — gates de lançamento.
+- docs/OPERATIONS_RUNBOOK.md — procedimentos de implantação, egress, TLS, backups e resposta a incidentes.
 - docs/DEPENDENCY_MANAGEMENT.md — atualização e validação de dependências.
 
 ## Pendências antes de abrir ao público
