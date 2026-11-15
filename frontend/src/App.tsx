@@ -102,7 +102,7 @@ export default function App() {
   async function runAnalysis() {
     if (!file) return
     setBusy(true); setError(''); setResult(null)
-    try { setResult(await uploadSourceZip(file)); await refreshHistory() }
+    try { setResult(await uploadSourceZip(file) as Result); await refreshHistory() }
     catch (e) { if (e instanceof ApiError && e.status === 401) { setAuthenticated(false); setResult(null); setError('Sua sessão expirou. Entre novamente para continuar.') } else setError(e instanceof Error ? e.message : 'Erro inesperado.') }
     finally { setBusy(false) }
   }
