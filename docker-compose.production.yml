@@ -50,7 +50,7 @@ services:
       SCANNER_WORKER_TIMEOUT_SECONDS: 30
       ENABLE_OSV_SCAN: "false"
       ENABLE_WEBSITE_SCAN: "false"
-    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips=*"
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips=172.30.0.10"
     depends_on:
       db:
         condition: service_healthy
@@ -108,7 +108,9 @@ services:
     security_opt: ["no-new-privileges:true"]
     cap_drop: [ALL]
     restart: unless-stopped
-    networks: [app_internal]
+    networks:
+      app_internal:
+        ipv4_address: 172.30.0.10
 
 volumes:
   postgres_data:
@@ -117,5 +119,8 @@ volumes:
 networks:
   app_internal:
     internal: true
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
   scanner_internal:
     internal: true
