@@ -101,7 +101,7 @@ def test_upload_rejects_chunked_body_over_limit(monkeypatch):
         middleware = UploadAuthenticationMiddleware(downstream)
         messages = []
         chunks = [
-            {"type": "http.request", "body": b"x" * (2 * 1024 * 1024), "more_body": True},
+            {"type": "http.request", "body": b"x" * (3 * 1024 * 1024), "more_body": True},
         ]
 
         async def receive():
