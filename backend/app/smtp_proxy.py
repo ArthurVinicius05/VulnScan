@@ -5,7 +5,6 @@ import ipaddress
 import logging
 import os
 import socket
-from typing import Iterable
 
 logger = logging.getLogger("vulnscan.smtp_proxy")
 LISTEN_HOST = "0.0.0.0"

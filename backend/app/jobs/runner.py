@@ -40,7 +40,8 @@ def claim_next_job() -> tuple[str, str, str, bytes, int] | None:
 def _finish_job(job_id: str, result: dict) -> None:
     with SessionLocal() as db:
         job = db.get(AnalysisJob, job_id)
-        if job is None: return
+        if job is None:
+            return
         job.status, job.result, job.error = "completed", result, None
         job.archive_data = None
         job.lease_expires_at = None
@@ -65,7 +66,8 @@ def _retry_or_fail(job_id: str, attempts: int, error: Exception) -> None:
 
 async def process_one_job() -> bool:
     claimed = claim_next_job()
-    if claimed is None: return False
+    if claimed is None:
+        return False
     job_id, user_id, filename, archive_data, attempts = claimed
     try:
         result = await analyze_source_archive(archive_data, filename)

@@ -19,7 +19,9 @@ def queue_db(tmp_path, monkeypatch):
     sessions = sessionmaker(bind=engine, expire_on_commit=False)
     with sessions() as db:
         user = User(email="queue@example.test", password_hash="hash")
-        db.add(user); db.commit(); user_id = user.id
+        db.add(user)
+        db.commit()
+        user_id = user.id
     monkeypatch.setattr("app.services.analysis_queue.settings.max_concurrent_analyses", 2)
     monkeypatch.setattr("app.services.analysis_queue.settings.monthly_analysis_limit", 3)
     monkeypatch.setattr("app.services.analysis_queue.settings.max_queued_storage_mb", 50)

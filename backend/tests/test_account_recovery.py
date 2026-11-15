@@ -9,7 +9,6 @@ from app.api.dependencies import get_db
 from app.db.database import Base
 from app.main import app
 from app.models.user import User
-from app.models.account_token import AccountToken
 from app.models.user_session import UserSession
 from app.core.passwords import hash_password, verify_password
 from app.api.routes import auth as auth_routes

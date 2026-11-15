@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 
 import pyotp
-import pytest
 from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
