@@ -56,7 +56,7 @@ def test_account_deletion_requires_running_jobs_to_finish_and_removes_live_data(
                 running.completed_at = datetime.now(timezone.utc)
                 db.commit()
 
-            deleted = client.delete("/api/auth/me", json={"password": "correct-horse-battery"},
+            deleted = client.request("DELETE", "/api/auth/me", json={"password": "correct-horse-battery"},
                 headers={"X-CSRF-Token": csrf})
             assert deleted.status_code == 200
             with sessions() as db:
