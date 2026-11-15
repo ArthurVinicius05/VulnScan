@@ -40,7 +40,8 @@ def audit_client(tmp_path, monkeypatch):
         db.commit()
         user_id = user.id
     with TestClient(app) as client:
-        client.headers.update({"Authorization": f"Bearer {token}"})
+        client.cookies.set("vulnscan_session", token)
+        client.cookies.set("vulnscan_csrf", "test-csrf-token")
         yield client, test_sessions, user_id
     app.dependency_overrides.clear()
     engine.dispose()
@@ -84,14 +85,14 @@ def test_history_is_private_between_users(audit_client):
     response = client.get("/api/history")
     assert response.status_code == 200 and response.json()["items"][0]["target"] == "private.zip"
     audit_id = response.json()["items"][0]["id"]
-    client.headers.update({"Authorization": f"Bearer {token}"})
+    client.cookies.set("vulnscan_session", token)
     assert client.get("/api/history").json()["items"] == []
     assert client.get(f"/api/history/{audit_id}").status_code == 404
 
 
 def test_history_requires_authentication(audit_client):
     client, _, _ = audit_client
-    client.headers.pop("Authorization")
+    client.cookies.delete("vulnscan_session")
     assert client.get("/api/history").status_code == 401
 
 
