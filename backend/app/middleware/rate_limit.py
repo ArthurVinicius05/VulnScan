@@ -37,7 +37,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             hits.append(now)
             return True
 
-    async def _allow_redis(self, key: str, window: int) -> bool:
+    async def _allow_redis(self, key: str, limit: int, window: int) -> bool:
         if self._redis is None:
             from redis.asyncio import Redis
             self._redis = Redis.from_url(settings.redis_url, decode_responses=True)
@@ -45,7 +45,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         pipe.incr(key)
         pipe.expire(key, window)
         result = await pipe.execute()
-        return int(result[0]) <= (10 if ":auth:" in key else 5)
+        return int(result[0]) <= limit
 
     async def dispatch(self, request: Request, call_next):
         policy = self._policy(request.url.path)
@@ -58,7 +58,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         try:
             if settings.redis_url:
-                allowed = await self._allow_redis(key, window)
+                allowed = await self._allow_redis(key, limit, window)
             elif settings.app_env.lower() == "production":
                 return JSONResponse(status_code=503, content={"detail": "Rate limiting Redis não configurado."})
             else:
