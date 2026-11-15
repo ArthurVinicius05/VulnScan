@@ -68,6 +68,67 @@ def test_upload_rejects_unauthenticated_request_before_multipart_parsing():
     assert response.json()["detail"] == "Autenticação necessária."
 
 
+def test_upload_early_auth_error_keeps_cors_headers():
+    client = TestClient(app, client=("127.0.0.17", 12345))
+    response = client.post(
+        "/api/analysis/source-zip",
+        content=b"not a valid multipart body",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Content-Type": "multipart/form-data; boundary=missing",
+        },
+    )
+    assert response.status_code == 401
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert response.headers["access-control-allow-credentials"] == "true"
+
+
+def test_upload_rejects_chunked_body_over_limit(monkeypatch):
+    import asyncio
+    from app.middleware.upload_auth import UploadAuthenticationMiddleware
+
+    monkeypatch.setattr(UploadAuthenticationMiddleware, "_authenticated",
+        staticmethod(lambda scope: (True, 200, "")))
+    monkeypatch.setattr("app.middleware.upload_auth.settings.max_upload_mb", 1)
+
+    async def run():
+        async def downstream(scope, receive, send):
+            while True:
+                message = await receive()
+                if not message.get("more_body"):
+                    break
+
+        middleware = UploadAuthenticationMiddleware(downstream)
+        messages = []
+        chunks = [
+            {"type": "http.request", "body": b"x" * (2 * 1024 * 1024), "more_body": True},
+        ]
+
+        async def receive():
+            return chunks.pop(0) if chunks else {"type": "http.disconnect"}
+
+        async def send(message):
+            messages.append(message)
+
+        scope = {
+            "type": "http",
+            "method": "POST",
+            "path": "/api/analysis/source-zip",
+            "headers": [
+                (b"origin", b"http://localhost:5173"),
+                (b"transfer-encoding", b"chunked"),
+            ],
+        }
+        await middleware(scope, receive, send)
+        return messages
+
+    messages = asyncio.run(run())
+    start = next(message for message in messages if message["type"] == "http.response.start")
+    body = next(message for message in messages if message["type"] == "http.response.body")
+    assert start["status"] == 413
+    assert b"excede o limite" in body["body"]
+
+
 def test_upload_rejects_oversized_content_length_before_multipart_parsing(monkeypatch):
     from app.middleware import upload_auth
 
