@@ -1,6 +1,6 @@
 import asyncio
 import time
-from collections import defaultdict, deque
+from collections import OrderedDict, deque
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -10,11 +10,13 @@ from app.core.config import settings
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Fixed-window limits for sensitive endpoints; Redis is shared across workers."""
+    """Shared Redis fixed-window limits with a bounded development fallback."""
+
+    MAX_LOCAL_KEYS = 10_000
 
     def __init__(self, app):
         super().__init__(app)
-        self._local_hits = defaultdict(deque)
+        self._local_hits = OrderedDict()
         self._local_lock = asyncio.Lock()
         self._redis = None
 
@@ -28,13 +30,23 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def _allow_local(self, key: str, limit: int, window: int) -> bool:
         now = time.monotonic()
+        cutoff = now - window
         async with self._local_lock:
-            hits = self._local_hits[key]
-            while hits and hits[0] <= now - window:
+            # Expire inactive buckets so arbitrary client identifiers cannot grow memory forever.
+            expired = [item for item, hits in self._local_hits.items() if not hits or hits[-1] <= cutoff]
+            for item in expired:
+                self._local_hits.pop(item, None)
+
+            hits = self._local_hits.pop(key, deque())
+            while hits and hits[0] <= cutoff:
                 hits.popleft()
             if len(hits) >= limit:
+                self._local_hits[key] = hits
                 return False
             hits.append(now)
+            self._local_hits[key] = hits
+            while len(self._local_hits) > self.MAX_LOCAL_KEYS:
+                self._local_hits.popitem(last=False)
             return True
 
     async def _allow_redis(self, key: str, limit: int, window: int) -> bool:
@@ -57,6 +69,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         category, limit, window = policy
+        # Use the transport peer address; do not trust client-supplied X-Forwarded-For.
         client_ip = request.client.host if request.client else "unknown"
         key = f"vulnscan:rate:{category}:{client_ip}"
 
