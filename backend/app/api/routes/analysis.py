@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 
 from app.core.auth import require_api_key
 from app.core.config import settings
+from app.services.audit_history import save_audit
 from app.services.dependency_inventory import inventory_dependency_manifests
 from app.services.osv_client import scan_dependencies
 from app.services.source_analyzer import analyze_source_zip
@@ -41,7 +42,7 @@ async def analyze_source_zip_endpoint(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     findings = heuristic_findings + tool_result.get("findings", []) + osv_result.get("findings", [])
-    return {
+    response = {
         "status": "completed",
         "analysis_type": "static_source_analysis",
         "filename": file.filename,
@@ -58,6 +59,11 @@ async def analyze_source_zip_endpoint(file: UploadFile = File(...)):
         "dependencies": dependency_result,
         **metadata,
     }
+    try:
+        save_audit(analysis_type="static_source_analysis", target=file.filename, result=response)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="A análise foi concluída, mas não foi possível salvar o histórico.") from exc
+    return response
 
 
 class WebsiteScanRequest(BaseModel):
@@ -77,8 +83,13 @@ async def analyze_website_endpoint(request: WebsiteScanRequest):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if result.get("status") == "unavailable":
         raise HTTPException(status_code=503, detail=result.get("reason"))
-    return {
+    response = {
         **result,
         "analysis_type": "website_security_audit",
         "notice": "Verificação passiva limitada à página inicial e aos redirecionamentos validados. Não executa payloads, fuzzing ou exploração. Use somente alvos sob sua autorização.",
     }
+    try:
+        save_audit(analysis_type="website_security_audit", target=request.url, result=response)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="A análise foi concluída, mas não foi possível salvar o histórico.") from exc
+    return response
