@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_env: str = "development"
+    api_key: str | None = None
     cors_origins: list[str] = ["http://localhost:5173"]
     max_upload_mb: int = 25
     max_archive_files: int = 3000
