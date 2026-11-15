@@ -8,6 +8,8 @@ services:
       CORS_ORIGINS: http://localhost:5173
       SCANNER_WORKER_URL: http://scanner-worker:8001
       SCANNER_WORKER_TIMEOUT_SECONDS: 30
+      ENABLE_OSV_SCAN: ${ENABLE_OSV_SCAN:-false}
+      OSV_WORKER_URL: http://osv-worker:8002
     volumes:
       - ./backend:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -17,6 +19,7 @@ services:
     networks:
       - default
       - scanner_internal
+      - osv_internal
 
   scanner-worker:
     build: ./backend
@@ -45,6 +48,36 @@ services:
     networks:
       - scanner_internal
 
+  osv-worker:
+    profiles: ["osv-online"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.osv
+    environment:
+      APP_ENV: production
+    user: "10001:10001"
+    expose:
+      - "8002"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 768m
+    cpus: 1.0
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health', timeout=2)"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - osv_internal
+      - osv_egress
+
   frontend:
     build: ./frontend
     ports:
@@ -57,3 +90,6 @@ services:
 networks:
   scanner_internal:
     internal: true
+  osv_internal:
+    internal: true
+  osv_egress:
