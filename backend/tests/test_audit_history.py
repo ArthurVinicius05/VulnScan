@@ -74,6 +74,7 @@ def test_history_is_private_between_users(audit_client):
     assert response.status_code == 200 and response.json()["items"][0]["target"] == "private.zip"
     client.headers.update({"Authorization": f"Bearer {token}"})
     assert client.get("/api/history").json()["items"] == []
+    assert client.get(f"/api/history/{audit_id}").status_code == 404
 
 
 def test_history_requires_authentication(audit_client):
