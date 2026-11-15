@@ -82,7 +82,7 @@ Os workers usam usuário sem privilégios, sistema de arquivos somente leitura, 
 - Achados heurísticos não provam explorabilidade; falsos positivos e negativos são esperados.
 - O conjunto inicial de regras é pequeno e não substitui uma revisão profissional.
 - O código enviado não é intencionalmente executado pela API.
-- Ainda não há papéis/permissões administrativas, verificação de e-mail ou recuperação de senha.
+- Ainda não há papéis/permissões administrativas, MFA ou política de convites.
 - O esquema do banco é versionado por migrações Alembic; execute `alembic upgrade head` após atualizar a aplicação. O SQLite é o padrão de desenvolvimento; PostgreSQL pode ser informado via `DATABASE_URL`.
 - O histórico é isolado por conta para auditorias novas; registros legados sem proprietário não aparecem no histórico individual.
 - Ainda faltam limites de uso por usuário, allowlist de saída aplicada por firewall/proxy, explicações por IA e relatórios PDF/JSON. O rate limiting atual é por IP e não substitui quotas por conta.
