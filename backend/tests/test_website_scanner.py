@@ -1,8 +1,10 @@
 
+import socket
+
 import pytest
 
 from app.services.target_validation import TargetValidationError, ValidatedTarget
-from app.services.website_scanner import HTTPResult, _host_header, scan_website
+from app.services.website_scanner import HTTPResult, PinnedHTTPConnection, _host_header, scan_website
 
 
 def target(url):
@@ -87,3 +89,41 @@ def test_host_header_uses_scheme_default_port(scheme, port, expected):
         hostname="example.org", port=port, resolved_addresses=("93.184.216.34",),
     )
     assert _host_header(validated) == expected
+
+
+
+def test_connection_uses_pinned_address_without_second_dns_lookup(monkeypatch):
+    dns_calls = []
+
+    def resolver(hostname, port):
+        dns_calls.append((hostname, port))
+        if len(dns_calls) == 1:
+            return ("93.184.216.34",)
+        return ("169.254.169.254",)
+
+    from app.services.target_validation import validate_target_url
+
+    validated = validate_target_url("http://example.org", resolver=resolver)
+    connected = []
+
+    class FakeSocket:
+        pass
+
+    fake_socket = FakeSocket()
+
+    def fake_create_connection(address, timeout):
+        connected.append((address, timeout))
+        return fake_socket
+
+    monkeypatch.setattr(socket, "create_connection", fake_create_connection)
+    connection = PinnedHTTPConnection(
+        validated,
+        validated.resolved_addresses[0],
+        timeout=1,
+    )
+    connection.connect()
+
+    assert dns_calls == [("example.org", 80)]
+    assert connected == [(("93.184.216.34", 80), 1)]
+    assert connection.sock is fake_socket
+    connection.close()
