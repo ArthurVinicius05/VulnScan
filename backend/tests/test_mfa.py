@@ -57,7 +57,7 @@ def test_login_requires_totp_challenge_and_issues_session(tmp_path, monkeypatch)
     sessions = sessionmaker(bind=engine, expire_on_commit=False)
     secret = generate_totp_secret()
     with sessions() as db:
-        user = User(email="login-mfa@example.test", password_hash=hash_password("correct-horse-battery"),
+        user = User(email="login-mfa@example.com", password_hash=hash_password("correct-horse-battery"),
             email_verified_at=datetime.now(timezone.utc), mfa_enabled=True,
             mfa_secret_encrypted=encrypt_secret(secret))
         db.add(user)
@@ -74,7 +74,7 @@ def test_login_requires_totp_challenge_and_issues_session(tmp_path, monkeypatch)
     try:
         with TestClient(app) as client:
             login = client.post("/api/auth/login", json={
-                "email": "login-mfa@example.test", "password": "correct-horse-battery"
+                "email": "login-mfa@example.com", "password": "correct-horse-battery"
             })
             assert login.status_code == 200
             challenge = login.json()
@@ -85,7 +85,7 @@ def test_login_requires_totp_challenge_and_issues_session(tmp_path, monkeypatch)
                 "challenge_token": challenge["challenge_token"], "code": code
             })
             assert completed.status_code == 200
-            assert completed.json()["user"]["email"] == "login-mfa@example.test"
+            assert completed.json()["user"]["email"] == "login-mfa@example.com"
             assert client.get("/api/auth/me").json()["mfa_enabled"] is True
     finally:
         app.dependency_overrides.clear()
