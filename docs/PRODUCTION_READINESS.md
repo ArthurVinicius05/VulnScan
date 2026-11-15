@@ -12,8 +12,8 @@ This checklist is a release gate, not a claim that the current deployment is cer
 
 ## Required engineering work before public launch
 
-- [ ] Replace synchronous request-bound scans with a durable asynchronous job queue, leases, retries, cancellation and idempotency.
-- [ ] Enforce per-account monthly quotas, concurrent-job limits and storage/retention limits in the database.
+- [x] Replace synchronous request-bound source scans with a PostgreSQL-backed durable queue, row-lock claims, expiring leases, bounded retries and idempotent history writes. Cancellation is still pending.
+- [x] Enforce per-account monthly and concurrent analysis quotas transactionally in PostgreSQL. Storage retention and account-level cleanup policies remain pending.
 - [ ] Implement MFA enrollment, recovery codes, login challenge and session revocation.
 - [ ] Commit reproducible Python and npm lockfiles; pin container images by digest and verify update automation.
 - [ ] Apply enforceable egress policy (firewall or controlled proxy) for every service with network access; add SSRF/redirect/DNS-rebinding integration tests.

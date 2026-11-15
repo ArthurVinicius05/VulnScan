@@ -1,17 +1,23 @@
-# Architecture — Phase 1
+# Architecture — Production hardening
 
-## Request flow
-Browser (React) -> FastAPI route -> ZIP inspector -> JSON response -> dashboard.
+## Request and analysis flow
+
+Browser -> FastAPI authentication/CSRF and upload limits -> PostgreSQL durable job record -> isolated analysis worker -> isolated scanner worker -> PostgreSQL result/history.
+
+Uploads are persisted in the PostgreSQL job row before the API returns HTTP 202. The analysis worker claims work with row-level locking (\`FOR UPDATE SKIP LOCKED\`), a lease and bounded retries. A worker restart makes expired leases eligible for reprocessing. The raw archive is deleted from the job row after success or terminal failure. Audit history is linked by a unique job ID to prevent duplicate history records after a retry.
 
 ## Trust boundaries
-Browser uploads are untrusted. The API reads a bounded number of bytes and validates ZIP metadata before inspecting paths. No archive member is extracted to disk and no uploaded program is executed.
 
-## Next architecture decisions
-1. Move scanning into isolated worker containers with no network by default.
-2. Add a job queue (Redis) for long-running analysis.
-3. Integrate deterministic scanners before AI interpretation.
-4. Store evidence and findings separately from AI-generated explanations.
-5. Add authentication, audit ownership, retention controls, and encrypted secret storage before multi-user deployment.
+- Browser uploads are untrusted and bounded before queue insertion.
+- API and analysis worker can access PostgreSQL; only the API has the SMTP egress interface.
+- Analysis worker can reach only the isolated scanner service, which requires a shared bearer token.
+- Website and OSV scans remain disabled in the production profile until enforceable egress rules and SSRF controls are verified.
+- No uploaded project code is executed by the API.
 
-## Caveats
-This ZIP inspector is a first-pass intake boundary, not a complete malware sandbox. Keep the service local. Production deployment requires additional hardening, dependency pinning, quotas, authentication, logging, and isolated workers.
+## Quotas
+
+Per-account monthly and concurrent job limits are enforced inside the same transaction that inserts a job. PostgreSQL row locking serializes quota checks for each account. IP-based Redis rate limits remain an additional control, not a replacement for account quotas.
+
+## Remaining production gates
+
+MFA, reproducible dependency lockfiles, network egress enforcement, load/abuse tests, observability, backup/restore drills and an independent security review are still required. See \`docs/PRODUCTION_READINESS.md\`.

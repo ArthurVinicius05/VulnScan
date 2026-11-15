@@ -36,6 +36,10 @@ def validate_production_settings(config: Settings = settings) -> None:
         errors.append("SMTP_STARTTLS must be enabled")
     if config.enable_website_scan or config.enable_osv_scan:
         errors.append("Website and OSV scanning must remain disabled until egress controls are validated")
+    if config.monthly_analysis_limit < 1:
+        errors.append("MONTHLY_ANALYSIS_LIMIT must be at least 1")
+    if not 1 <= config.max_concurrent_analyses <= config.monthly_analysis_limit:
+        errors.append("MAX_CONCURRENT_ANALYSES must be between 1 and MONTHLY_ANALYSIS_LIMIT")
     if not 1 <= config.max_upload_mb <= 100:
         errors.append("MAX_UPLOAD_MB must be between 1 and 100")
     if not 1 <= config.max_archive_files <= 10000:

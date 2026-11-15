@@ -46,6 +46,8 @@ services:
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
       MAX_ARCHIVE_FILES: ${MAX_ARCHIVE_FILES:-3000}
       MAX_EXTRACTED_MB: ${MAX_EXTRACTED_MB:-100}
+      MONTHLY_ANALYSIS_LIMIT: ${MONTHLY_ANALYSIS_LIMIT:-30}
+      MAX_CONCURRENT_ANALYSES: ${MAX_CONCURRENT_ANALYSES:-2}
       SCANNER_WORKER_URL: http://scanner-worker:8001
       SCANNER_WORKER_TIMEOUT_SECONDS: 30
       SCANNER_WORKER_TOKEN: ${SCANNER_WORKER_TOKEN:?Set SCANNER_WORKER_TOKEN in .env.production}
@@ -99,6 +101,38 @@ services:
       retries: 3
     restart: unless-stopped
     networks: [scanner_internal]
+
+  analysis-worker:
+    build: ./backend
+    command: ["python", "-m", "app.jobs.runner"]
+    environment:
+      APP_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env.production}
+      REDIS_URL: redis://redis:6379/0
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
+      MAX_ARCHIVE_FILES: ${MAX_ARCHIVE_FILES:-3000}
+      MAX_EXTRACTED_MB: ${MAX_EXTRACTED_MB:-100}
+      SCANNER_WORKER_URL: http://scanner-worker:8001
+      SCANNER_WORKER_TIMEOUT_SECONDS: 30
+      SCANNER_WORKER_TOKEN: ${SCANNER_WORKER_TOKEN:?Set SCANNER_WORKER_TOKEN in .env.production}
+      ENABLE_OSV_SCAN: "false"
+      ENABLE_WEBSITE_SCAN: "false"
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,mode=1777
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    pids_limit: 64
+    mem_limit: 768m
+    cpus: 1.5
+    depends_on:
+      db:
+        condition: service_healthy
+      scanner-worker:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [app_internal, scanner_internal]
 
   frontend:
     build:

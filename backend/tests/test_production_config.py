@@ -42,6 +42,8 @@ def test_valid_production_configuration_is_accepted():
         ({"smtp_starttls": False}, "SMTP_STARTTLS"),
         ({"enable_website_scan": True}, "egress controls"),
         ({"max_upload_mb": 1000}, "MAX_UPLOAD_MB"),
+        ({"monthly_analysis_limit": 0}, "MONTHLY_ANALYSIS_LIMIT"),
+        ({"max_concurrent_analyses": 0}, "MAX_CONCURRENT_ANALYSES"),
     ],
 )
 def test_unsafe_production_configuration_fails_closed(override, message):

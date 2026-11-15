@@ -100,6 +100,7 @@ O Compose de desenvolvimento acima não deve ser publicado na internet. Para pre
 5. Inicie com `docker compose --env-file .env.production -f docker-compose.production.yml up --build -d`.
 6. Coloque um proxy TLS gerenciado (Caddy, Nginx ou serviço equivalente) na frente da porta local `127.0.0.1:8080`. O cookie de sessão é Secure em produção; não use o serviço sem HTTPS.
 7. Configure backups testados do volume PostgreSQL, monitoramento, alertas, firewall de saída e atualização de imagens.
+8. O endpoint de análise de ZIP retorna HTTP 202 e grava o arquivo em uma fila durável no PostgreSQL. O serviço `analysis-worker` processa a fila com leases, tentativas limitadas e histórico idempotente. Ajuste `MONTHLY_ANALYSIS_LIMIT` e `MAX_CONCURRENT_ANALYSES` conforme a capacidade real.
 
 O perfil de produção não publica diretamente as portas da API, do PostgreSQL, do Redis ou do worker. A rede do worker de scanner é interna; o backend só confia no endereço reservado do proxy frontend para cabeçalhos encaminhados. O backend possui uma interface de saída para permitir SMTP: aplique no firewall do host uma allowlist restrita ao relay SMTP e às portas necessárias; não deixe essa saída irrestrita. A análise de sites e a consulta online OSV permanecem desativadas nesse perfil. Não habilite essas funções sem política de egress por firewall/proxy, autenticação serviço-a-serviço e testes específicos.
 
