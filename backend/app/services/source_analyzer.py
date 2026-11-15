@@ -98,6 +98,39 @@ def _redact_secret_line(line: str, pattern: re.Pattern) -> str:
     )
 
 
+def source_analysis_coverage(data: bytes) -> dict:
+    """Describe files omitted by the bounded heuristic scan."""
+    candidates = oversized = 0
+    eligible_bytes = 0
+    skipped_total_limit = 0
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        for info in archive.infolist():
+            if info.is_dir():
+                continue
+            filename = PurePosixPath(info.filename).name.lower()
+            suffix = PurePosixPath(filename).suffix.lower()
+            is_env_file = filename == ".env" or filename.startswith(".env.")
+            if suffix not in TEXT_EXTENSIONS and not is_env_file:
+                continue
+            candidates += 1
+            if info.file_size > MAX_FILE_BYTES:
+                oversized += 1
+                continue
+            if eligible_bytes + info.file_size > MAX_TOTAL_SOURCE_BYTES:
+                skipped_total_limit += 1
+                continue
+            eligible_bytes += info.file_size
+    return {
+        "candidate_files": candidates,
+        "files_over_file_limit": oversized,
+        "files_over_total_limit": skipped_total_limit,
+        "max_file_bytes": MAX_FILE_BYTES,
+        "max_total_source_bytes": MAX_TOTAL_SOURCE_BYTES,
+        "max_line_chars": MAX_LINE_CHARS,
+        "max_findings": MAX_FINDINGS,
+    }
+
+
 def analyze_source_zip(data: bytes) -> list[dict]:
     """Run bounded, read-only heuristic checks on text files in a ZIP archive."""
     findings: list[dict] = []
