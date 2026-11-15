@@ -75,7 +75,7 @@ RULES = [
         "severity": "medium",
         "confidence": "low",
         "extensions": {".py", ".js", ".ts", ".java", ".php"},
-        "pattern": re.compile(r"(?i)(?:execute|query)\s*\(\s*(?:f["']|["'][^"']*(?:SELECT|INSERT|UPDATE|DELETE)[^"']*["']\s*\+)"),
+        "pattern": re.compile(r"""(?i)(?:execute|query)\s*\(\s*(?:f["']|["'][^"']*(?:SELECT|INSERT|UPDATE|DELETE)[^"']*["']\s*\+)"""),
         "recommendation": "Use parameterized queries or prepared statements. This pattern is heuristic and requires manual verification.",
     },
 ]
