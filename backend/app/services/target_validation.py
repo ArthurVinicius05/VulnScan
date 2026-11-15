@@ -109,7 +109,13 @@ def validate_target_url(
     else:
         if "." not in hostname or hostname.startswith(".") or ".." in hostname:
             raise TargetValidationError("Informe um nome de domínio público válido.")
-        addresses = resolver(hostname, effective_port)
+        addresses = tuple(sorted({str(address).split("%", 1)[0] for address in resolver(hostname, effective_port)}))
+        if not addresses:
+            raise TargetValidationError("O domínio não retornou endereços IP.")
+        if any(not _is_public_address(address) for address in addresses):
+            raise TargetValidationError(
+                "O domínio resolve para um endereço não público; o alvo foi bloqueado."
+            )
 
     netloc_host = f"[{hostname}]" if ":" in hostname else hostname
     netloc = netloc_host if (scheme, effective_port) in {("https", 443), ("http", 80)} else f"{netloc_host}:{effective_port}"
