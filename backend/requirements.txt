@@ -8,3 +8,4 @@ bandit>=1.8,<2.0
 ruff>=0.14,<1.0
 SQLAlchemy>=2.0,<3.0
 psycopg[binary]>=3.2,<4.0
+Alembic>=1.14,<2.0
