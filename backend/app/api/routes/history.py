@@ -1,24 +1,13 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
-from app.core.auth import require_api_key
-from app.db.database import SessionLocal
+from app.api.dependencies import get_db
+from app.api.routes.auth import get_current_user
 from app.models.audit import AuditRecord
+from app.models.user import User
 
-router = APIRouter(
-    prefix="/history",
-    tags=["history"],
-    dependencies=[Depends(require_api_key)],
-)
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+router = APIRouter(prefix="/history", tags=["history"])
 
 
 @router.get("")
@@ -26,43 +15,24 @@ def list_audits(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     records = db.scalars(
         select(AuditRecord)
+        .where(AuditRecord.user_id == user.id)
         .order_by(desc(AuditRecord.created_at), desc(AuditRecord.id))
-        .offset(offset)
-        .limit(limit)
+        .offset(offset).limit(limit)
     ).all()
-    return {
-        "items": [
-            {
-                "id": item.id,
-                "analysis_type": item.analysis_type,
-                "target": item.target,
-                "status": item.status,
-                "finding_count": item.finding_count,
-                "created_at": item.created_at.isoformat(),
-            }
-            for item in records
-        ],
-        "limit": limit,
-        "offset": offset,
-    }
+    return {"items": [{"id": item.id, "analysis_type": item.analysis_type, "target": item.target,
+        "status": item.status, "finding_count": item.finding_count, "created_at": item.created_at.isoformat()}
+        for item in records], "limit": limit, "offset": offset}
 
 
 @router.get("/{audit_id}")
-def get_audit(audit_id: str, db: Session = Depends(get_db)):
-    record = db.get(AuditRecord, audit_id)
+def get_audit(audit_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    record = db.scalar(select(AuditRecord).where(AuditRecord.id == audit_id, AuditRecord.user_id == user.id))
     if record is None:
-        from fastapi import HTTPException
-
         raise HTTPException(status_code=404, detail="Análise não encontrada.")
-    return {
-        "id": record.id,
-        "analysis_type": record.analysis_type,
-        "target": record.target,
-        "status": record.status,
-        "finding_count": record.finding_count,
-        "created_at": record.created_at.isoformat(),
-        "result": record.result,
-    }
+    return {"id": record.id, "analysis_type": record.analysis_type, "target": record.target,
+        "status": record.status, "finding_count": record.finding_count,
+        "created_at": record.created_at.isoformat(), "result": record.result}
