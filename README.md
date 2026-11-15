@@ -77,8 +77,8 @@ Os workers usam usuário sem privilégios, sistema de arquivos somente leitura, 
 - O código enviado não é intencionalmente executado pela API.
 - Ainda não há papéis/permissões administrativas, verificação de e-mail, recuperação de senha, rate limiting de login ou proteção CSRF baseada em cookie.
 - O esquema do banco é versionado por migrações Alembic; execute `alembic upgrade head` após atualizar a aplicação. O SQLite é o padrão de desenvolvimento; PostgreSQL pode ser informado via `DATABASE_URL`.
-- O histórico atual é compartilhado no workspace, pois ainda não há identidade individual nem isolamento de registros por usuário.
-- Ainda faltam autenticação individual, limites por usuário, allowlist de saída, explicações por IA e relatórios PDF/JSON.
+- O histórico é isolado por conta para auditorias novas; registros legados sem proprietário não aparecem no histórico individual.
+- Ainda faltam limites de uso por usuário, allowlist de saída aplicada por firewall/proxy, explicações por IA e relatórios PDF/JSON.
 - O worker de sites executa somente verificações passivas limitadas; não realiza testes ativos.
 - Esta base ainda não está pronta para receber tráfego público não confiável.
 
@@ -86,8 +86,8 @@ Os workers usam usuário sem privilégios, sistema de arquivos somente leitura, 
 Avalie somente sistemas próprios ou para os quais exista autorização explícita. Trate arquivos enviados como entrada não confiável.
 
 ## Próximas etapas
-1. Autenticação individual, sessões seguras e controle de acesso por usuário.
-2. PostgreSQL gerenciado e isolamento do histórico por usuário.
-3. Integração do histórico ao painel React.
-4. Limites de uso, auditoria de escopo e allowlist de saída por firewall/proxy.
+1. Endurecimento da autenticação: cookies HttpOnly/Secure/SameSite, proteção CSRF, rate limiting e recuperação de conta.
+2. Integração do histórico e visualização detalhada no painel React.
+3. Limites de uso por usuário, auditoria de escopo e allowlist de saída por firewall/proxy.
+4. PostgreSQL gerenciado e operação de produção com backups e monitoramento.
 5. Relatórios JSON/PDF e explicações fundamentadas por IA.
