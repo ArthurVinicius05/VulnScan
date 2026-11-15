@@ -32,6 +32,11 @@ jobs:
       - name: Generate npm lockfile
         working-directory: frontend
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify lockfiles are committed and current
+        if: github.event_name == 'pull_request'
+        run: |
+          git ls-files --error-unmatch backend/requirements.lock frontend/package-lock.json
+          git diff --exit-code -- backend/requirements.lock frontend/package-lock.json
       - uses: actions/upload-artifact@v4
         with:
           name: vulnscan-dependency-lockfiles
@@ -89,7 +94,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install locked backend dependencies
-        run: python -m pip install --upgrade pip && pip install --require-hashes -r backend/requirements.lock
+        run: python -m pip install --upgrade pip==25.3 && pip install --require-hashes -r backend/requirements.lock
       - name: Validate maintenance scripts
         run: bash -n scripts/backup_postgres.sh scripts/restore_postgres.sh scripts/test_postgres_backup_restore.sh
       - name: Run backend tests
@@ -152,6 +157,8 @@ jobs:
           CORS_ORIGINS: '["https://vulnscan.example.test"]'
           FRONTEND_URL: https://vulnscan.example.test
           SCANNER_WORKER_TOKEN: ci-only-worker-token
+          OPS_ADMIN_TOKEN: ci-only-ops-admin-token-for-compose-validation
+          DEAD_LETTER_ARCHIVE_RETENTION_HOURS: "72"
           MFA_ENCRYPTION_KEY: MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
           SMTP_UPSTREAM_HOST: smtp.example.test
           SMTP_TLS_SERVER_NAME: smtp.example.test
@@ -199,4 +206,5 @@ jobs:
           PGUSER: vulnscan
           PGPASSWORD: ci-only-password
           PGDATABASE: vulnscan_test
+          PG_CLIENT_IMAGE: postgres:16-alpine@sha256:81e77a4833487b8132fe4b00bedd39dc3f74b8641e387f19312a48f7de218c2e
         run: bash scripts/test_postgres_backup_restore.sh
