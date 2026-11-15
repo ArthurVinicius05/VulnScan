@@ -9,10 +9,15 @@ from app.api.routes.auth import router as auth_router
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.upload_auth import UploadAuthenticationMiddleware
 
+is_production = settings.app_env.lower() == "production"
+
 app = FastAPI(
     title="VulnScan Pro API",
-    version="0.1.0",
+    version="0.4.0",
     description="Security auditing foundation. Use only on authorized targets.",
+    docs_url=None if is_production else "/docs",
+    redoc_url=None if is_production else "/redoc",
+    openapi_url=None if is_production else "/openapi.json",
 )
 
 app.add_middleware(RateLimitMiddleware)
@@ -34,5 +39,8 @@ app.include_router(auth_router, prefix="/api")
 
 @app.get("/")
 def root():
-    return {"name": "VulnScan Pro API", "version": app.version, "docs": "/docs"}
-
+    return {
+        "name": "VulnScan Pro API",
+        "version": app.version,
+        "docs": None if is_production else "/docs",
+    }
