@@ -50,7 +50,9 @@ class UploadAuthenticationMiddleware:
         csrf_header = headers.get(b"x-csrf-token", b"").decode("latin-1")
         if not session_token:
             return False, 401, "Autenticação necessária."
-        if not csrf_cookie or not csrf_header or not compare_digest(csrf_cookie, csrf_header):
+        if not csrf_cookie or not csrf_header or not compare_digest(
+            csrf_cookie.encode("utf-8"), csrf_header.encode("utf-8")
+        ):
             return False, 403, "Token CSRF ausente ou inválido."
 
         db = SessionLocal()
