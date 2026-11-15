@@ -35,15 +35,17 @@ def upgrade() -> None:
     op.create_index("ix_user_sessions_user_id", "user_sessions", ["user_id"], unique=False)
     op.create_index("ix_user_sessions_token_hash", "user_sessions", ["token_hash"], unique=True)
     op.create_index("ix_user_sessions_expires_at", "user_sessions", ["expires_at"], unique=False)
-    op.add_column("audit_records", sa.Column("user_id", sa.String(length=36), nullable=True))
-    op.create_foreign_key("fk_audit_records_user_id_users", "audit_records", "users", ["user_id"], ["id"], ondelete="SET NULL")
-    op.create_index("ix_audit_records_user_id", "audit_records", ["user_id"], unique=False)
+    with op.batch_alter_table("audit_records") as batch_op:
+        batch_op.add_column(sa.Column("user_id", sa.String(length=36), nullable=True))
+        batch_op.create_foreign_key("fk_audit_records_user_id_users", "users", ["user_id"], ["id"], ondelete="SET NULL")
+        batch_op.create_index("ix_audit_records_user_id", ["user_id"], unique=False)
 
 
 def downgrade() -> None:
-    op.drop_index("ix_audit_records_user_id", table_name="audit_records")
-    op.drop_constraint("fk_audit_records_user_id_users", "audit_records", type_="foreignkey")
-    op.drop_column("audit_records", "user_id")
+    with op.batch_alter_table("audit_records") as batch_op:
+        batch_op.drop_index("ix_audit_records_user_id")
+        batch_op.drop_constraint("fk_audit_records_user_id_users", type_="foreignkey")
+        batch_op.drop_column("user_id")
     op.drop_index("ix_user_sessions_expires_at", table_name="user_sessions")
     op.drop_index("ix_user_sessions_token_hash", table_name="user_sessions")
     op.drop_index("ix_user_sessions_user_id", table_name="user_sessions")
