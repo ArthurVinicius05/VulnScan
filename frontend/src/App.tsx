@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { ShieldCheck, LayoutDashboard, Globe, FolderCode, History, Settings, Bell, Search, UploadCloud, FileArchive, Activity, ChevronRight, LockKeyhole, ScanSearch, AlertTriangle } from 'lucide-react'
-import { authenticate, fetchAuditDetail, fetchAuditHistory, getAccessToken, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
+import { authenticate, checkSession, fetchAuditDetail, fetchAuditHistory, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
 
 type Finding = {
   rule_id: string
@@ -37,7 +37,8 @@ export default function App() {
   const [historyError, setHistoryError] = useState('')
   const [selectedAudit, setSelectedAudit] = useState<AuditDetail | null>(null)
   const [detailBusy, setDetailBusy] = useState(false)
-  const [authenticated, setAuthenticated] = useState(Boolean(getAccessToken()))
+  const [authenticated, setAuthenticated] = useState(false)
+  const [authChecking, setAuthChecking] = useState(true)
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -56,6 +57,9 @@ export default function App() {
     finally { setDetailBusy(false) }
   }
 
+  useEffect(() => {
+    void checkSession().then(setAuthenticated).catch(() => setAuthenticated(false)).finally(() => setAuthChecking(false))
+  }, [])
   useEffect(() => { if (authenticated) void refreshHistory() }, [authenticated])
 
   async function submitAuth(event: FormEvent<HTMLFormElement>) {
@@ -67,6 +71,7 @@ export default function App() {
 
   async function endSession() { await logout(); setAuthenticated(false); setHistory([]); setResult(null) }
 
+  if (authChecking) return <div className="auth-screen"><p>Verificando sessão…</p></div>
   if (!authenticated) return <div className="auth-screen"><form className="auth-card" onSubmit={submitAuth}>
     <div className="brand-mark"><ShieldCheck size={24}/></div><h1>VulnScan Pro</h1>
     <p>{authMode === 'login' ? 'Entre na sua conta para acessar suas auditorias.' : 'Crie sua conta para manter seu histórico privado.'}</p>
