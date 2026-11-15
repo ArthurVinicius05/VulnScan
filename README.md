@@ -24,21 +24,16 @@ Documentação da API: http://localhost:8000/docs
 
 O ambiente local usa `APP_ENV=development` e aplica as migrações Alembic antes de iniciar a API, criando/atualizando o banco SQLite `vulnscan.db` dentro do backend. O arquivo não contém o ZIP original, apenas metadados e resultados da análise. Para persistência PostgreSQL, configure `DATABASE_URL=postgresql+psycopg://usuario:senha@host:5432/vulnscan` e mantenha as credenciais fora do Git. O Compose recebe `DATABASE_URL` do ambiente. O cadastro inicial é aberto; implemente verificação de e-mail, limitação de tentativas e política de cadastro antes de disponibilizar publicamente. As rotas privadas aceitam o token de sessão no cabeçalho `Authorization: Bearer TOKEN`.
 
-### Proteção da API
-- Todas as rotas em `/api/analysis` passam pela dependência de autenticação por chave Bearer.
-- Se `API_KEY` estiver configurada, a chave é obrigatória e comparada em tempo constante.
-- Em `APP_ENV=production`, a API falha de forma fechada (HTTP 503) se a chave não estiver configurada.
-- A rota de saúde permanece pública para healthchecks.
-- As rotas `/api/history` também exigem a chave Bearer e permitem listar auditorias com paginação e consultar seus detalhes.
-- A chave é um segredo compartilhado de serviço, não um sistema de contas, sessões ou permissões individuais. Não substitui autenticação de usuários, rotação de credenciais, rate limiting ou auditoria.
-
-Para iniciar um ambiente com a proteção habilitada, configure um segredo forte fora do repositório:
-```bash
-export VULNSCAN_API_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
-docker compose up --build
-```
-
-Para produção, configure também `APP_ENV=production` no ambiente de implantação e forneça `API_KEY` por um gerenciador de segredos. Não grave chaves no código, no frontend ou no Git.
+### Contas e proteção da API
+- Cadastro e login individuais estão disponíveis em `POST /api/auth/register` e `POST /api/auth/login`.
+- Senhas são armazenadas com hash Argon2id; a API nunca retorna o hash.
+- As sessões usam tokens aleatórios; somente o hash SHA-256 do token é persistido. A validade padrão é de 12 horas.
+- Use `GET /api/auth/me` para consultar a conta atual e `POST /api/auth/logout` para revogar a sessão atual.
+- As rotas de análise e histórico exigem uma sessão Bearer válida.
+- Cada nova auditoria é associada ao usuário autenticado. Listagem e detalhes só retornam registros pertencentes àquela conta.
+- Auditorias criadas antes da migração de contas ficam sem proprietário e não são exibidas no histórico individual.
+- O cadastro inicial é aberto. Antes de disponibilizar publicamente, implemente verificação de e-mail, limitação de tentativas, recuperação de senha e política de criação de contas.
+- O frontend mantém o token em `sessionStorage`. Isso evita persistência após encerrar a sessão do navegador, mas não protege contra XSS; cookies HttpOnly com proteção CSRF são uma melhoria necessária antes de produção.
 
 ### Verificação passiva de sites (opcional)
 Somente para alvos próprios ou com autorização explícita:
@@ -70,7 +65,7 @@ Execute `npm install` e `npm run dev` em `frontend`.
 - Inventaria manifestos de dependências para npm, Python, Rust, Go, Ruby, PHP, Maven e Gradle.
 - Pode consultar vulnerabilidades conhecidas via OSV-Scanner em worker separado e opt-in.
 - Oferece auditoria passiva limitada de cabeçalhos HTTP, com validação SSRF e worker separado, opt-in.
-- Protege as rotas de análise e histórico com chave Bearer configurável.
+- Protege as rotas de análise e histórico com sessões Bearer individuais e isolamento do histórico por usuário.
 - Persiste auditorias concluídas e disponibiliza histórico paginado e detalhes por identificador.
 
 ## Isolamento dos workers
