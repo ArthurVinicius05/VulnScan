@@ -44,6 +44,7 @@ export default function App() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
+  const [authNotice, setAuthNotice] = useState('')
   const [authBusy, setAuthBusy] = useState(false)
   const [showRecovery, setShowRecovery] = useState(false)
 
@@ -66,8 +67,12 @@ export default function App() {
 
   async function submitAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setAuthBusy(true); setAuthError('')
-    try { await authenticate(email, password, authMode); setAuthenticated(true); setPassword('') }
-    catch (e) { setAuthError(e instanceof Error ? e.message : 'Falha na autenticação.') }
+    try {
+      const session = await authenticate(email, password, authMode)
+      setPassword('')
+      if (session) { setAuthenticated(true); setAuthNotice('') }
+      else setAuthNotice('Conta criada. Verifique seu e-mail para ativá-la antes de entrar.')
+    } catch (e) { setAuthError(e instanceof Error ? e.message : 'Falha na autenticação.') }
     finally { setAuthBusy(false) }
   }
 
@@ -82,6 +87,7 @@ export default function App() {
     <label>Senha<input type="password" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} required minLength={12} maxLength={128} value={password} onChange={e=>setPassword(e.target.value)}/></label>
     {authMode === 'register' && <small>A senha deve ter pelo menos 12 caracteres.</small>}
     {authError && <div className="error">{authError}</div>}
+    {authNotice && <div className="success">{authNotice}</div>}
     {authMode === 'login' && <button type="button" className="auth-switch" onClick={() => setShowRecovery(true)}>Esqueci minha senha / confirmar e-mail</button>}
     <button className="primary-btn" disabled={authBusy}>{authBusy ? 'Aguarde…' : authMode === 'login' ? 'Entrar' : 'Criar conta'}</button>
     <button type="button" className="auth-switch" onClick={()=>{setAuthMode(authMode === 'login' ? 'register' : 'login');setAuthError('')}}>{authMode === 'login' ? 'Ainda não tem conta? Cadastre-se' : 'Já tem conta? Entrar'}</button>
