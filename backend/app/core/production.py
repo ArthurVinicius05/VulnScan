@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 from app.core.config import Settings, settings
 
@@ -14,6 +14,13 @@ def validate_production_settings(config: Settings = settings) -> None:
 
     if not config.database_url.startswith("postgresql+psycopg://"):
         errors.append("DATABASE_URL must use PostgreSQL with the psycopg driver")
+    else:
+        database_password = unquote(urlparse(config.database_url).password or "")
+        if len(database_password) < 32 or any(
+            marker in database_password.lower()
+            for marker in ("change_me", "replace_with", "url_encoded_password")
+        ):
+            errors.append("DATABASE_URL must contain a unique password with at least 32 characters")
     if not config.redis_url or not config.redis_url.startswith(("redis://", "rediss://")):
         errors.append("REDIS_URL must point to a dedicated Redis service")
     if not config.cors_origins or any(
