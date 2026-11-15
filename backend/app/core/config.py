@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     api_key: str | None = None
     database_url: str = "sqlite:///./vulnscan.db"
     cors_origins: list[str] = ["http://localhost:5173"]
+    session_cookie_secure: bool = False
     max_upload_mb: int = 25
     max_archive_files: int = 3000
     max_extracted_mb: int = 100
