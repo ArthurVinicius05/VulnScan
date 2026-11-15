@@ -22,7 +22,7 @@ async function readPayload(response: Response): Promise<ApiPayload> {
     catch { return { detail: 'A API retornou uma resposta JSON inválida.' } }
   }
   const text = await response.text().catch(() => '')
-  return { detail: text.trim().slice(0, 300) || \`A API retornou uma resposta inesperada (HTTP \${response.status}).\` }
+  return { detail: text.trim().slice(0, 300) || `A API retornou uma resposta inesperada (HTTP ${response.status}).` }
 }
 
 function ensureSuccess(response: Response, payload: ApiPayload, fallback: string): void {
@@ -39,12 +39,12 @@ function csrfHeaders(): Record<string, string> {
 }
 
 export async function checkSession(): Promise<boolean> {
-  try { return (await fetch(\`\${API_URL}/api/auth/me\`, { credentials: 'include' })).ok }
+  try { return (await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' })).ok }
   catch { return false }
 }
 
 export async function authenticate(email: string, password: string, mode: 'login' | 'register') {
-  const response = await fetch(\`\${API_URL}/api/auth/\${mode}\`, {
+  const response = await fetch(`${API_URL}/api/auth/${mode}`, {
     method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   })
@@ -55,7 +55,7 @@ export async function authenticate(email: string, password: string, mode: 'login
 }
 
 export async function logout() {
-  const response = await fetch(\`\${API_URL}/api/auth/logout\`, {
+  const response = await fetch(`${API_URL}/api/auth/logout`, {
     method: 'POST', credentials: 'include', headers: csrfHeaders(),
   })
   if (!response.ok && response.status !== 401) {
@@ -67,7 +67,7 @@ export async function logout() {
 export async function uploadSourceZip(file: File) {
   const body = new FormData()
   body.append('file', file)
-  const response = await fetch(\`\${API_URL}/api/analysis/source-zip\`, {
+  const response = await fetch(`${API_URL}/api/analysis/source-zip`, {
     method: 'POST', credentials: 'include', headers: csrfHeaders(), body,
   })
   const payload = await readPayload(response)
@@ -76,7 +76,7 @@ export async function uploadSourceZip(file: File) {
   const deadline = Date.now() + 10 * 60 * 1000
   while (Date.now() < deadline) {
     await new Promise(resolve => setTimeout(resolve, 1500))
-    const statusResponse = await fetch(\`\${API_URL}/api/analysis/jobs/\${encodeURIComponent(payload.job_id)}\`, { credentials: 'include' })
+    const statusResponse = await fetch(`${API_URL}/api/analysis/jobs/${encodeURIComponent(payload.job_id)}`, { credentials: 'include' })
     const statusPayload = await readPayload(statusResponse)
     ensureSuccess(statusResponse, statusPayload, 'Falha ao consultar o status da análise.')
     if (statusPayload.status === 'completed' && statusPayload.result && typeof statusPayload.result === 'object') {
@@ -106,21 +106,21 @@ export type AuditDetail = AuditHistoryItem & {
 }
 
 export async function fetchAuditDetail(id: string): Promise<AuditDetail> {
-  const response = await fetch(\`\${API_URL}/api/history/\${encodeURIComponent(id)}\`, { credentials: 'include' })
+  const response = await fetch(`${API_URL}/api/history/${encodeURIComponent(id)}`, { credentials: 'include' })
   const payload = await readPayload(response)
   ensureSuccess(response, payload, 'Falha ao carregar o relatório.')
   return payload as AuditDetail
 }
 
 export async function fetchAuditHistory(): Promise<AuditHistoryItem[]> {
-  const response = await fetch(\`\${API_URL}/api/history?limit=20&offset=0\`, { credentials: 'include' })
+  const response = await fetch(`${API_URL}/api/history?limit=20&offset=0`, { credentials: 'include' })
   const payload = await readPayload(response)
   ensureSuccess(response, payload, 'Falha ao carregar o histórico.')
   return Array.isArray(payload.items) ? payload.items : []
 }
 
 export async function requestPasswordReset(email: string): Promise<string> {
-  const response = await fetch(\`\${API_URL}/api/auth/request-password-reset\`, {
+  const response = await fetch(`${API_URL}/api/auth/request-password-reset`, {
     method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }),
   })
   const payload = await readPayload(response)
@@ -129,7 +129,7 @@ export async function requestPasswordReset(email: string): Promise<string> {
 }
 
 export async function resetPassword(token: string, password: string): Promise<string> {
-  const response = await fetch(\`\${API_URL}/api/auth/reset-password\`, {
+  const response = await fetch(`${API_URL}/api/auth/reset-password`, {
     method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, password }),
   })
   const payload = await readPayload(response)
@@ -138,7 +138,7 @@ export async function resetPassword(token: string, password: string): Promise<st
 }
 
 export async function verifyEmail(token: string): Promise<string> {
-  const response = await fetch(\`\${API_URL}/api/auth/verify-email\`, {
+  const response = await fetch(`${API_URL}/api/auth/verify-email`, {
     method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }),
   })
   const payload = await readPayload(response)
@@ -147,7 +147,7 @@ export async function verifyEmail(token: string): Promise<string> {
 }
 
 export async function resendVerification(email: string): Promise<string> {
-  const response = await fetch(\`\${API_URL}/api/auth/resend-verification\`, {
+  const response = await fetch(`${API_URL}/api/auth/resend-verification`, {
     method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }),
   })
   const payload = await readPayload(response)
