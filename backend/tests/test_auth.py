@@ -24,7 +24,7 @@ def client(tmp_path):
             db.close()
 
     app.dependency_overrides[get_db] = override_db
-    with TestClient(app) as test_client:
+    with TestClient(app, client=("127.0.0.11", 12345)) as test_client:
         yield test_client
     app.dependency_overrides.clear()
     engine.dispose()
