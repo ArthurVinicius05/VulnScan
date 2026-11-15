@@ -21,7 +21,9 @@ def test_detects_dynamic_execution():
 def test_detects_possible_secret():
     data = make_zip([("settings.py", 'API_KEY = "abc1234567890abcdef"\n')])
     findings = analyze_source_zip(data)
-    assert any(item["rule_id"] == "SECRET001" for item in findings)
+    secret = next(item for item in findings if item["rule_id"] == "SECRET001")
+    assert "abc1234567890abcdef" not in secret["evidence"]
+    assert "[REDACTED]" in secret["evidence"]
 
 
 def test_ignores_non_source_files():
