@@ -89,7 +89,7 @@ async def analyze_website_endpoint(request: WebsiteScanRequest, user: User = Dep
         "notice": "Verificação passiva limitada à página inicial e aos redirecionamentos validados. Não executa payloads, fuzzing ou exploração. Use somente alvos sob sua autorização.",
     }
     try:
-        save_audit(analysis_type="website_security_audit", target=request.url, result=response)
+        save_audit(user_id=user.id, analysis_type="website_security_audit", target=request.url, result=response)
     except Exception as exc:
         raise HTTPException(status_code=503, detail="A análise foi concluída, mas não foi possível salvar o histórico.") from exc
     return response
