@@ -3,7 +3,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from hmac import compare_digest
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -87,7 +87,7 @@ def get_current_user(
     request: Request,
     session_token: str | None = Cookie(default=None, alias=SESSION_COOKIE),
     csrf_cookie: str | None = Cookie(default=None, alias=CSRF_COOKIE),
-    csrf_header: str | None = None,
+    csrf_header: str | None = Header(default=None, alias="X-CSRF-Token"),
     db: Session = Depends(get_db),
 ) -> User:
     _validate_origin(request)
