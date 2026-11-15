@@ -20,7 +20,7 @@ def _safe_python_members(archive: zipfile.ZipFile):
         if info.is_dir() or PurePosixPath(info.filename).suffix.lower() != ".py":
             continue
         path = PurePosixPath(info.filename)
-        if path.is_absolute() or "\\" in info.filename or any(part in ("", ".", "..") for part in path.parts):
+        if path.is_absolute() or "\\\\" in info.filename or any(part in ("", ".", "..") for part in path.parts):
             continue
         if info.file_size > 512 * 1024:
             continue
@@ -31,6 +31,7 @@ def _safe_python_members(archive: zipfile.ZipFile):
 
 
 def _run_json_tool(command: list[str], *, cwd: str) -> tuple[str, dict | list | None]:
+    """Run a trusted JSON-producing scanner without buffering unbounded process output."""
     env = {
         "PATH": os.environ.get("PATH", ""),
         "PYTHONIOENCODING": "utf-8",
@@ -38,37 +39,41 @@ def _run_json_tool(command: list[str], *, cwd: str) -> tuple[str, dict | list | 
         "TMPDIR": cwd,
     }
     try:
-        completed = subprocess.run(
-            command,
-            cwd=cwd,
-            env=env,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=TOOL_TIMEOUT_SECONDS,
-            check=False,
-            shell=False,
-        )
-    except subprocess.TimeoutExpired:
-        return "timeout", None
-    except OSError:
-        return "unavailable", None
+        # File-backed pipes prevent a noisy/malfunctioning scanner from filling API
+        # worker memory. Both streams are checked before any content is read.
+        with tempfile.TemporaryFile(mode="w+b", dir=cwd) as stdout_file, tempfile.TemporaryFile(
+            mode="w+b", dir=cwd
+        ) as stderr_file:
+            try:
+                completed = subprocess.run(
+                    command,
+                    cwd=cwd,
+                    env=env,
+                    stdin=subprocess.DEVNULL,
+                    stdout=stdout_file,
+                    stderr=stderr_file,
+                    timeout=TOOL_TIMEOUT_SECONDS,
+                    check=False,
+                    shell=False,
+                )
+            except subprocess.TimeoutExpired:
+                return "timeout", None
+            except OSError:
+                return "unavailable", None
 
-    output = completed.stdout[:MAX_TOOL_OUTPUT]
-    if len(completed.stdout) > MAX_TOOL_OUTPUT:
-        return "output_limit", None
-    try:
-        parsed = json.loads(output) if output.strip() else None
-    except json.JSONDecodeError:
-        return "invalid_output", None
+            if stdout_file.tell() > MAX_TOOL_OUTPUT or stderr_file.tell() > MAX_TOOL_OUTPUT:
+                return "output_limit", None
+            stdout_file.seek(0)
+            output = stdout_file.read(MAX_TOOL_OUTPUT + 1).decode("utf-8", errors="replace")
+            try:
+                parsed = json.loads(output) if output.strip() else None
+            except json.JSONDecodeError:
+                return "invalid_output", None
 
-    # Bandit and Ruff use non-zero exit codes when findings are present.
-    if completed.returncode not in (0, 1):
-        return "error", None
-    return "completed", parsed
+            # Bandit and Ruff use non-zero exit codes when findings are present.
+            if completed.returncode not in (0, 1):
+                return "error", None
+            return "completed", parsed
 
 
 def run_python_tools(zip_bytes: bytes) -> dict:
