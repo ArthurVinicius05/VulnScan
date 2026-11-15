@@ -91,9 +91,6 @@ def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     _validate_origin(request)
-    if request.method not in {"GET", "HEAD", "OPTIONS"}:
-        if not csrf_cookie or not csrf_header or not compare_digest(csrf_cookie, csrf_header):
-            raise HTTPException(status_code=403, detail="Token CSRF ausente ou inválido.")
     if not session_token:
         raise HTTPException(status_code=401, detail="Autenticação necessária.")
     token_hash = hashlib.sha256(session_token.encode()).hexdigest()
@@ -110,6 +107,9 @@ def get_current_user(
     user = db.get(User, session.user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Conta não encontrada.")
+    if request.method not in {"GET", "HEAD", "OPTIONS"}:
+        if not csrf_cookie or not csrf_header or not compare_digest(csrf_cookie, csrf_header):
+            raise HTTPException(status_code=403, detail="Token CSRF ausente ou inválido.")
     return user
 
 
