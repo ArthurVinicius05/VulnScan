@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -12,6 +13,15 @@ from pathlib import Path, PurePosixPath
 MAX_PYTHON_FILES = 50
 MAX_TOOL_OUTPUT = 1_000_000
 TOOL_TIMEOUT_SECONDS = 15
+SECRET_ASSIGNMENT = re.compile(
+    r"""(?i)(\b[\w.-]*(?:api[_-]?key|token|secret|password|passwd|credential)[\w.-]*\b\s*[:=]\s*)(["'])([^"'\r\n]+)(\2)"""
+)
+
+
+def _redact_evidence(value: object) -> str:
+    text = str(value or "")
+    text = SECRET_ASSIGNMENT.sub(lambda match: match.group(1) + match.group(2) + "[REDACTED]" + match.group(4), text)
+    return text[:240]
 
 
 def _safe_python_members(archive: zipfile.ZipFile):
@@ -20,7 +30,7 @@ def _safe_python_members(archive: zipfile.ZipFile):
         if info.is_dir() or PurePosixPath(info.filename).suffix.lower() != ".py":
             continue
         path = PurePosixPath(info.filename)
-        if path.is_absolute() or "\\\\" in info.filename or any(part in ("", ".", "..") for part in path.parts):
+        if path.is_absolute() or "\\" in info.filename or any(part in ("", ".", "..") for part in path.parts):
             continue
         if info.file_size > 512 * 1024:
             continue
@@ -68,17 +78,13 @@ def _run_json_tool(command: list[str], *, cwd: str) -> tuple[str, dict | list | 
         except json.JSONDecodeError:
             return "invalid_output", None
 
-        # Bandit and Ruff use non-zero exit codes when findings are present.
         if completed.returncode not in (0, 1):
             return "error", None
         return "completed", parsed
 
-def run_python_tools(zip_bytes: bytes) -> dict:
-    """Run Bandit and Ruff against bounded Python files in a temporary directory.
 
-    These trusted scanner processes inspect source code; they do not execute it.
-    This is not a substitute for a separately isolated worker/container.
-    """
+def run_python_tools(zip_bytes: bytes) -> dict:
+    """Run Bandit and Ruff against bounded Python files in a temporary directory."""
     with zipfile.ZipFile(__import__("io").BytesIO(zip_bytes)) as archive:
         members = _safe_python_members(archive)
         if not members:
@@ -120,7 +126,7 @@ def run_python_tools(zip_bytes: bytes) -> dict:
                         "confidence": str(item.get("issue_confidence", "medium")).lower(),
                         "file": item.get("filename", "").replace(str(root) + os.sep, ""),
                         "line": item.get("line_number"),
-                        "evidence": str(item.get("code", "")).strip()[:240],
+                        "evidence": _redact_evidence(item.get("code", "")),
                         "recommendation": item.get("issue_text", "Review the flagged code."),
                         "verified": False,
                         "source": "Bandit",
