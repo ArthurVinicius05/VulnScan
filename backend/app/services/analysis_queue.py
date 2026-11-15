@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from app.core.config import settings
@@ -79,7 +79,13 @@ def requeue_dead_letter_analysis(db: Session, *, job_id: str) -> AnalysisJob | N
         return None
     if job.status != "dead_letter":
         raise AnalysisJobNotRecoverable("Somente jobs em dead-letter podem ser recuperados.")
-    if job.archive_data is None:
+    archive_deadline = datetime.now(timezone.utc) - timedelta(
+        hours=settings.dead_letter_archive_retention_hours
+    )
+    if job.archive_data is None or (job.completed_at is not None and job.completed_at < archive_deadline):
+        if job.archive_data is not None:
+            job.archive_data = None
+            db.commit()
         raise AnalysisJobArchiveExpired(
             "O arquivo original já expirou por política de retenção. Solicite um novo envio ao usuário."
         )
