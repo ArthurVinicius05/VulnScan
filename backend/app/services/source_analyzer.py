@@ -22,7 +22,7 @@ RULES = [
         "severity": "high",
         "confidence": "medium",
         "pattern": re.compile(
-            r"""(?i)\b(?:api[_-]?key|secret|password|passwd|access[_-]?token|auth[_-]?token|client[_-]?secret)\b\s*[:=]\s*["']([^"'\s]{8,})["']"""
+            r"""(?i)(\b[\w.-]*(?:api[_-]?key|token|secret|password|passwd|credential)[\w.-]*\b\s*[:=]\s*)(["'])([^"'\s]{8,})(\2)"""
         ),
         "recommendation": "Move the value to a secret manager or environment variable, rotate it if real, and ensure it is not committed.",
     },
@@ -93,7 +93,7 @@ PLACEHOLDER_VALUES = {
 def _redact_secret_line(line: str, pattern: re.Pattern) -> str:
     """Redact on the complete line before shortening evidence for the API."""
     return pattern.sub(
-        lambda match: match.group(0).replace(match.group(1), "[REDACTED]"),
+        lambda match: match.group(1) + match.group(2) + "[REDACTED]" + match.group(4),
         line,
     )
 
@@ -136,7 +136,7 @@ def analyze_source_zip(data: bytes) -> list[dict]:
                     if not match:
                         continue
                     if rule["id"] == "SECRET001":
-                        value = match.group(1).strip().lower()
+                        value = match.group(3).strip().lower()
                         if value in PLACEHOLDER_VALUES or value.startswith(("your_", "example_", "changeme")):
                             continue
                         evidence = _redact_secret_line(line, rule["pattern"]).strip()[:240]
