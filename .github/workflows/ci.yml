@@ -96,7 +96,7 @@ jobs:
         working-directory: backend
         run: python -m pytest -q
       - name: Ruff static checks
-        run: ruff check backend/app backend/tests
+        run: ruff check --select E4,E7,E9,F backend/app backend/tests
       - name: Bandit security checks
         run: bandit -q -r backend/app
       - name: Python dependency vulnerability audit
