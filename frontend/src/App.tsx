@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import AccountRecovery from './AccountRecovery'
 import { ShieldCheck, LayoutDashboard, Globe, FolderCode, History, Settings, Bell, Search, UploadCloud, FileArchive, Activity, ChevronRight, LockKeyhole, ScanSearch, AlertTriangle } from 'lucide-react'
-import { ApiError, authenticate, checkSession, completeMfaLogin, fetchMfaStatus, beginMfaSetup, confirmMfaSetup, disableMfa, fetchAuditDetail, fetchAuditHistory, deleteAccount, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
+import { ApiError, authenticate, checkSession, completeMfaLogin, fetchMfaStatus, beginMfaSetup, confirmMfaSetup, disableMfa, fetchAuditDetail, fetchAuditHistory, cancelAnalysisJob, deleteAccount, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
 
 type Finding = {
   rule_id: string
@@ -38,6 +38,8 @@ type Result = {
 export default function App() {
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
+  const [activeJobId, setActiveJobId] = useState<string | null>(null)
+  const [analysisStatus, setAnalysisStatus] = useState('')
   const [error, setError] = useState('')
   const [result, setResult] = useState<Result | null>(null)
   const [history, setHistory] = useState<AuditHistoryItem[]>([])
@@ -173,10 +175,21 @@ export default function App() {
 
   async function runAnalysis() {
     if (!file) return
-    setBusy(true); setError(''); setResult(null)
-    try { setResult(await uploadSourceZip(file) as Result); await refreshHistory() }
+    setBusy(true); setError(''); setResult(null); setActiveJobId(null); setAnalysisStatus('uploading')
+    try { setResult(await uploadSourceZip(file, setActiveJobId, setAnalysisStatus) as Result); await refreshHistory() }
     catch (e) { if (e instanceof ApiError && e.status === 401) { setAuthenticated(false); setResult(null); setError('Sua sessão expirou. Entre novamente para continuar.') } else setError(e instanceof Error ? e.message : 'Erro inesperado.') }
-    finally { setBusy(false) }
+    finally { setBusy(false); setActiveJobId(null); setAnalysisStatus('') }
+  }
+
+  async function cancelQueuedJob() {
+    if (!activeJobId) return
+    try {
+      const message = await cancelAnalysisJob(activeJobId)
+      setAnalysisStatus('cancelled')
+      setError(message)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Não foi possível cancelar a análise.')
+    }
   }
 
   return <div className="app-shell">
@@ -233,6 +246,7 @@ export default function App() {
           <section className="panel"><div className="panel-icon purple"><FolderCode size={21}/></div><div className="panel-title"><h3>Source code analysis</h3><span className="available">AVAILABLE · PHASE 2</span></div><p>Inspect project structure and run bounded static checks for common insecure coding patterns. Uploaded code is never executed.</p>
             <label className="dropzone"><UploadCloud size={26}/><b>{file ? file.name : 'Drop your ZIP file here'}</b><span>{file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : 'or click to browse · max 25 MB'}</span><input type="file" accept=".zip,application/zip" onChange={e => {setFile(e.target.files?.[0] ?? null);setResult(null);setError('')}} /></label>
             <button className="primary-btn" disabled={!file || busy} onClick={runAnalysis}>{busy ? 'Waiting for analysis…' : 'Analyze source archive'} <ChevronRight size={17}/></button>
+            {busy && <div className="analysis-progress"><span>{analysisStatus === 'queued' ? 'Na fila — aguardando um worker disponível…' : analysisStatus === 'running' ? 'Análise em execução…' : 'Enviando arquivo…'}</span>{analysisStatus === 'queued' && activeJobId && <button className="auth-switch" onClick={()=>void cancelQueuedJob()}>Cancelar na fila</button>}</div>}
             {error && <div className="error">{error}</div>}
             {result && <div className="result"><b><FileArchive size={16}/> {result.status === 'partial' ? 'Analysis partially completed' : result.status === 'failed' ? 'Analysis failed' : 'Analysis completed'}</b>{result.status === 'partial' && <div className="error">Cobertura parcial: alguns arquivos ou ferramentas foram limitados, desativados ou ficaram indisponíveis. Consulte os detalhes dos scanners antes de interpretar a ausência de achados.</div>}<p>{result.file_count} files · {result.detected_technologies.join(', ') || 'No known stack markers detected'}</p><small>{result.notice}</small>
               <div className="findings-summary"><AlertTriangle size={16}/> {result.finding_count} potential finding(s)</div>

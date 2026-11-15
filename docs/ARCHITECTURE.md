@@ -25,7 +25,7 @@ MFA, reproducible dependency lockfiles, network egress enforcement, load/abuse t
 
 ## Queue, quotas and retention
 
-Source ZIP submissions create durable PostgreSQL jobs. The API enforces per-account monthly, concurrency and pending-upload-storage limits in the same transaction as enqueueing. The worker claims rows with skip-locked semantics, uses expiring leases and bounded retries, and writes the audit record idempotently. Raw ZIP bytes are cleared on completion or terminal failure. Completed/failed job metadata is retained for 30 days, audit reports for 180 days, and expired sessions, account tokens and MFA challenges are cleaned daily.
+Source ZIP submissions create durable PostgreSQL jobs. The API enforces per-account monthly, concurrency and pending-upload-storage limits in the same transaction as enqueueing. The worker claims rows with skip-locked semantics, uses expiring leases and bounded retries, and writes the audit record idempotently. Users can cancel queued jobs before a worker claims them; running jobs must finish. Raw ZIP bytes are cleared on completion or terminal failure. Completed/failed job metadata is retained for 30 days, audit reports for 180 days, and expired sessions, account tokens and MFA challenges are cleaned daily.
 
 ## MFA and account protection
 

@@ -10,7 +10,7 @@
 - [x] Per-account sessions, CSRF, private audit history and email verification.
 - [x] Redis-backed shared rate limiting.
 - [x] Durable PostgreSQL queue, leases, retries and idempotent audit history.
-- [x] Monthly, concurrent and queued-storage quotas per account.
+- [x] Monthly, concurrent and queued-storage quotas per account; users can cancel queued jobs before execution.
 - [x] TOTP MFA, encrypted secrets, recovery codes and replay protection.
 - [x] Reproducible Python/npm lockfiles and locked dependency installation.
 - [x] SMTP-only egress proxy, internal networks and scanner isolation.
@@ -19,7 +19,7 @@
 - [x] CI for tests, PostgreSQL integration, backup/restore smoke test, container builds and production Compose validation.
 
 ## Remaining before public launch
-1. [ ] Job cancellation, dead-letter inspection and administrative recovery controls.
+1. [ ] Dead-letter inspection and administrative recovery controls for repeatedly failed jobs.
 2. [ ] Host firewall allowlisting and real deployment egress verification.
 3. [ ] Pin container images by digest and implement provenance/update/rollback checks.
 4. [x] Add authenticated account deletion for live database records. [ ] Verify deletion across backups/logs and document backup expiry.

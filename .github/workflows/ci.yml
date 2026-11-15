@@ -57,9 +57,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4
       - name: Install Skopeo
         run: sudo apt-get update && sudo apt-get install -y skopeo
-      - name: Resolve linux/amd64 container image digests
+      - name: Resolve multi-platform container image digests
         run: |
           set -euo pipefail
           : > images.lock
@@ -74,8 +75,8 @@ jobs:
             prom/prometheus:v3.5.0
           )
           for image in "${images[@]}"; do
-            digest="$(skopeo inspect --override-arch amd64 --override-os linux --format '{{.Digest}}' "docker://$image")"
-            test -n "$digest"
+            digest="sha256:$(skopeo inspect --raw "docker://$image" | sha256sum | awk '{print $1}')"
+            test "$digest" != "sha256:"
             printf '%s %s\n' "$image" "$digest" | tee -a images.lock
             echo "IMAGE_DIGEST $image $digest"
           done

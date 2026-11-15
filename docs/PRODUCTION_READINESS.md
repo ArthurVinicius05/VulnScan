@@ -9,7 +9,7 @@ This checklist is a release gate, not a claim that the current deployment is cer
 - [x] API and scanner worker use a shared service token.
 - [x] Production Compose isolates the scanner worker and keeps website/OSV scanning disabled.
 - [x] Durable PostgreSQL analysis queue with row-lock claims, expiring leases, bounded retries and idempotent audit writes.
-- [x] Per-account monthly quotas, concurrent-job limits and queued-upload storage caps.
+- [x] Per-account monthly quotas, concurrent-job limits, queued-upload storage caps and user cancellation for jobs that have not started.
 - [x] TOTP MFA with encrypted secrets, replay protection, expiring login challenges, one-time recovery codes and session revocation.
 - [x] Python hash lockfile and npm lockfile generated in CI; locked installs use pip hashes and npm ci.
 - [x] API has no direct internet egress; SMTP is routed through a fixed-upstream proxy that rejects non-public DNS answers.
@@ -21,7 +21,7 @@ This checklist is a release gate, not a claim that the current deployment is cer
 ## Required before public launch
 
 - [ ] Apply and verify host-firewall allowlisting for SMTP proxy destination IPs/ports and DNS; keep website/OSV disabled until SSRF/redirect/DNS-rebinding tests and a separate egress policy pass.
-- [ ] Add job cancellation, dead-letter inspection and administrative recovery controls.
+- [ ] Add dead-letter inspection and administrative recovery controls for repeatedly failed jobs.
 - [ ] Pin every container image by digest, verify provenance/signatures where available, and document update/rollback cadence.
 - [ ] Run load, abuse, concurrency, failure-recovery and backup/restore drills against a production-like environment.
 - [ ] Configure Alertmanager notifications, centralized logs, on-call ownership and incident response runbooks.

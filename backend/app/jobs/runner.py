@@ -88,7 +88,7 @@ def cleanup_expired_data() -> dict[str, int]:
     from app.core.config import settings
     now = datetime.now(timezone.utc)
     with SessionLocal() as db:
-        jobs = db.query(AnalysisJob).filter(AnalysisJob.status.in_(("completed", "failed")),
+        jobs = db.query(AnalysisJob).filter(AnalysisJob.status.in_(("completed", "failed", "cancelled")),
             AnalysisJob.completed_at < now - timedelta(days=settings.analysis_job_retention_days)).delete(synchronize_session=False)
         audits = db.query(AuditRecord).filter(AuditRecord.created_at < now - timedelta(days=settings.audit_retention_days)).delete(synchronize_session=False)
         challenges = db.query(MFAChallenge).filter(MFAChallenge.expires_at < now).delete(synchronize_session=False)

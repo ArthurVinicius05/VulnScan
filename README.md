@@ -45,6 +45,7 @@ O ambiente local pode ativar contas automaticamente quando SMTP não está confi
 - Upload ZIP com validação de caminhos, links simbólicos, arquivos criptografados, expansão suspeita e limites de tamanho.
 - O endpoint de análise de código-fonte responde HTTP 202 e persiste o job no PostgreSQL.
 - O worker usa bloqueio de linha, leases com expiração, retries limitados e gravação idempotente do resultado.
+- Análises ainda na fila podem ser canceladas pelo usuário; o upload temporário é descartado e a vaga de concorrência liberada. Jobs em execução não podem ser cancelados nesta versão.
 - Os arquivos originais são removidos quando o job termina ou falha definitivamente.
 - Quotas padrão por conta: 30 análises/mês, 2 análises simultâneas e 50 MB de arquivos pendentes. O limite padrão de upload individual é 25 MB. Ajuste os valores conforme a capacidade real.
 - O histórico é isolado por usuário; os resultados heurísticos podem conter falsos positivos e negativos.

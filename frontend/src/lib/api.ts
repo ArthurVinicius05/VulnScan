@@ -63,7 +63,7 @@ export async function logout() {
   }
 }
 
-export async function uploadSourceZip(file: File) {
+export async function uploadSourceZip(file: File, onJobCreated?: (jobId: string) => void, onStatus?: (status: string) => void) {
   const body = new FormData()
   body.append('file', file)
   const response = await fetch(`${API_URL}/api/analysis/source-zip`, {
@@ -72,6 +72,8 @@ export async function uploadSourceZip(file: File) {
   const payload = await readPayload(response)
   ensureSuccess(response, payload, 'Falha ao adicionar o arquivo à fila.')
   if (typeof payload.job_id !== 'string') throw new ApiError('A API não retornou o identificador da análise.', 502)
+  onJobCreated?.(payload.job_id)
+  onStatus?.(typeof payload.status === 'string' ? payload.status : 'queued')
   const deadline = Date.now() + 10 * 60 * 1000
   while (Date.now() < deadline) {
     await new Promise(resolve => setTimeout(resolve, 1500))
@@ -81,6 +83,8 @@ export async function uploadSourceZip(file: File) {
     if (statusPayload.status === 'completed' && statusPayload.result && typeof statusPayload.result === 'object') {
       return statusPayload.result as ApiPayload
     }
+    if (typeof statusPayload.status === 'string') onStatus?.(statusPayload.status)
+    if (statusPayload.status === 'cancelled') throw new ApiError('Análise cancelada; o upload temporário foi removido.', 409)
     if (statusPayload.status === 'failed') {
       throw new ApiError(typeof statusPayload.error === 'string' ? statusPayload.error : 'A análise falhou após as tentativas permitidas.', 500)
     }
@@ -212,4 +216,13 @@ export async function deleteAccount(password: string, mfaCode?: string): Promise
   const payload = await readPayload(response)
   ensureSuccess(response, payload, 'Não foi possível excluir a conta.')
   return typeof payload.message === 'string' ? payload.message : 'Conta excluída.'
+}
+
+export async function cancelAnalysisJob(jobId: string): Promise<string> {
+  const response = await fetch(`${API_URL}/api/analysis/jobs/${encodeURIComponent(jobId)}/cancel`, {
+    method: 'POST', credentials: 'include', headers: csrfHeaders(),
+  })
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Não foi possível cancelar a análise.')
+  return typeof payload.message === 'string' ? payload.message : 'Análise cancelada.'
 }

@@ -8,7 +8,7 @@ from app.api.routes.auth import get_current_user
 from app.core.config import settings
 from app.models.analysis_job import AnalysisJob
 from app.models.user import User
-from app.services.analysis_queue import AnalysisQuotaExceeded, enqueue_analysis
+from app.services.analysis_queue import AnalysisQuotaExceeded, AnalysisJobNotCancellable, cancel_queued_analysis, enqueue_analysis
 from app.services.audit_history import save_audit
 from app.services.website_client import scan_website_target
 from app.services.zip_inspector import inspect_zip
@@ -51,6 +51,17 @@ def get_analysis_job(job_id: str, db: Session = Depends(get_db), user: User = De
         "created_at": job.created_at.isoformat(),
         "completed_at": job.completed_at.isoformat() if job.completed_at else None,
         "result": job.result if job.status == "completed" else None}
+
+
+@router.post("/jobs/{job_id}/cancel")
+def cancel_analysis_job_endpoint(job_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    try:
+        job = cancel_queued_analysis(db, user_id=user.id, job_id=job_id)
+    except AnalysisJobNotCancellable as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if job is None:
+        raise HTTPException(status_code=404, detail="Análise não encontrada.")
+    return {"job_id": job.id, "status": job.status, "message": "Análise cancelada e upload temporário removido."}
 
 
 class WebsiteScanRequest(BaseModel):

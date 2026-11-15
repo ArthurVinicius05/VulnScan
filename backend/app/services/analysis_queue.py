@@ -39,3 +39,24 @@ def enqueue_analysis(db: Session, *, user_id: str, filename: str, archive_data: 
     db.commit()
     db.refresh(job)
     return job
+
+
+class AnalysisJobNotCancellable(Exception):
+    pass
+
+
+def cancel_queued_analysis(db: Session, *, user_id: str, job_id: str) -> AnalysisJob | None:
+    job = db.scalar(select(AnalysisJob).where(
+        AnalysisJob.id == job_id, AnalysisJob.user_id == user_id
+    ).with_for_update())
+    if job is None:
+        return None
+    if job.status != "queued":
+        raise AnalysisJobNotCancellable("Somente análises ainda na fila podem ser canceladas.")
+    job.status = "cancelled"
+    job.archive_data = None
+    job.error = "Cancelado pelo usuário."
+    job.completed_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(job)
+    return job

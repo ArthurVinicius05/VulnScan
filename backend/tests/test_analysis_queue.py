@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from app.db.database import Base
 from app.models.analysis_job import AnalysisJob
 from app.models.user import User
-from app.services.analysis_queue import AnalysisQuotaExceeded, enqueue_analysis
+from app.services.analysis_queue import AnalysisQuotaExceeded, AnalysisJobNotCancellable, cancel_queued_analysis, enqueue_analysis
 from app.jobs.runner import claim_next_job, _retry_or_fail, cleanup_expired_data
 from app.models.audit import AuditRecord
 from app.models.account_token import AccountToken
@@ -93,3 +93,26 @@ def test_retention_cleanup_removes_expired_records_and_old_jobs(queue_db, monkey
         db.commit()
     counts = cleanup_expired_data()
     assert counts == {"jobs": 1, "audits": 1, "mfa_challenges": 1, "sessions": 1, "account_tokens": 1}
+
+
+def test_cancel_queued_job_releases_active_slot_and_upload_storage(queue_db, monkeypatch):
+    sessions, user_id = queue_db
+    monkeypatch.setattr("app.services.analysis_queue.settings.max_concurrent_analyses", 1)
+    monkeypatch.setattr("app.services.analysis_queue.settings.max_queued_storage_mb", 10)
+    with sessions() as db:
+        job = enqueue_analysis(db, user_id=user_id, filename="cancel.zip", archive_data=b"x" * 1024)
+        cancelled = cancel_queued_analysis(db, user_id=user_id, job_id=job.id)
+        assert cancelled.status == "cancelled"
+        assert cancelled.archive_data is None
+        replacement = enqueue_analysis(db, user_id=user_id, filename="next.zip", archive_data=b"y" * 1024)
+        assert replacement.status == "queued"
+
+
+def test_running_analysis_cannot_be_cancelled(queue_db):
+    sessions, user_id = queue_db
+    with sessions() as db:
+        job = enqueue_analysis(db, user_id=user_id, filename="running.zip", archive_data=b"zip")
+        job.status = "running"
+        db.commit()
+        with pytest.raises(AnalysisJobNotCancellable):
+            cancel_queued_analysis(db, user_id=user_id, job_id=job.id)
