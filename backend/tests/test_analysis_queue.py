@@ -5,8 +5,21 @@ from sqlalchemy.orm import sessionmaker
 from app.db.database import Base
 from app.models.analysis_job import AnalysisJob
 from app.models.user import User
-from app.services.analysis_queue import AnalysisQuotaExceeded, AnalysisJobNotCancellable, cancel_queued_analysis, enqueue_analysis
-from app.jobs.runner import claim_next_job, _retry_or_fail, cleanup_expired_data
+from app.services.analysis_queue import (
+    AnalysisQuotaExceeded,
+    AnalysisJobNotCancellable,
+    AnalysisJobArchiveExpired,
+    cancel_queued_analysis,
+    enqueue_analysis,
+    requeue_dead_letter_analysis,
+)
+from app.jobs.runner import (
+    claim_next_job,
+    refresh_job_lease,
+    _finish_job,
+    _retry_or_fail,
+    cleanup_expired_data,
+)
 from app.models.audit import AuditRecord
 from app.models.account_token import AccountToken
 from app.models.mfa_challenge import MFAChallenge
@@ -94,7 +107,7 @@ def test_retention_cleanup_removes_expired_records_and_old_jobs(queue_db, monkey
         db.add(MFAChallenge(user_id=user_id, token_hash="f" * 64, attempts=0, expires_at=old, created_at=old))
         db.commit()
     counts = cleanup_expired_data()
-    assert counts == {"jobs": 1, "audits": 1, "mfa_challenges": 1, "sessions": 1, "account_tokens": 1}
+    assert counts == {"dead_letter_archives": 0, "jobs": 1, "audits": 1, "mfa_challenges": 1, "sessions": 1, "account_tokens": 1}
 
 
 def test_cancel_queued_job_releases_active_slot_and_upload_storage(queue_db, monkeypatch):
@@ -118,3 +131,113 @@ def test_running_analysis_cannot_be_cancelled(queue_db):
         db.commit()
         with pytest.raises(AnalysisJobNotCancellable):
             cancel_queued_analysis(db, user_id=user_id, job_id=job.id)
+
+
+
+def test_expired_lease_after_last_attempt_moves_job_to_dead_letter(queue_db):
+    sessions, user_id = queue_db
+    expired = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    with sessions() as db:
+        job = AnalysisJob(
+            user_id=user_id,
+            filename="crashed.zip",
+            status="running",
+            archive_data=b"recoverable-source",
+            attempts=3,
+            max_attempts=3,
+            lease_expires_at=expired,
+            created_at=expired,
+            available_at=expired,
+        )
+        db.add(job)
+        db.commit()
+        job_id = job.id
+
+    assert claim_next_job() is None
+    with sessions() as db:
+        job = db.get(AnalysisJob, job_id)
+        assert job.status == "dead_letter"
+        assert job.archive_data == b"recoverable-source"
+        assert job.lease_expires_at is None
+        assert job.completed_at is not None
+
+
+def test_retry_budget_exhaustion_moves_job_to_dead_letter(queue_db):
+    sessions, user_id = queue_db
+    with sessions() as db:
+        job = enqueue_analysis(db, user_id=user_id, filename="failed.zip", archive_data=b"zip")
+        job.status = "running"
+        job.attempts = 3
+        job.max_attempts = 3
+        db.commit()
+        job_id = job.id
+
+    _retry_or_fail(job_id, 3, RuntimeError("scanner failure"))
+    with sessions() as db:
+        job = db.get(AnalysisJob, job_id)
+        assert job.status == "dead_letter"
+        assert job.archive_data == b"zip"
+        assert job.completed_at is not None
+
+
+def test_dead_letter_recovery_resets_attempts_and_requires_retained_archive(queue_db):
+    sessions, user_id = queue_db
+    with sessions() as db:
+        job = enqueue_analysis(db, user_id=user_id, filename="recover.zip", archive_data=b"zip")
+        job.status = "dead_letter"
+        job.attempts = 3
+        job.max_attempts = 3
+        job.completed_at = datetime.now(timezone.utc)
+        db.commit()
+        job_id = job.id
+
+        recovered = requeue_dead_letter_analysis(db, job_id=job_id)
+        assert recovered is not None
+        assert recovered.status == "queued"
+        assert recovered.attempts == 0
+        assert recovered.archive_data == b"zip"
+        assert recovered.completed_at is None
+
+        recovered.status = "dead_letter"
+        recovered.archive_data = None
+        db.commit()
+        with pytest.raises(AnalysisJobArchiveExpired):
+            requeue_dead_letter_analysis(db, job_id=job_id)
+
+
+def test_lease_ownership_prevents_stale_worker_from_mutating_job(queue_db):
+    sessions, user_id = queue_db
+    with sessions() as db:
+        job = enqueue_analysis(db, user_id=user_id, filename="lease.zip", archive_data=b"zip")
+        job.status = "running"
+        job.attempts = 2
+        db.commit()
+        job_id = job.id
+
+    assert refresh_job_lease(job_id, 2) is True
+    assert refresh_job_lease(job_id, 1) is False
+    _retry_or_fail(job_id, 1, RuntimeError("stale worker"))
+    with sessions() as db:
+        job = db.get(AnalysisJob, job_id)
+        assert job.status == "running"
+        assert job.attempts == 2
+
+
+def test_job_completion_and_audit_are_committed_together(queue_db):
+    sessions, user_id = queue_db
+    with sessions() as db:
+        job = enqueue_analysis(db, user_id=user_id, filename="complete.zip", archive_data=b"zip")
+        job.status = "running"
+        job.attempts = 1
+        db.commit()
+        job_id = job.id
+
+    result = {"status": "completed", "findings": [{"rule_id": "TEST001"}], "finding_count": 1}
+    assert _finish_job(job_id, 1, user_id, "complete.zip", result) is True
+    assert _finish_job(job_id, 1, user_id, "complete.zip", result) is False
+    with sessions() as db:
+        job = db.get(AnalysisJob, job_id)
+        audits = db.query(AuditRecord).filter(AuditRecord.job_id == job_id).all()
+        assert job.status == "completed"
+        assert job.archive_data is None
+        assert len(audits) == 1
