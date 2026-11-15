@@ -42,7 +42,11 @@ def _stage_text_files(archive: zipfile.ZipFile, root: Path) -> tuple[int, int]:
         if info.is_dir() or not _safe_member(info.filename):
             continue
         path = PurePosixPath(info.filename)
-        if path.suffix.lower() not in TEXT_SUFFIXES and path.name not in MANIFEST_NAMES:
+        if (
+            path.suffix.lower() not in TEXT_SUFFIXES
+            and path.name not in MANIFEST_NAMES
+            and not path.name.startswith(".env")
+        ):
             continue
         if info.file_size > MAX_FILE_BYTES or count >= MAX_FILES:
             continue
