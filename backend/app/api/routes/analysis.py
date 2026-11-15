@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
-from app.core.auth import require_api_key
+from app.api.routes.auth import get_current_user
+from app.models.user import User
 from app.core.config import settings
 from app.services.audit_history import save_audit
 from app.services.dependency_inventory import inventory_dependency_manifests
@@ -14,12 +15,11 @@ from app.services.zip_inspector import inspect_zip
 router = APIRouter(
     prefix="/analysis",
     tags=["analysis"],
-    dependencies=[Depends(require_api_key)],
 )
 
 
 @router.post("/source-zip")
-async def analyze_source_zip_endpoint(file: UploadFile = File(...)):
+async def analyze_source_zip_endpoint(file: UploadFile = File(...), user: User = Depends(get_current_user)):
     if not file.filename or not file.filename.lower().endswith(".zip"):
         raise HTTPException(status_code=400, detail="Envie um arquivo .zip.")
 
@@ -60,7 +60,7 @@ async def analyze_source_zip_endpoint(file: UploadFile = File(...)):
         **metadata,
     }
     try:
-        save_audit(analysis_type="static_source_analysis", target=file.filename, result=response)
+        save_audit(user_id=user.id, analysis_type="static_source_analysis", target=file.filename, result=response)
     except Exception as exc:
         raise HTTPException(status_code=503, detail="A análise foi concluída, mas não foi possível salvar o histórico.") from exc
     return response
@@ -72,7 +72,7 @@ class WebsiteScanRequest(BaseModel):
 
 
 @router.post("/website")
-async def analyze_website_endpoint(request: WebsiteScanRequest):
+async def analyze_website_endpoint(request: WebsiteScanRequest, user: User = Depends(get_current_user)):
     if request.authorized is not True:
         raise HTTPException(status_code=403, detail="Confirme que possui autorização para avaliar este alvo.")
     if not settings.enable_website_scan:
