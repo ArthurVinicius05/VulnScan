@@ -15,7 +15,7 @@ This checklist is a release gate, not a claim that the current deployment is cer
 - [x] Python hash lockfile and npm lockfile are committed, drift-checked in pull requests, and used by pip hash verification and npm ci.
 - [x] API has no direct internet egress; SMTP is routed through a fixed-upstream proxy that rejects non-public DNS answers.
 - [x] Automated retention cleanup for completed/failed jobs, audit records, expired sessions, tokens and MFA challenges.
-- [x] Encrypted age-based PostgreSQL backup/restore scripts and a PostgreSQL + age restore smoke test in CI.
+- [x] Encrypted age-based PostgreSQL backup/restore scripts, optional rclone off-site upload, a systemd timer template and a PostgreSQL + age restore smoke test in CI.
 - [x] Prometheus HTTP/queue metrics and queue/5xx alert rules; Prometheus UI bound to loopback only.
 - [x] CI builds backend, frontend, SMTP proxy, website worker and OSV worker images and validates production Compose.
 
@@ -24,7 +24,8 @@ This checklist is a release gate, not a claim that the current deployment is cer
 - [ ] Apply and verify host-firewall allowlisting for SMTP proxy destination IPs/ports and DNS; keep website/OSV disabled until SSRF/redirect/DNS-rebinding tests and a separate egress policy pass.
 - [x] Pin every container image by digest and verify registry digests in CI through `images.lock`.
 - [ ] Verify image provenance/signatures where available and document update/rollback cadence.
-- [ ] Run load, abuse, concurrency, failure-recovery and backup/restore drills against a production-like environment.
+- [x] Automated PostgreSQL concurrency/worker-claim tests and encrypted backup/restore smoke test in CI.
+- [ ] Run load/abuse and full failure-recovery/restore drills against a production-like environment.
 - [ ] Configure Alertmanager notifications, centralized logs, on-call ownership and incident response runbooks.
 - [ ] Validate real HTTPS/TLS, SMTP deliverability (SPF/DKIM/DMARC), secret rotation and PostgreSQL restore in the actual hosting environment.
 - [x] Add authenticated account deletion for live database records; [ ] verify deletion across off-site backups and logs and document backup expiry/restore implications.
