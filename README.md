@@ -104,10 +104,21 @@ O perfil de produção mantém API, PostgreSQL, Redis, scanner, worker e Prometh
 
 ## Backup e restauração
 
-Instale age, configure BACKUP_RECIPIENT com a chave pública e execute:
+Instale age, configure `BACKUP_RECIPIENT` com a chave pública e execute:
 
 ~~~bash
 bash scripts/backup_postgres.sh
+~~~
+
+Para cópia externa, configure rclone no host e defina `BACKUP_REMOTE` em `.env.production` (por exemplo, `remote:vulnscan/backups`). O script envia o arquivo criptografado e seu checksum. Configure a política de retenção no destino remoto.
+
+O exemplo de agendamento diário usa systemd. Ajuste `/opt/vulnscan` no arquivo de serviço para o caminho real da instalação e então execute:
+
+~~~bash
+sudo cp deploy/systemd/vulnscan-backup.service deploy/systemd/vulnscan-backup.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now vulnscan-backup.timer
+systemctl list-timers vulnscan-backup.timer
 ~~~
 
 O backup PostgreSQL é criptografado e recebe checksum SHA-256. Configure `BACKUP_REMOTE` para enviar automaticamente o backup e o checksum via rclone (com o remote previamente configurado no host). Guarde a chave privada age separada do servidor e configure a retenção/lifecycle no destino remoto. Os arquivos locais permanecem em `backups/`.
