@@ -4,7 +4,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      APP_ENV: development
+      APP_ENV: ${APP_ENV:-development}
       API_KEY: ${VULNSCAN_API_KEY:-}
       CORS_ORIGINS: http://localhost:5173
       SCANNER_WORKER_URL: http://scanner-worker:8001
