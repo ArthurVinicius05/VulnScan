@@ -2,6 +2,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.core.config import settings
 from app.services.dependency_inventory import inventory_dependency_manifests
+from app.services.osv_client import scan_dependencies
 from app.services.source_analyzer import analyze_source_zip
 from app.services.worker_client import scan_python_archive
 from app.services.zip_inspector import inspect_zip
@@ -28,10 +29,11 @@ async def analyze_source_zip_endpoint(file: UploadFile = File(...)):
         heuristic_findings = analyze_source_zip(content)
         tool_result = await scan_python_archive(content)
         dependency_result = inventory_dependency_manifests(content)
+        osv_result = await scan_dependencies(content)
     except (ValueError, OSError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    findings = heuristic_findings + tool_result.get("findings", [])
+    findings = heuristic_findings + tool_result.get("findings", []) + osv_result.get("findings", [])
     return {
         "status": "completed",
         "analysis_type": "static_source_analysis",
@@ -39,7 +41,13 @@ async def analyze_source_zip_endpoint(file: UploadFile = File(...)):
         "notice": "Achados heurísticos e resultados de ferramentas estáticas. Eles não comprovam explorabilidade e exigem validação manual.",
         "finding_count": len(findings),
         "findings": findings,
-        "scanner_tools": tool_result,
+        "scanner_tools": {
+            **tool_result,
+            "security_tools": [
+                item for item in tool_result.get("security_tools", [])
+                if item.get("name") != "OSV-Scanner"
+            ] + [osv_result],
+        },
         "dependencies": dependency_result,
         **metadata,
     }
