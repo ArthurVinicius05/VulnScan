@@ -58,7 +58,7 @@ O ambiente local pode ativar contas automaticamente quando SMTP não está confi
 ### Egress e isolamento
 - No Compose de produção, a API não possui saída direta para a internet.
 - O envio de e-mail passa pelo serviço smtp-proxy, que encaminha somente para SMTP_UPSTREAM_HOST:SMTP_UPSTREAM_PORT, resolve o hostname na inicialização e rejeita IPs não públicos.
-- SMTP_TLS_SERVER_NAME deve corresponder ao hostname do certificado TLS do relay e a SMTP_UPSTREAM_HOST.
+- SMTP_TLS_SERVER_NAME deve corresponder exatamente a SMTP_UPSTREAM_HOST. O proxy aceita somente portas STARTTLS 25, 587 ou 2525; TLS implícito na porta 465 não é suportado.
 - O proxy SMTP é o único serviço conectado à rede externa de egress. O firewall do host ainda precisa permitir somente os IPs/portas do relay e DNS estritamente necessário.
 - Scanner e analysis-worker permanecem em redes internas. Website scanning e OSV online ficam desativados no Compose de produção até existir política de egress específica e testes SSRF/DNS rebinding.
 

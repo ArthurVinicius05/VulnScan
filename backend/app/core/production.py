@@ -32,8 +32,13 @@ def validate_production_settings(config: Settings = settings) -> None:
         errors.append("SMTP_HOST and MAIL_FROM are required for account verification and recovery")
     if bool(config.smtp_username) != bool(config.smtp_password):
         errors.append("SMTP_USERNAME and SMTP_PASSWORD must either both be set or both be empty")
-    if config.smtp_host == "smtp-proxy" and not config.smtp_tls_server_name:
-        errors.append("SMTP_TLS_SERVER_NAME must match the configured upstream SMTP certificate hostname")
+    if config.smtp_host == "smtp-proxy":
+        if not config.smtp_upstream_host:
+            errors.append("SMTP_UPSTREAM_HOST must be configured when using the SMTP proxy")
+        if not config.smtp_tls_server_name:
+            errors.append("SMTP_TLS_SERVER_NAME must match the configured upstream SMTP certificate hostname")
+        elif config.smtp_upstream_host and config.smtp_tls_server_name.lower() != config.smtp_upstream_host.lower():
+            errors.append("SMTP_TLS_SERVER_NAME must exactly match SMTP_UPSTREAM_HOST")
     if not config.smtp_starttls:
         errors.append("SMTP_STARTTLS must be enabled")
     if config.enable_website_scan or config.enable_osv_scan:

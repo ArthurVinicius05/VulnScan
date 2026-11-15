@@ -33,7 +33,7 @@ TOTP secrets are encrypted with a Fernet key supplied by the operator. Login use
 
 ## SMTP-only egress
 
-The API has no direct external network. It reaches a dedicated SMTP proxy over an internal-only network. The proxy resolves one configured SMTP upstream at startup, rejects non-public IP answers, pins the resolved IPs for the process lifetime and forwards only to the configured port. The host firewall must still restrict the proxy to the relay's current public IPs and port. Website and OSV workers remain disabled in production until separate egress/SSRF controls are verified.
+The API has no direct external network. It reaches a dedicated SMTP proxy over an internal-only network. The proxy resolves one configured SMTP upstream at startup, rejects non-public IP answers, pins the resolved IPs for the process lifetime and forwards only to the configured port. The proxy permits only STARTTLS ports 25, 587 or 2525; implicit TLS/465 is not supported. The host firewall must still restrict the proxy to the relay's current public IPs and port. The API validates that SMTP_TLS_SERVER_NAME exactly matches SMTP_UPSTREAM_HOST. Website and OSV workers remain disabled in production until separate egress/SSRF controls are verified.
 
 ## Metrics and recovery
 

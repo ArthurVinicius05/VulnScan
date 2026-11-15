@@ -21,6 +21,8 @@ def validate_public_ip(raw_ip: str) -> str:
 
 
 def resolve_upstream(host: str, port: int) -> list[str]:
+    if port not in (25, 587, 2525):
+        raise RuntimeError("SMTP proxy only permits STARTTLS ports 25, 587 or 2525.")
     if not host or host in {"localhost", "smtp-proxy"}:
         raise RuntimeError("SMTP_UPSTREAM_HOST must be a real upstream hostname.")
     records = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)

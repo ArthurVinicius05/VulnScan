@@ -15,6 +15,11 @@ def test_smtp_proxy_accepts_public_upstream_addresses(address):
     assert validate_public_ip(address) == address
 
 
+def test_smtp_proxy_rejects_implicit_tls_and_unexpected_ports():
+    with pytest.raises(RuntimeError, match="STARTTLS ports"):
+        resolve_upstream("mail.provider.example", 465)
+
+
 def test_smtp_proxy_pins_resolved_public_addresses(monkeypatch):
     monkeypatch.setattr(socket, "getaddrinfo", lambda *args, **kwargs: [
         (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("8.8.8.8", 587)),
