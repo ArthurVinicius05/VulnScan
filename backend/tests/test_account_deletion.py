@@ -46,7 +46,7 @@ def test_account_deletion_requires_running_jobs_to_finish_and_removes_live_data(
             })
             assert login.status_code == 200
             csrf = client.cookies.get("vulnscan_csrf")
-            blocked = client.delete("/api/auth/me", json={"password": "correct-horse-battery"},
+            blocked = client.request("DELETE", "/api/auth/me", json={"password": "correct-horse-battery"},
                 headers={"X-CSRF-Token": csrf})
             assert blocked.status_code == 409
 
