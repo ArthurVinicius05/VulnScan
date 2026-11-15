@@ -19,6 +19,7 @@ logger = logging.getLogger("vulnscan.analysis_worker")
 LEASE_MINUTES = 5
 LEASE_HEARTBEAT_SECONDS = 60
 POLL_SECONDS = 2
+CLEANUP_INTERVAL_SECONDS = 60 * 60
 
 
 def claim_next_job() -> tuple[str, str, str, bytes, int] | None:
@@ -295,7 +296,7 @@ async def run_forever() -> None:
     validate_worker_runtime()
     last_cleanup = 0.0
     while True:
-        if time.monotonic() - last_cleanup >= 24 * 60 * 60:
+        if time.monotonic() - last_cleanup >= CLEANUP_INTERVAL_SECONDS:
             try:
                 cleanup_expired_data()
             except Exception:
