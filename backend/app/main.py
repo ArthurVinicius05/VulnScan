@@ -16,6 +16,8 @@ app = FastAPI(
 )
 
 app.add_middleware(RateLimitMiddleware)
+# Register the upload guard before CORS so CORS wraps and decorates its early errors.
+app.add_middleware(UploadAuthenticationMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -34,5 +36,3 @@ app.include_router(auth_router, prefix="/api")
 def root():
     return {"name": "VulnScan Pro API", "version": app.version, "docs": "/docs"}
 
-# Runs before FastAPI multipart parsing for the source archive upload endpoint.
-app.add_middleware(UploadAuthenticationMiddleware)
