@@ -56,4 +56,5 @@ jobs:
           DATABASE_URL: postgresql+psycopg://vulnscan:ci-only-password@db:5432/vulnscan
           CORS_ORIGINS: '["https://vulnscan.example.test"]'
           FRONTEND_URL: https://vulnscan.example.test
+          SCANNER_WORKER_TOKEN: ci-only-worker-token
         run: docker compose -f docker-compose.production.yml config --quiet
