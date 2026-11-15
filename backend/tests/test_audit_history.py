@@ -83,6 +83,7 @@ def test_history_is_private_between_users(audit_client):
         db.commit()
     response = client.get("/api/history")
     assert response.status_code == 200 and response.json()["items"][0]["target"] == "private.zip"
+    audit_id = response.json()["items"][0]["id"]
     client.headers.update({"Authorization": f"Bearer {token}"})
     assert client.get("/api/history").json()["items"] == []
     assert client.get(f"/api/history/{audit_id}").status_code == 404
