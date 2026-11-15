@@ -11,6 +11,7 @@ from app.api.routes.health import router as health_router
 from app.api.routes.analysis import router as analysis_router
 from app.api.routes.history import router as history_router
 from app.api.routes.auth import router as auth_router
+from app.api.routes.ops import router as ops_router
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.upload_auth import UploadAuthenticationMiddleware
 from app.db.database import SessionLocal
@@ -47,6 +48,7 @@ app.include_router(health_router, prefix="/api")
 app.include_router(analysis_router, prefix="/api")
 app.include_router(history_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
+app.include_router(ops_router, prefix="/api")
 
 
 @app.middleware("http")
@@ -73,7 +75,7 @@ async def collect_http_metrics(request: Request, call_next):
 def metrics():
     try:
         with SessionLocal() as db:
-            for state in ("queued", "running", "completed", "failed"):
+            for state in ("queued", "running", "completed", "failed", "dead_letter"):
                 count = db.scalar(select(func.count()).select_from(AnalysisJob).where(AnalysisJob.status == state)) or 0
                 ANALYSIS_JOBS.labels(state).set(count)
     except Exception:
