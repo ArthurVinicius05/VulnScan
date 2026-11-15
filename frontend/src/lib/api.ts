@@ -17,8 +17,10 @@ export async function authenticate(email: string, password: string, mode: 'login
     method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   })
-  const payload = await response.json()
+  const payload = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(payload.detail ?? 'Não foi possível autenticar.')
+  // Registration with SMTP enabled does not issue a session until email verification.
+  if (!payload.user) return null
   return payload.user as { id: string; email: string }
 }
 
