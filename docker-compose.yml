@@ -36,6 +36,12 @@ services:
         condition: service_healthy
       scanner-worker:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
     networks:
       - default
       - scanner_internal
@@ -162,6 +168,8 @@ services:
     volumes:
       - ./backend:/app
     depends_on:
+      backend:
+        condition: service_healthy
       scanner-worker:
         condition: service_healthy
     restart: unless-stopped

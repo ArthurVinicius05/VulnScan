@@ -16,7 +16,7 @@
 ## Próxima fase — Operação segura e produto
 1. [x] Fila durável assíncrona no PostgreSQL com leases, retries limitados e histórico idempotente. [ ] Cancelamento e operação de dead-letter.
 2. [x] Quotas mensais e limites de concorrência por conta. [ ] Retenção e limites de armazenamento.
-3. [ ] MFA com TOTP, códigos de recuperação e revogação de sessões.
+3. [x] MFA com TOTP, segredos criptografados, códigos de recuperação de uso único, desafios temporários, proteção contra replay e revogação de sessões.
 4. [ ] Lockfiles reproduzíveis para Python/npm e imagens fixadas por digest.
 5. [ ] Egress controlado e testes SSRF/DNS rebinding em ambiente isolado.
 6. [ ] Observabilidade, backup/restore, carga, abuso e resposta a incidentes.
