@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { ShieldCheck, LayoutDashboard, Globe, FolderCode, History, Settings, Bell, Search, UploadCloud, FileArchive, Activity, ChevronRight, LockKeyhole, ScanSearch, AlertTriangle } from 'lucide-react'
 import { authenticate, fetchAuditHistory, getAccessToken, logout, uploadSourceZip, type AuditHistoryItem } from './lib/api'
 
@@ -49,7 +49,7 @@ export default function App() {
 
   useEffect(() => { if (authenticated) void refreshHistory() }, [authenticated])
 
-  async function submitAuth(event: React.FormEvent<HTMLFormElement>) {
+  async function submitAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setAuthBusy(true); setAuthError('')
     try { await authenticate(email, password, authMode); setAuthenticated(true); setPassword('') }
     catch (e) { setAuthError(e instanceof Error ? e.message : 'Falha na autenticação.') }
