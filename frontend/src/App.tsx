@@ -20,6 +20,7 @@ type Result = {
   notice: string
   finding_count: number
   findings: Finding[]
+  scanner_tools?: { status: string; tools: { name: string; status: string }[] }
 }
 
 export default function App() {
@@ -65,6 +66,7 @@ export default function App() {
             {error && <div className="error">{error}</div>}
             {result && <div className="result"><b><FileArchive size={16}/> Analysis completed</b><p>{result.file_count} files · {result.detected_technologies.join(', ') || 'No known stack markers detected'}</p><small>{result.notice}</small>
               <div className="findings-summary"><AlertTriangle size={16}/> {result.finding_count} potential finding(s)</div>
+              {result.scanner_tools && <div className="tool-status"><b>Static tools</b>{result.scanner_tools.tools.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {tool.status}</span>)}</div>}
               {result.findings.map((finding, index) => <article className="finding" key={finding.rule_id + finding.file + finding.line + index}>
                 <div className="finding-heading"><b>{finding.title}</b><span className={'severity ' + finding.severity}>{finding.severity.toUpperCase()}</span></div>
                 <small>{finding.rule_id} · {finding.file}:{finding.line} · confidence: {finding.confidence} · not verified</small>
