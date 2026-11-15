@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     scanner_worker_url: str = "http://scanner-worker:8001"
     scanner_worker_timeout_seconds: float = 30.0
     scanner_worker_token: str | None = None
+    ops_admin_token: str | None = None
+    dead_letter_archive_retention_hours: int = 72
     mfa_encryption_key: str | None = None
     monthly_analysis_limit: int = 30
     max_concurrent_analyses: int = 2
