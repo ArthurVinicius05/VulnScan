@@ -1,6 +1,6 @@
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
-type ApiPayload = {
+export class ApiError extends Error {\n  constructor(message: string, readonly status: number) {\n    super(message)\n    this.name = 'ApiError'\n  }\n}\n\ntype ApiPayload = {
   detail?: string
   message?: string
   user?: { id: string; email: string }
@@ -26,7 +26,7 @@ async function readPayload(response: Response): Promise<ApiPayload> {
 function ensureSuccess(response: Response, payload: ApiPayload, fallback: string): void {
   if (!response.ok) {
     const detail = typeof payload.detail === 'string' ? payload.detail : fallback
-    throw new Error(`${detail} (HTTP ${response.status})`)
+    throw new ApiError(detail, response.status)
   }
 }
 
