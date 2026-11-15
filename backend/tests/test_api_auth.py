@@ -43,7 +43,9 @@ def test_analysis_routes_accept_valid_individual_session(tmp_path):
     app.dependency_overrides[get_db] = override_db
     try:
         client = TestClient(app)
-        response = client.post("/api/analysis/website", headers={"Authorization": f"Bearer {token}"},
+        client.cookies.set("vulnscan_session", token)
+        client.cookies.set("vulnscan_csrf", "csrf-valid")
+        response = client.post("/api/analysis/website", headers={"X-CSRF-Token": "csrf-valid"},
             json={"url": "https://example.org", "authorized": False})
         assert response.status_code == 403
     finally:
