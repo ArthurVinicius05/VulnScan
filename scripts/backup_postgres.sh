@@ -18,6 +18,8 @@ POSTGRES_USER="$(read_env_value POSTGRES_USER)"
 POSTGRES_DB="$(read_env_value POSTGRES_DB)"
 BACKUP_RECIPIENT="$(read_env_value BACKUP_RECIPIENT)"
 BACKUP_REMOTE="$(read_env_value BACKUP_REMOTE)"
+BACKUP_LOCAL_RETENTION_DAYS="$(read_env_value BACKUP_LOCAL_RETENTION_DAYS)"
+BACKUP_LOCAL_RETENTION_DAYS="${BACKUP_LOCAL_RETENTION_DAYS:-14}"
 : "${POSTGRES_USER:?POSTGRES_USER is required}"
 : "${POSTGRES_DB:?POSTGRES_DB is required}"
 : "${BACKUP_RECIPIENT:?Set BACKUP_RECIPIENT to an age public recipient}"
@@ -44,5 +46,9 @@ if [[ -n "$BACKUP_REMOTE" ]]; then
   rclone copyto "$BACKUP_FILE" "$REMOTE_DIR/$(basename "$BACKUP_FILE")"
   rclone copyto "$BACKUP_FILE.sha256" "$REMOTE_DIR/$(basename "$BACKUP_FILE").sha256"
   echo "Encrypted backup and checksum uploaded to $REMOTE_DIR"
+  [[ "$BACKUP_LOCAL_RETENTION_DAYS" =~ ^[1-9][0-9]*$ ]] || { echo "BACKUP_LOCAL_RETENTION_DAYS must be a positive integer." >&2; exit 1; }
+  find "$BACKUP_DIR" -maxdepth 1 -type f \\
+    \\( -name "vulnscan-postgres-*.dump.age" -o -name "vulnscan-postgres-*.dump.age.sha256" \\) \\
+    -mtime +"$BACKUP_LOCAL_RETENTION_DAYS" -delete
 fi
 echo "Encrypted PostgreSQL backup created: $BACKUP_FILE"
