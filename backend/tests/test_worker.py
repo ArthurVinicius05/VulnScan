@@ -30,4 +30,9 @@ def test_worker_returns_scanner_result_for_archive(monkeypatch):
         files={"file": ("source.zip", b"small archive", "application/zip")},
     )
     assert response.status_code == 200
-    assert response.json() == expected
+    payload = response.json()
+    assert payload["status"] == expected["status"]
+    assert payload["tools"] == expected["tools"]
+    assert payload["findings"] == expected["findings"]
+    assert [tool["name"] for tool in payload["security_tools"]] == ["Gitleaks", "OSV-Scanner"]
+    assert payload["security_tools"][1]["status"] == "disabled"
