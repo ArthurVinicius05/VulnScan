@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import AccountRecovery from './AccountRecovery'
 import { ShieldCheck, LayoutDashboard, Globe, FolderCode, History, Settings, Bell, Search, UploadCloud, FileArchive, Activity, ChevronRight, LockKeyhole, ScanSearch, AlertTriangle } from 'lucide-react'
-import { authenticate, checkSession, fetchAuditDetail, fetchAuditHistory, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
+import { ApiError, authenticate, checkSession, fetchAuditDetail, fetchAuditHistory, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
 
 type Finding = {
   rule_id: string
@@ -56,13 +56,13 @@ export default function App() {
 
   async function refreshHistory() {
     try { setHistory(await fetchAuditHistory()); setHistoryError('') }
-    catch (e) { setHistoryError(e instanceof Error ? e.message : 'Falha ao carregar histórico.') }
+    catch (e) { if (e instanceof ApiError && e.status === 401) { setAuthenticated(false); setHistory([]); return } setHistoryError(e instanceof Error ? e.message : 'Falha ao carregar histórico.') }
   }
 
   async function openAudit(id: string) {
     setDetailBusy(true); setHistoryError('')
     try { setSelectedAudit(await fetchAuditDetail(id)) }
-    catch (e) { setHistoryError(e instanceof Error ? e.message : 'Falha ao carregar relatório.') }
+    catch (e) { if (e instanceof ApiError && e.status === 401) { setAuthenticated(false); setSelectedAudit(null); return } setHistoryError(e instanceof Error ? e.message : 'Falha ao carregar relatório.') }
     finally { setDetailBusy(false) }
   }
 
@@ -103,7 +103,7 @@ export default function App() {
     if (!file) return
     setBusy(true); setError(''); setResult(null)
     try { setResult(await uploadSourceZip(file)); await refreshHistory() }
-    catch (e) { setError(e instanceof Error ? e.message : 'Erro inesperado.') }
+    catch (e) { if (e instanceof ApiError && e.status === 401) { setAuthenticated(false); setResult(null); setError('Sua sessão expirou. Entre novamente para continuar.') } else setError(e instanceof Error ? e.message : 'Erro inesperado.') }
     finally { setBusy(false) }
   }
 
