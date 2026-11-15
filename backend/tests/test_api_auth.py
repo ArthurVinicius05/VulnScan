@@ -55,3 +55,30 @@ def test_analysis_routes_accept_valid_individual_session(tmp_path):
 def test_health_endpoint_remains_public():
     response = TestClient(app, client=("127.0.0.14", 12345)).get("/api/health")
     assert response.status_code == 200
+
+
+def test_upload_rejects_unauthenticated_request_before_multipart_parsing():
+    client = TestClient(app, client=("127.0.0.15", 12345))
+    response = client.post(
+        "/api/analysis/source-zip",
+        content=b"not a valid multipart body",
+        headers={"Content-Type": "multipart/form-data; boundary=missing"},
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Autenticação necessária."
+
+
+def test_upload_rejects_oversized_content_length_before_multipart_parsing(monkeypatch):
+    from app.middleware import upload_auth
+
+    monkeypatch.setattr(upload_auth.settings, "max_upload_mb", 1)
+    client = TestClient(app, client=("127.0.0.16", 12345))
+    response = client.post(
+        "/api/analysis/source-zip",
+        content=b"",
+        headers={
+            "Content-Type": "multipart/form-data; boundary=missing",
+            "Content-Length": str(3 * 1024 * 1024),
+        },
+    )
+    assert response.status_code == 413
