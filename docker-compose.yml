@@ -7,6 +7,7 @@ services:
       APP_ENV: ${APP_ENV:-development}
       API_KEY: ${VULNSCAN_API_KEY:-}
       DATABASE_URL: ${DATABASE_URL:-sqlite:///./vulnscan.db}
+      REDIS_URL: redis://redis:6379/0
       CORS_ORIGINS: http://localhost:5173
       SCANNER_WORKER_URL: http://scanner-worker:8001
       SCANNER_WORKER_TIMEOUT_SECONDS: 30
@@ -19,7 +20,22 @@ services:
       - ./backend:/app
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     depends_on:
-      scanner-worker:
+      redis:
+        condition: service_healthy
+      redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - default
+
+  scanner-worker:
         condition: service_healthy
     networks:
       - default
