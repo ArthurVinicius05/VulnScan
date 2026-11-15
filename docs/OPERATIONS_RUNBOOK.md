@@ -83,7 +83,7 @@ Install age and rclone on the host. Configure rclone for the same Unix account t
 bash scripts/backup_postgres.sh
 ~~~
 
-The script writes an age-encrypted PostgreSQL dump and SHA-256 checksum locally, then uploads both files when BACKUP_REMOTE is configured. Configure object-storage lifecycle/retention separately; an upload is not a retention policy.
+The script writes an age-encrypted PostgreSQL dump and SHA-256 checksum locally, then uploads both files when BACKUP_REMOTE is configured. Configure object-storage lifecycle/retention separately; an upload is not a retention policy. After a successful remote upload, local encrypted files older than BACKUP_LOCAL_RETENTION_DAYS (14 by default) are pruned. Without a remote target, local backups are never automatically deleted.
 
 The repository includes a daily systemd timer template. Adjust /opt/vulnscan in deploy/systemd/vulnscan-backup.service to the installation path before installing it:
 
