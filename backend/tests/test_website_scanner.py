@@ -107,7 +107,8 @@ def test_connection_uses_pinned_address_without_second_dns_lookup(monkeypatch):
     connected = []
 
     class FakeSocket:
-        pass
+        def close(self):
+            return None
 
     fake_socket = FakeSocket()
 
