@@ -32,6 +32,7 @@ def test_website_api_forwards_authorized_target(monkeypatch):
 
     monkeypatch.setattr(analysis.settings, "enable_website_scan", True)
     monkeypatch.setattr(analysis, "scan_website_target", fake_scan)
+    monkeypatch.setattr(analysis, "save_audit", lambda **kwargs: None)
     response = client.post(
         "/api/analysis/website",
         json={"url": "https://example.org", "authorized": True},
