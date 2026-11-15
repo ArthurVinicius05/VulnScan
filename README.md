@@ -38,6 +38,8 @@ Dashboard: http://localhost:5173
 - Run bounded, read-only heuristic checks on selected source/text files
 - Run Bandit and Ruff against a bounded set of Python files when the tools are installed
 - Show scanner availability/status separately from findings
+- Inventory dependency manifests and lockfiles for npm, Python, Rust, Go, Ruby, PHP, Maven, and Gradle without installing packages or making network requests
+- Redact detected credential values from finding evidence
 - Initial rules cover possible hardcoded credentials, dynamic execution, shell-enabled subprocess calls, pickle deserialization, unsafe YAML loading, HTML injection sinks, and SQL string-building patterns
 - Findings include rule ID, severity, confidence, file, line, evidence, and remediation guidance
 - Uploaded source code is never executed
@@ -47,6 +49,7 @@ Dashboard: http://localhost:5173
 - The initial heuristic ruleset is intentionally small and is not a replacement for a professional security review.
 - Bandit and Ruff are invoked as trusted scanner processes with timeouts and bounded temporary input. This first integration runs inside the API container; it is not yet a dedicated sandboxed worker.
 - The analyzer reads only selected text extensions, with per-file and aggregate byte limits.
+- Dependency inventory is metadata-only; vulnerability database matching (for example OSV) and secret scanning with Gitleaks are not integrated yet. External database access is intentionally not enabled.
 - Website scanning, isolated workers, authentication, persistence, AI analysis, and PDF/JSON reporting are not implemented yet.
 - This development foundation is not production-hardened.
 
