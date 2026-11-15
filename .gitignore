@@ -16,5 +16,9 @@ dist/
 .DS_Store
 Thumbs.db
 backend/storage/
+backups/
+mfa-rotation.env
+*.dump.age
+*.dump.age.sha256
 *.log
 *.db
