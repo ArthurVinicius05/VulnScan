@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
 from app.api.routes.auth import get_current_user
@@ -19,7 +19,7 @@ router = APIRouter(
 
 
 @router.post("/source-zip")
-async def analyze_source_zip_endpoint(file: UploadFile = File(...), user: User = Depends(get_current_user)):
+async def analyze_source_zip_endpoint(file: UploadFile = File(...), csrf_token: str | None = Header(default=None, alias="X-CSRF-Token"), user: User = Depends(get_current_user)):
     if not file.filename or not file.filename.lower().endswith(".zip"):
         raise HTTPException(status_code=400, detail="Envie um arquivo .zip.")
 
@@ -72,7 +72,7 @@ class WebsiteScanRequest(BaseModel):
 
 
 @router.post("/website")
-async def analyze_website_endpoint(request: WebsiteScanRequest, user: User = Depends(get_current_user)):
+async def analyze_website_endpoint(request: WebsiteScanRequest, csrf_token: str | None = Header(default=None, alias="X-CSRF-Token"), user: User = Depends(get_current_user)):
     if request.authorized is not True:
         raise HTTPException(status_code=403, detail="Confirme que possui autorização para avaliar este alvo.")
     if not settings.enable_website_scan:
