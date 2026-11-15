@@ -4,3 +4,44 @@
 .findings-summary{display:flex;align-items:center;gap:7px;margin:13px 0 8px;color:#fbbf24;font-weight:600}.finding{border:1px solid #293953;background:#0b1424;border-radius:7px;padding:11px;margin:8px 0}.finding-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}.finding-heading b{font-size:11px;color:#e4edf9}.severity{font-size:8px;font-weight:700;letter-spacing:.6px;padding:4px 6px;border-radius:4px}.severity.critical,.severity.high{color:#ff9a9a;background:#3b1d2a}.severity.medium{color:#f8cc78;background:#392d1c}.severity.low{color:#86c8ff;background:#172e46}.severity.informational{color:#b7c2d3;background:#263247}.finding>small{display:block;margin-top:6px;color:#8192ad;font-size:9px}.finding pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#080e19;border-radius:5px;padding:8px;color:#b6c8df;font-size:9px;margin:9px 0}.finding p{font-size:10px;line-height:1.5;color:#9aabc3;margin:0}.result details{margin-top:12px;color:#91a5c1}.result summary{cursor:pointer;font-size:10px}
 
 .tool-status{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:10px 0;font-size:9px;color:#91a5c1}.tool-status b{color:#c5d4e9;margin-right:3px}.tool-status span{padding:4px 6px;border-radius:4px;background:#1b2940;color:#9fb2cc}.tool-status span.completed{background:#12352f;color:#6fe0b5}.tool-status span.unavailable,.tool-status span.timeout,.tool-status span.error{background:#3b1d2a;color:#ffaaaa}
+
+
+/* Individual account access */
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #090d18;
+  color: #eef2ff;
+}
+.auth-card {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 16px;
+  padding: 32px;
+  border: 1px solid rgba(148, 163, 184, .2);
+  border-radius: 18px;
+  background: #111827;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .35);
+}
+.auth-card h1 { margin: 0; font-size: 26px; }
+.auth-card p, .auth-card small { color: #9ca3af; }
+.auth-card label { display: grid; gap: 8px; color: #d1d5db; font-size: 14px; }
+.auth-card input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #374151;
+  border-radius: 9px;
+  padding: 12px;
+  background: #0b1220;
+  color: #f9fafb;
+}
+.auth-card .primary-btn { width: 100%; justify-content: center; }
+.auth-switch, .auth-logout {
+  border: 0;
+  background: transparent;
+  color: #a5b4fc;
+  cursor: pointer;
+}
+.auth-logout { padding: 8px 12px; }
