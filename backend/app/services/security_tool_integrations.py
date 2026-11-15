@@ -36,8 +36,9 @@ def _safe_member(name: str) -> bool:
     )
 
 
-def _stage_text_files(archive: zipfile.ZipFile, root: Path) -> tuple[int, int]:
+def _stage_text_files(archive: zipfile.ZipFile, root: Path) -> tuple[int, int, bool]:
     count = total = 0
+    truncated = False
     for info in archive.infolist():
         if info.is_dir() or not _safe_member(info.filename):
             continue
@@ -49,9 +50,11 @@ def _stage_text_files(archive: zipfile.ZipFile, root: Path) -> tuple[int, int]:
         ):
             continue
         if info.file_size > MAX_FILE_BYTES or count >= MAX_FILES:
+            truncated = True
             continue
         if total + info.file_size > MAX_TOTAL_BYTES:
-            break
+            truncated = True
+            continue
         target = (root / Path(*path.parts)).resolve()
         if not target.is_relative_to(root):
             continue
@@ -64,7 +67,7 @@ def _stage_text_files(archive: zipfile.ZipFile, root: Path) -> tuple[int, int]:
         target.write_bytes(raw)
         count += 1
         total += len(raw)
-    return count, total
+    return count, total, truncated
 
 
 def run_gitleaks(zip_bytes: bytes) -> dict:
@@ -78,7 +81,7 @@ def run_gitleaks(zip_bytes: bytes) -> dict:
             with tempfile.TemporaryDirectory(prefix="vulnscan-secrets-") as temp_dir:
                 root = Path(temp_dir).resolve() / "source"
                 root.mkdir()
-                file_count, _ = _stage_text_files(archive, root)
+                file_count, _, staging_truncated = _stage_text_files(archive, root)
                 if not file_count:
                     return {"name": "Gitleaks", "status": "skipped", "findings": []}
 
@@ -137,7 +140,21 @@ def run_gitleaks(zip_bytes: bytes) -> dict:
                             "source": "Gitleaks",
                             "category": "secret",
                         })
-                return {"name": "Gitleaks", "status": "completed", "findings": findings}
+                findings_truncated = isinstance(raw_findings, list) and len(raw_findings) > 200
+                status = "partial" if staging_truncated or findings_truncated else "completed"
+                return {
+                    "name": "Gitleaks",
+                    "status": status,
+                    "findings": findings,
+                    "coverage": {
+                        "files_scanned": file_count,
+                        "file_limit": MAX_FILES,
+                        "truncated": staging_truncated,
+                        "findings_returned": len(findings),
+                        "finding_limit": 200,
+                        "findings_truncated": findings_truncated,
+                    },
+                }
     except (zipfile.BadZipFile, OSError, ValueError):
         return {"name": "Gitleaks", "status": "error", "findings": []}
 
