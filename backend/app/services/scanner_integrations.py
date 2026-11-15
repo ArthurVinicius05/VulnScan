@@ -86,7 +86,17 @@ def _run_json_tool(command: list[str], *, cwd: str) -> tuple[str, dict | list | 
 def run_python_tools(zip_bytes: bytes) -> dict:
     """Run Bandit and Ruff against bounded Python files in a temporary directory."""
     with zipfile.ZipFile(__import__("io").BytesIO(zip_bytes)) as archive:
-        members = _safe_python_members(archive)
+        eligible_members = [
+            info for info in archive.infolist()
+            if not info.is_dir()
+            and PurePosixPath(info.filename).suffix.lower() == ".py"
+            and not PurePosixPath(info.filename).is_absolute()
+            and "\\\\" not in info.filename
+            and not any(part in ("", ".", "..") for part in PurePosixPath(info.filename).parts)
+            and info.file_size <= 512 * 1024
+        ]
+        members = eligible_members[:MAX_PYTHON_FILES]
+        truncated = len(eligible_members) > len(members)
         if not members:
             return {
                 "status": "skipped",
@@ -116,7 +126,8 @@ def run_python_tools(zip_bytes: bytes) -> dict:
                 [sys.executable, "-m", "bandit", "-f", "json", "-q", "-r", str(root)],
                 cwd=temp_dir,
             )
-            tools.append({"name": "Bandit", "status": bandit_status})
+            bandit_report_status = "partial" if bandit_status == "completed" and truncated else bandit_status
+            tools.append({"name": "Bandit", "status": bandit_report_status, "files_scanned": len(written), "files_available": len(eligible_members)})
             if bandit_status == "completed" and isinstance(bandit_data, dict):
                 for item in bandit_data.get("results", []):
                     findings.append({
@@ -134,13 +145,14 @@ def run_python_tools(zip_bytes: bytes) -> dict:
 
             ruff_executable = shutil.which("ruff")
             if not ruff_executable:
-                tools.append({"name": "Ruff", "status": "unavailable"})
+                tools.append({"name": "Ruff", "status": "unavailable", "files_scanned": 0, "files_available": len(eligible_members)})
             else:
                 ruff_status, ruff_data = _run_json_tool(
                     [ruff_executable, "check", "--output-format", "json", str(root)],
                     cwd=temp_dir,
                 )
-                tools.append({"name": "Ruff", "status": ruff_status})
+                ruff_report_status = "partial" if ruff_status == "completed" and truncated else ruff_status
+                tools.append({"name": "Ruff", "status": ruff_report_status, "files_scanned": len(written), "files_available": len(eligible_members)})
                 if ruff_status == "completed" and isinstance(ruff_data, list):
                     for item in ruff_data:
                         location = item.get("location") or {}
@@ -158,5 +170,16 @@ def run_python_tools(zip_bytes: bytes) -> dict:
                             "category": "code_quality",
                         })
 
-            overall = "completed" if any(tool["status"] == "completed" for tool in tools) else "unavailable"
-            return {"status": overall, "tools": tools, "findings": findings}
+            successful = [tool for tool in tools if tool["status"] in {"completed", "partial"}]
+            overall = "partial" if truncated or any(tool["status"] not in {"completed", "partial"} for tool in tools) else ("completed" if successful else "unavailable")
+            return {
+                "status": overall,
+                "tools": tools,
+                "findings": findings,
+                "coverage": {
+                    "python_files_available": len(eligible_members),
+                    "python_files_scanned": len(written),
+                    "python_file_limit": MAX_PYTHON_FILES,
+                    "truncated": truncated,
+                },
+            }
