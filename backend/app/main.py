@@ -44,3 +44,10 @@ def root():
         "version": app.version,
         "docs": None if is_production else "/docs",
     }
+
+
+@app.on_event("startup")
+async def validate_production_runtime() -> None:
+    from app.core.production import validate_production_settings
+
+    validate_production_settings(settings)

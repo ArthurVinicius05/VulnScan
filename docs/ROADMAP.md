@@ -14,11 +14,15 @@
 - [x] Testes automatizados e CI para backend, frontend e imagens de containers
 
 ## Próxima fase — Operação segura e produto
-1. Limites de uso por conta, quotas, limites de concorrência e escopo de auditoria.
-2. Allowlist de saída aplicada por firewall/proxy e hardening de produção.
-3. Relatórios exportáveis JSON/PDF e comparação de auditorias.
-4. Integração OpenRouter opcional com chave do usuário, contexto mínimo e explicações fundamentadas em evidências.
-5. MFA, administração de contas e política de convites.
+1. [ ] Fila durável assíncrona com recuperação, retries, cancelamento e idempotência.
+2. [ ] Quotas mensais por conta, concorrência, retenção e limites de armazenamento.
+3. [ ] MFA com TOTP, códigos de recuperação e revogação de sessões.
+4. [ ] Lockfiles reproduzíveis para Python/npm e imagens fixadas por digest.
+5. [ ] Egress controlado e testes SSRF/DNS rebinding em ambiente isolado.
+6. [ ] Observabilidade, backup/restore, carga, abuso e resposta a incidentes.
+7. [ ] Revisão de segurança independente e implantação HTTPS real.
+
+Ver `docs/PRODUCTION_READINESS.md` para os critérios de bloqueio de lançamento.
 
 ## Critérios antes de produção
 - Configurar HTTPS, APP_ENV=production, CORS_ORIGINS e cookies Secure.
