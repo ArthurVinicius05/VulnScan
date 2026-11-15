@@ -22,7 +22,16 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      redis:
+      scanner-worker:
+        condition: service_healthy
+    networks:
+      - default
+      - scanner_internal
+      - osv_internal
+      - website_internal
+      - redis_internal
+
+  redis:
     image: redis:7-alpine
     command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
     expose:
@@ -34,14 +43,6 @@ services:
       retries: 10
     networks:
       - redis_internal
-
-  scanner-worker:
-        condition: service_healthy
-    networks:
-      - default
-      - scanner_internal
-      - osv_internal
-      - website_internal
 
   scanner-worker:
     build: ./backend
