@@ -5,13 +5,17 @@ import { uploadSourceZip } from './lib/api'
 type Finding = {
   rule_id: string
   title: string
-  severity: 'critical' | 'high' | 'medium' | 'low' | 'informational'
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'informational' | 'unknown'
   confidence: string
   file: string
-  line: number
+  line: number | null
   evidence: string
   recommendation: string
   verified: boolean
+  aliases?: string[]
+  references?: string[]
+  package?: { name: string; version: string; ecosystem: string }
+  cvss_vector?: string | null
 }
 type Result = {
   file_count: number
@@ -75,7 +79,10 @@ export default function App() {
               </div>}
               {result.findings.map((finding, index) => <article className="finding" key={finding.rule_id + finding.file + finding.line + index}>
                 <div className="finding-heading"><b>{finding.title}</b><span className={'severity ' + finding.severity}>{finding.severity.toUpperCase()}</span></div>
-                <small>{finding.rule_id} · {finding.file}:{finding.line} · confidence: {finding.confidence} · not verified</small>
+                <small>{finding.rule_id} · {finding.file}:{finding.line ?? '—'} · confidence: {finding.confidence} · not verified</small>
+                {finding.package && <small>{finding.package.ecosystem}:{finding.package.name}@{finding.package.version}</small>}
+                {finding.aliases?.length ? <small>Aliases: {finding.aliases.join(', ')}</small> : null}
+                {finding.references?.map(url => <small key={url}><a href={url} target="_blank" rel="noreferrer">Advisory reference</a></small>)}
                 <pre>{finding.evidence}</pre><p>{finding.recommendation}</p>
               </article>)}
               <details><summary>Inspected paths ({result.sample_paths.length} shown)</summary><ul>{result.sample_paths.slice(0,20).map(p=><li key={p}>{p}</li>)}</ul></details>
