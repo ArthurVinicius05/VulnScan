@@ -51,9 +51,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return int(count) <= limit
     async def dispatch(self, request: Request, call_next):
         policy = self._policy(request.url.path)
-        if policy is None or request.method != "POST":
+        if policy is None:
             return await call_next(request)
         category, limit, window = policy
+        if request.method != "POST" and not (category == "ops" and request.method == "GET"):
+            return await call_next(request)
         client_ip = request.client.host if request.client else "unknown"
         key = f"vulnscan:rate:{category}:{client_ip}"
         try:
