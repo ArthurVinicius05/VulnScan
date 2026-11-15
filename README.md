@@ -89,6 +89,22 @@ Os workers usam usuário sem privilégios, sistema de arquivos somente leitura, 
 - O worker de sites executa somente verificações passivas limitadas; não realiza testes ativos.
 - Esta base ainda não está pronta para receber tráfego público não confiável.
 
+## Implantação de produção (experimental)
+
+O Compose de desenvolvimento acima não deve ser publicado na internet. Para preparar uma instalação de produção, use o arquivo separado:
+
+1. Copie `.env.production.example` para `.env.production`.
+2. Gere uma senha longa e aleatória para o PostgreSQL e configure `DATABASE_URL` com a senha URL-encoded correspondente.
+3. Ajuste `CORS_ORIGINS` e `FRONTEND_URL` para a origem HTTPS real da aplicação.
+4. Configure SMTP antes de habilitar o cadastro de usuários.
+5. Inicie com `docker compose --env-file .env.production -f docker-compose.production.yml up --build -d`.
+6. Coloque um proxy TLS gerenciado (Caddy, Nginx ou serviço equivalente) na frente da porta local `127.0.0.1:8080`. O cookie de sessão é Secure em produção; não use o serviço sem HTTPS.
+7. Configure backups testados do volume PostgreSQL, monitoramento, alertas, firewall de saída e atualização de imagens.
+
+O perfil de produção não publica diretamente as portas da API, do PostgreSQL, do Redis ou do worker. A rede do worker de scanner é interna; o backend só confia no endereço reservado do proxy frontend para cabeçalhos encaminhados. A análise de sites e a consulta online OSV permanecem desativadas nesse perfil. Não habilite essas funções sem política de egress por firewall/proxy, autenticação serviço-a-serviço e testes específicos.
+
+**Limitação importante:** esse Compose é uma base de implantação endurecida, não uma certificação de segurança. Antes de exposição pública, valide o ambiente real, TLS, backups/restauração, firewall de saída, limites por conta, monitoramento, atualização de imagens e testes de intrusão independentes. A fila de jobs distribuída, MFA, quotas por usuário e lockfiles reproduzíveis continuam pendentes.
+
 ## Segurança
 Avalie somente sistemas próprios ou para os quais exista autorização explícita. Trate arquivos enviados como entrada não confiável.
 
