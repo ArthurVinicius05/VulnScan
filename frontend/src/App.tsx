@@ -19,13 +19,19 @@ type Finding = {
   cvss_vector?: string | null
 }
 type Result = {
+  status: 'completed' | 'partial' | 'failed'
+  coverage?: {
+    overall: string
+    heuristics?: { candidate_files: number; files_over_file_limit: number; files_over_total_limit: number; findings_returned: number; possibly_truncated_by_finding_limit: boolean }
+    python_tools?: { python_files_available?: number; python_files_scanned?: number; truncated?: boolean }
+  }
   file_count: number
   detected_technologies: string[]
   sample_paths: string[]
   notice: string
   finding_count: number
   findings: Finding[]
-  scanner_tools?: { status: string; tools: { name: string; status: string }[]; security_tools?: { name: string; status: string; reason?: string }[] }
+  scanner_tools?: { status: string; tools: { name: string; status: string; files_scanned?: number; files_available?: number }[]; security_tools?: { name: string; status: string; reason?: string; coverage?: { files_scanned?: number; truncated?: boolean; findings_truncated?: boolean } }[] }
   dependencies?: { manifest_count: number; manifests: { file: string; ecosystem: string; status: string; dependency_count: number | null }[]; notice: string; network_access: boolean; packages_installed: boolean }
 }
 
@@ -128,9 +134,10 @@ export default function App() {
             <label className="dropzone"><UploadCloud size={26}/><b>{file ? file.name : 'Drop your ZIP file here'}</b><span>{file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : 'or click to browse · max 25 MB'}</span><input type="file" accept=".zip,application/zip" onChange={e => {setFile(e.target.files?.[0] ?? null);setResult(null);setError('')}} /></label>
             <button className="primary-btn" disabled={!file || busy} onClick={runAnalysis}>{busy ? 'Analyzing source…' : 'Analyze source archive'} <ChevronRight size={17}/></button>
             {error && <div className="error">{error}</div>}
-            {result && <div className="result"><b><FileArchive size={16}/> Analysis completed</b><p>{result.file_count} files · {result.detected_technologies.join(', ') || 'No known stack markers detected'}</p><small>{result.notice}</small>
+            {result && <div className="result"><b><FileArchive size={16}/> {result.status === 'partial' ? 'Analysis partially completed' : result.status === 'failed' ? 'Analysis failed' : 'Analysis completed'}</b>{result.status === 'partial' && <div className="error">Cobertura parcial: alguns arquivos ou ferramentas foram limitados, desativados ou ficaram indisponíveis. Consulte os detalhes dos scanners antes de interpretar a ausência de achados.</div>}<p>{result.file_count} files · {result.detected_technologies.join(', ') || 'No known stack markers detected'}</p><small>{result.notice}</small>
               <div className="findings-summary"><AlertTriangle size={16}/> {result.finding_count} potential finding(s)</div>
-              {result.scanner_tools && <div className="tool-status"><b>Static tools</b>{result.scanner_tools.tools.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {tool.status}</span>)}{result.scanner_tools.security_tools?.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {tool.status}{tool.reason ? ' · ' + tool.reason : ''}</span>)}</div>}
+              {result.scanner_tools && <div className="tool-status"><b>Static tools</b>{result.scanner_tools.tools.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {tool.status}{tool.files_scanned !== undefined ? ' · ' + tool.files_scanned + '/' + (tool.files_available ?? tool.files_scanned) + ' files' : ''}</span>)}{result.scanner_tools.security_tools?.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {tool.status}{tool.coverage?.truncated ? ' · coverage limited' : ''}{tool.reason ? ' · ' + tool.reason : ''}</span>)}</div>}
+              {result.coverage && <div className="dependency-inventory"><b>Analysis coverage</b><span>Heuristics: {result.coverage.heuristics?.candidate_files ?? 0} candidate files · {result.coverage.heuristics?.files_over_file_limit ?? 0} above per-file limit · {result.coverage.heuristics?.files_over_total_limit ?? 0} above total limit</span>{result.coverage.python_tools && <span>Python scanners: {result.coverage.python_tools.python_files_scanned ?? 0}/{result.coverage.python_tools.python_files_available ?? 0} files</span>}</div>}
               {result.dependencies && <div className="dependency-inventory">
                 <b>Dependency manifests · {result.dependencies.manifest_count}</b>
                 <small>{result.dependencies.notice}</small>
