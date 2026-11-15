@@ -5,7 +5,7 @@ set -Eeuo pipefail
 : "${PGUSER:=vulnscan}"
 : "${PGPASSWORD:?PGPASSWORD is required}"
 : "${PGDATABASE:=vulnscan_test}"
-: "${PG_CLIENT_IMAGE:=postgres:16-alpine}"
+: "${PG_CLIENT_IMAGE:=postgres:16-alpine@sha256:81e77a4833487b8132fe4b00bedd39dc3f74b8641e387f19312a48f7de218c2e}"
 command -v age >/dev/null
 command -v age-keygen >/dev/null
 command -v docker >/dev/null

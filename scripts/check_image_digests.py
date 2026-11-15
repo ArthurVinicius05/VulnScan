@@ -21,6 +21,7 @@ IMAGE_FILES = [
     "docker-compose.yml",
     "docker-compose.production.yml",
     ".github/workflows/ci.yml",
+    "scripts/test_postgres_backup_restore.sh",
 ]
 
 
@@ -49,6 +50,10 @@ def image_references() -> list[tuple[str, str, int]]:
                 image = parts[2] if parts[1].startswith("--platform=") else parts[1]
             elif re.match(r"^image:\s*", stripped):
                 image = stripped.split(":", 1)[1].strip().strip('"').strip("'")
+            else:
+                match = re.search(r"PG_CLIENT_IMAGE:=([^\" }]+)", stripped)
+                if match:
+                    image = match.group(1)
             if image and image != "scratch":
                 found.append((relative, image, number))
     return found
