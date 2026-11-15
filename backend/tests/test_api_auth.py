@@ -14,7 +14,7 @@ from app.models.user_session import UserSession
 
 
 def test_analysis_routes_require_individual_session():
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.13", 12345))
     response = client.post("/api/analysis/website", json={"url": "https://example.org", "authorized": False})
     assert response.status_code == 401
 
@@ -53,5 +53,5 @@ def test_analysis_routes_accept_valid_individual_session(tmp_path):
 
 
 def test_health_endpoint_remains_public():
-    response = TestClient(app).get("/api/health")
+    response = TestClient(app, client=("127.0.0.14", 12345)).get("/api/health")
     assert response.status_code == 200
