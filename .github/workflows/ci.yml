@@ -60,26 +60,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Skopeo
         run: sudo apt-get update && sudo apt-get install -y skopeo
-      - name: Resolve multi-platform container image digests
-        run: |
-          set -euo pipefail
-          : > images.lock
-          images=(
-            ghcr.io/gitleaks/gitleaks:v8.24.2
-            docker.io/library/python:3.12-slim
-            docker.io/library/golang:1.27.3-alpine3.23
-            docker.io/library/node:22-alpine
-            nginxinc/nginx-unprivileged:1.27-alpine
-            docker.io/library/postgres:16-alpine
-            docker.io/library/redis:7-alpine
-            prom/prometheus:v3.5.0
-          )
-          for image in "${images[@]}"; do
-            digest="sha256:$(skopeo inspect --raw "docker://$image" | sha256sum | awk '{print $1}')"
-            test "$digest" != "sha256:"
-            printf '%s %s\n' "$image" "$digest" | tee -a images.lock
-            echo "IMAGE_DIGEST $image $digest"
-          done
+      - name: Verify pinned image digests against registry
+        run: python scripts/check_image_digests.py --verify-registry
       - uses: actions/upload-artifact@v4
         with:
           name: vulnscan-image-digests

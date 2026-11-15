@@ -18,5 +18,5 @@
 
 - Dependabot checks Dockerfiles, Compose images and GitHub Actions weekly.
 - Review each update PR; run tests, image builds and security checks before merging.
-- Container image tags are versioned where practical, but image digests are not yet pinned. Digest pinning and provenance verification remain release gates before public launch.
+- Every base/runtime image used by Dockerfiles and Compose is pinned to a multi-platform manifest digest in images.lock. CI verifies each pinned digest against the registry. Signature/provenance verification and a documented update/rollback cadence remain release gates.
 - Never merge dependency updates automatically without reviewing changelogs, compatibility and security impact.

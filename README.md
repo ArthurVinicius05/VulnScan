@@ -13,7 +13,7 @@ Plataforma de auditoria de segurança para avaliações autorizadas de aplicaç�
 - Scanners: Bandit, Ruff, Gitleaks; OSV-Scanner e verificação de sites são opcionais e permanecem desativados no perfil de produção.
 - Rate limiting: Redis compartilhado.
 - Operação: Docker Compose, Prometheus e scripts de backup/restore com age.
-- Dependências: backend/requirements.lock (hashes) e frontend/package-lock.json.
+- Dependências: backend/requirements.lock (hashes) e frontend/package-lock.json. Imagens de contêiner: images.lock (digests de manifesto multi-plataforma verificados no CI).
 
 ## Desenvolvimento local
 
@@ -146,7 +146,7 @@ Consulte:
 - Configurar e comprovar firewall/egress allowlist no host real.
 - Testar HTTPS, SMTP, backup e restauração em infraestrutura real.
 - Configurar Alertmanager, notificações e centralização de logs.
-- Fixar imagens Docker por digest e definir política de atualização/rollback.
+- Verificar assinaturas/proveniência das imagens e definir política de atualização/rollback.
 - Executar testes de carga, abuso, concorrência, SSRF e revisão de escopo.
 - Realizar auditoria/pentest independente e corrigir os achados.
 - Revisar juridicamente privacidade/termos para LGPD, preencher dados do operador e canal de contato.
