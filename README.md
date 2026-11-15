@@ -110,7 +110,7 @@ Instale age, configure BACKUP_RECIPIENT com a chave pública e execute:
 bash scripts/backup_postgres.sh
 ~~~
 
-O backup PostgreSQL é criptografado, recebe checksum SHA-256 e deve ser enviado para armazenamento externo protegido. Guarde a chave privada age separada do servidor.
+O backup PostgreSQL é criptografado e recebe checksum SHA-256. Configure `BACKUP_REMOTE` para enviar automaticamente o backup e o checksum via rclone (com o remote previamente configurado no host). Guarde a chave privada age separada do servidor e configure a retenção/lifecycle no destino remoto. Os arquivos locais permanecem em `backups/`.
 
 Para restaurar, pare backend e analysis-worker, depois execute:
 
@@ -118,7 +118,7 @@ Para restaurar, pare backend e analysis-worker, depois execute:
 CONFIRM_RESTORE=YES BACKUP_FILE=backups/arquivo.dump.age BACKUP_IDENTITY=/caminho/identity.txt bash scripts/restore_postgres.sh
 ~~~
 
-O script valida o checksum, descriptografa e executa pg_restore. Faça exercícios periódicos de restauração; um arquivo de backup não testado não comprova recuperabilidade. A agenda e o armazenamento externo precisam ser configurados pelo operador.
+O script valida o checksum, descriptografa e executa pg_restore. Faça exercícios periódicos de restauração; um arquivo de backup não testado não comprova recuperabilidade. O repositório inclui um timer systemd de exemplo em `deploy/systemd/`; ajuste o caminho de instalação e habilite-o no host.
 
 ## CI e testes
 
