@@ -129,7 +129,7 @@ async def scan(file: UploadFile = File(...)):
             with stdout_path.open("wb") as stdout, stderr_path.open("wb") as stderr:
                 try:
                     proc = subprocess.run(
-                        ["osv-scanner", "scan", "source", "--recursive", "--format", "json", "--verbosity", "error", str(root)],
+                        ["osv-scanner", "scan", "source", "--recursive", "--no-resolve", "--format", "json", "--verbosity", "error", str(root)],
                         cwd=temp, env={"PATH": os.environ.get("PATH", ""), "HOME": temp, "TMPDIR": temp},
                         stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr,
                         timeout=TIMEOUT_SECONDS, check=False, shell=False,
