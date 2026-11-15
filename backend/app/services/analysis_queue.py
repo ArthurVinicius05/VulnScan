@@ -82,7 +82,10 @@ def requeue_dead_letter_analysis(db: Session, *, job_id: str) -> AnalysisJob | N
     archive_deadline = datetime.now(timezone.utc) - timedelta(
         hours=settings.dead_letter_archive_retention_hours
     )
-    if job.archive_data is None or (job.completed_at is not None and job.completed_at < archive_deadline):
+    completed_at = job.completed_at
+    if completed_at is not None and completed_at.tzinfo is None:
+        completed_at = completed_at.replace(tzinfo=timezone.utc)
+    if job.archive_data is None or (completed_at is not None and completed_at < archive_deadline):
         if job.archive_data is not None:
             job.archive_data = None
             db.commit()
