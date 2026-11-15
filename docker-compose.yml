@@ -5,6 +5,7 @@ services:
       - "8000:8000"
     environment:
       APP_ENV: development
+      API_KEY: ${VULNSCAN_API_KEY:-}
       CORS_ORIGINS: http://localhost:5173
       SCANNER_WORKER_URL: http://scanner-worker:8001
       SCANNER_WORKER_TIMEOUT_SECONDS: 30
