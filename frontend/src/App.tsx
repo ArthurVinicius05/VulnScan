@@ -68,7 +68,7 @@ export default function App() {
       <section className="content">
         <div className="welcome"><div><div className="eyebrow"><span className="live-dot"/> SECURITY WORKSPACE</div><h1>Security overview</h1><p>Find weaknesses before attackers do. Audit only codebases and websites you are authorized to test.</p></div><div className="date-chip"><Activity size={15}/> SYSTEM READY</div></div>
         <div className="stats">
-          <div className="stat-card"><div className="stat-top"><span>Audits performed</span><ScanSearch size={18}/></div><strong>0</strong><small>New workspace</small></div>
+          <div className="stat-card"><div className="stat-top"><span>Audits performed</span><ScanSearch size={18}/></div><strong>{history.length}</strong><small>Saved audits in this workspace</small></div>
           <div className="stat-card"><div className="stat-top"><span>Issues detected</span><LockKeyhole size={18}/></div><strong>{result?.finding_count ?? '—'}</strong><small>{result ? 'Current archive' : 'Run your first audit'}</small></div>
           <div className="stat-card"><div className="stat-top"><span>Security score</span><ShieldCheck size={18}/></div><strong>—</strong><small>Scoring not implemented</small></div>
         </div>
