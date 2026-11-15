@@ -34,3 +34,9 @@ def test_ignores_unsafe_paths():
     result = inventory_dependency_manifests(make_zip([("../package.json", '{"dependencies":{}}')]))
     assert result["manifest_count"] == 0
     assert result["skipped_unsafe_paths"] == 1
+
+
+def test_counts_go_module_requirements():
+    data = make_zip([("go.mod", "module example.test/app\n\ngo 1.24\n\nrequire (\n example.test/lib v1.2.3\n github.com/example/tool v0.4.0\n)\n")])
+    result = inventory_dependency_manifests(data)
+    assert result["manifests"][0]["dependency_count"] == 2
