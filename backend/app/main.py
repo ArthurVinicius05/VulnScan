@@ -6,6 +6,7 @@ from app.api.routes.health import router as health_router
 from app.api.routes.analysis import router as analysis_router
 from app.api.routes.history import router as history_router
 from app.api.routes.auth import router as auth_router
+from app.middleware.rate_limit import RateLimitMiddleware
 
 app = FastAPI(
     title="VulnScan Pro API",
@@ -13,6 +14,7 @@ app = FastAPI(
     description="Security auditing foundation. Use only on authorized targets.",
 )
 
+app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
