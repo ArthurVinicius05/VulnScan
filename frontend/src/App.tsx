@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ShieldCheck, LayoutDashboard, Globe, FolderCode, History, Settings, Bell, Search, UploadCloud, FileArchive, Activity, ChevronRight, LockKeyhole, ScanSearch, AlertTriangle } from 'lucide-react'
-import { uploadSourceZip } from './lib/api'
+import { fetchAuditHistory, uploadSourceZip, type AuditHistoryItem } from './lib/api'
 
 type Finding = {
   rule_id: string
@@ -33,11 +33,20 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<Result | null>(null)
+  const [history, setHistory] = useState<AuditHistoryItem[]>([])
+  const [historyError, setHistoryError] = useState('')
+
+  async function refreshHistory() {
+    try { setHistory(await fetchAuditHistory()); setHistoryError('') }
+    catch (e) { setHistoryError(e instanceof Error ? e.message : 'Falha ao carregar histórico.') }
+  }
+
+  useEffect(() => { void refreshHistory() }, [])
 
   async function runAnalysis() {
     if (!file) return
     setBusy(true); setError(''); setResult(null)
-    try { setResult(await uploadSourceZip(file)) }
+    try { setResult(await uploadSourceZip(file)); await refreshHistory() }
     catch (e) { setError(e instanceof Error ? e.message : 'Erro inesperado.') }
     finally { setBusy(false) }
   }
@@ -50,7 +59,7 @@ export default function App() {
         <a className="active"><LayoutDashboard size={18}/> Overview</a>
         <a><Globe size={18}/> Website Scanner <span className="soon">SOON</span></a>
         <a><FolderCode size={18}/> Code Analyzer</a>
-        <a><History size={18}/> Audit History</a>
+        <a href="#audit-history"><History size={18}/> Audit History</a>
       </nav>
       <div className="sidebar-bottom"><a><Settings size={18}/> Settings</a><div className="profile"><div className="avatar">AV</div><div><b>Workspace</b><small>Local environment</small></div></div></div>
     </aside>
@@ -90,6 +99,7 @@ export default function App() {
           </section>
           <section className="panel"><div className="panel-icon cyan"><Globe size={21}/></div><div className="panel-title"><h3>Website scanner</h3><span className="coming">COMING IN PHASE 3</span></div><p>Review HTTPS configuration, security headers, cookie attributes, and exposed information on authorized targets.</p><div className="disabled-input"><Globe size={17}/><span>https://your-authorized-domain.com</span><LockKeyhole size={15}/></div><button className="secondary-btn" disabled>Website scanning is not enabled yet</button><div className="safety-note"><LockKeyhole size={15}/> Active checks will require explicit authorization and safe scope controls.</div></section>
         </div>
+        <section className="panel audit-history" id="audit-history"><div className="section-heading"><div><h2>Audit history</h2><p>Latest completed assessments saved in this workspace.</p></div><button className="secondary-btn" onClick={() => void refreshHistory()}>Refresh</button></div>{historyError && <div className="error">{historyError}</div>}{history.length === 0 && !historyError ? <p>No saved audits yet.</p> : <div className="history-list">{history.map(item => <article className="history-item" key={item.id}><div><b>{item.target}</b><small>{item.analysis_type.replaceAll("_", " ")} · {new Date(item.created_at).toLocaleString()}</small></div><span className="findings-summary">{item.finding_count} finding(s)</span></article>)}</div>}</section>
         <div className="bottom-note"><ShieldCheck size={17}/><span><b>Built with security in mind.</b> Uploaded code is treated as untrusted input and is never executed by this service.</span></div>
         <footer>VULNSCAN PRO · STATIC ANALYSIS BUILD 0.2.0 · FOR AUTHORIZED SECURITY TESTING</footer>
       </section>
