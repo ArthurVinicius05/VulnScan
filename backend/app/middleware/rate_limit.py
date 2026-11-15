@@ -16,7 +16,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self._redis = None
     @staticmethod
     def _policy(path: str):
-        if path in {"/api/auth/login", "/api/auth/register", "/api/auth/request-password-reset", "/api/auth/resend-verification"}:
+        if path in {"/api/auth/login", "/api/auth/register", "/api/auth/request-password-reset", "/api/auth/resend-verification", "/api/auth/reset-password", "/api/auth/verify-email"}:
             return "auth", 10, 300
         if path in {"/api/analysis/source-zip", "/api/analysis/website"}:
             return "analysis", 5, 600
