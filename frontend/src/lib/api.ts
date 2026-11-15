@@ -2,7 +2,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 const TOKEN_KEY = 'vulnscan_access_token'
 
 export function getAccessToken() { return sessionStorage.getItem(TOKEN_KEY) }
-function authHeaders() {
+function authHeaders(): Record<string, string> {
   const token = getAccessToken()
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
