@@ -17,6 +17,7 @@ read_env_value() {
 POSTGRES_USER="$(read_env_value POSTGRES_USER)"
 POSTGRES_DB="$(read_env_value POSTGRES_DB)"
 BACKUP_RECIPIENT="$(read_env_value BACKUP_RECIPIENT)"
+BACKUP_REMOTE="$(read_env_value BACKUP_REMOTE)"
 : "${POSTGRES_USER:?POSTGRES_USER is required}"
 : "${POSTGRES_DB:?POSTGRES_DB is required}"
 : "${BACKUP_RECIPIENT:?Set BACKUP_RECIPIENT to an age public recipient}"
@@ -37,4 +38,11 @@ docker compose --env-file "$ENV_FILE" -f docker-compose.production.yml exec -T d
 mv "$TEMP_FILE" "$BACKUP_FILE"
 (cd "$BACKUP_DIR" && sha256sum "$(basename "$BACKUP_FILE")" > "$(basename "$BACKUP_FILE").sha256")
 chmod 600 "$BACKUP_FILE" "$BACKUP_FILE.sha256"
+if [[ -n "$BACKUP_REMOTE" ]]; then
+  command -v rclone >/dev/null || { echo "BACKUP_REMOTE is set but rclone is not installed." >&2; exit 1; }
+  REMOTE_DIR="${BACKUP_REMOTE%/}"
+  rclone copyto "$BACKUP_FILE" "$REMOTE_DIR/$(basename "$BACKUP_FILE")"
+  rclone copyto "$BACKUP_FILE.sha256" "$REMOTE_DIR/$(basename "$BACKUP_FILE").sha256"
+  echo "Encrypted backup and checksum uploaded to $REMOTE_DIR"
+fi
 echo "Encrypted PostgreSQL backup created: $BACKUP_FILE"
