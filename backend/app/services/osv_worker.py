@@ -23,7 +23,6 @@ ALLOWED_NAMES = {
     "composer.lock", "pom.xml", "gradle.lockfile", "buildscript-gradle.lockfile",
     "pubspec.lock", "mix.lock", "packages.lock.json", "packages.config",
 }
-ALLOWED_SUFFIXES = {".lock", ".json", ".toml", ".xml", ".txt", ".yaml", ".yml"}
 
 
 def stage_lockfiles(data: bytes, root: Path) -> int:
@@ -36,7 +35,7 @@ def stage_lockfiles(data: bytes, root: Path) -> int:
             if (not info.filename or path.is_absolute() or "\\\\" in info.filename
                     or any(part in ("", ".", "..") for part in path.parts)):
                 continue
-            if path.name not in ALLOWED_NAMES and path.suffix.lower() not in ALLOWED_SUFFIXES:
+            if path.name not in ALLOWED_NAMES:
                 continue
             if info.file_size <= 0 or info.file_size > MAX_FILE_BYTES or count >= MAX_FILES:
                 continue
@@ -71,13 +70,15 @@ def normalize_osv_report(report: dict) -> list[dict]:
                 if not isinstance(vuln, dict):
                     continue
                 aliases = [str(x)[:80] for x in (vuln.get("aliases") or [])[:20]]
-                severity = "unknown"
+                db = vuln.get("database_specific") or {}
+                raw_severity = str(db.get("severity") or "").lower()
+                severity = raw_severity if raw_severity in {"critical", "high", "medium", "low", "informational"} else "unknown"
+                cvss_vector = None
                 for item in vuln.get("severity") or []:
                     score = item.get("score") if isinstance(item, dict) else None
                     if score:
-                        severity = str(score)[:80]
+                        cvss_vector = str(score)[:120]
                         break
-                db = vuln.get("database_specific") or {}
                 summary = str(vuln.get("summary") or db.get("description") or "Known vulnerability reported by OSV.")[:500]
                 refs = []
                 for ref in (vuln.get("references") or [])[:10]:
@@ -99,6 +100,7 @@ def normalize_osv_report(report: dict) -> list[dict]:
                     "package": {"name": name, "version": version, "ecosystem": ecosystem},
                     "aliases": aliases,
                     "references": refs,
+                    "cvss_vector": cvss_vector,
                 })
                 if len(findings) >= 500:
                     return findings
