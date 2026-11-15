@@ -1,87 +1,93 @@
 # VulnScan Pro
 
-A modular security-auditing platform for authorized website assessments and source-code reviews.
+Plataforma modular de auditoria de segurança para avaliações autorizadas de sites e análise de código-fonte.
 
-> **Build 0.3.0** — FastAPI + React/TypeScript foundation with safe ZIP inspection, heuristic static analysis, dependency inventory, and a separate container for Python scanner tools. This is an early development build, not a production security scanner.
+> **Build 0.4.0** — Base FastAPI + React/TypeScript com inspeção segura de ZIP, análise estática heurística, inventário de dependências e workers isolados. Ainda é uma versão de desenvolvimento, não um scanner de segurança pronto para produção.
 
-## Stack
-- Frontend: React, TypeScript, Vite, Lucide
-- Backend/API: Python, FastAPI, Pydantic Settings
-- Static tools: Bandit and Ruff
-- Tests: pytest
-- Development: Docker Compose
+## Tecnologias
+- Frontend: React, TypeScript, Vite e Lucide
+- Backend/API: Python, FastAPI e Pydantic Settings
+- Ferramentas: Bandit, Ruff, Gitleaks e OSV-Scanner (opcional)
+- Testes: pytest
+- Ambiente: Docker Compose
 
-## Run locally
+## Executar localmente
 
-### Docker Compose (recommended for scanner isolation)
-Run: `docker compose up --build`
-
-Dashboard: http://localhost:5173  
-API docs: http://localhost:8000/docs
-
-The API sends Python archives to a private `scanner-worker` service. The worker is not published to the host and is attached only to an internal Docker network.\n\nWebsite scanning is opt-in: set ENABLE_WEBSITE_SCAN=true and start Compose with --profile website-scan. The API forwards explicitly authorized requests to a separate unprivileged worker. The worker validates HTTP(S) targets, pins public IP addresses, revalidates redirects, and performs a bounded passive GET. It does not run exploit payloads. Compose does not provide destination allowlisting; production deployments must enforce egress firewall/proxy rules, authentication, and rate limits before enabling it.
-
-OSV scanning is opt-in: set `ENABLE_OSV_SCAN=true` and start Compose with `--profile osv-online`. This starts a separate `osv-worker` with outbound network access for OSV vulnerability matching. The default scanner-worker remains isolated without an external route. Docker networking does not enforce a domain allowlist; production deployments must add an egress firewall/proxy policy if outbound traffic must be restricted to OSV endpoints.
-
-### Run without Docker
-Install backend requirements from `backend/requirements.txt`, then run `uvicorn app.main:app --reload` from the backend directory.
-
-For this mode, configure `SCANNER_WORKER_URL` to point to a separately running worker (`uvicorn app.worker:app --port 8001`). API docs: http://localhost:8000/docs
-
-### Frontend
-Run `npm install` and `npm run dev` from the frontend directory.
-
-## Current capabilities
-- Upload a ZIP source archive (25 MB default limit)
-- Reject path traversal, symlinks, encrypted entries, suspicious expansion ratios, and oversized archives
-- Identify basic technology markers and list project paths
-- Run bounded, read-only heuristic checks on selected source/text files
-- Run Bandit and Ruff against a bounded set of Python files in a dedicated scanner-worker container
-- Run Gitleaks against a bounded set of text/source files in the worker; secret values are never copied into finding evidence
-- Optionally run OSV-Scanner v2.7.1 in a separate, opt-in network-enabled worker to match supported lockfiles against OSV vulnerability data; dependency resolution is disabled
-- Keep scanner status separate from findings; an unavailable worker does not prevent heuristic analysis
-- Inventory dependency manifests and lockfiles for npm, Python, Rust, Go, Ruby, PHP, Maven, and Gradle without installing packages or making network requests
-- Redact detected credential values from finding evidence
-- Initial rules cover possible hardcoded credentials, dynamic execution, shell-enabled subprocess calls, pickle deserialization, unsafe YAML loading, HTML injection sinks, and SQL string-building patterns
-- Findings include rule ID, severity, confidence, file, line, evidence, and remediation guidance
-
-## Worker isolation controls
-The Compose worker:
-- Runs as an unprivileged numeric user
-- Has a read-only container filesystem and a bounded temporary filesystem mounted with `noexec` and `nosuid`
-- Drops Linux capabilities and enables `no-new-privileges`
-- Has CPU, memory, and process-count limits
-- Is reachable by the API only over a dedicated internal Docker network, with no published host port or external network route
-- Applies a request timeout and a 25 MB worker-side upload limit
-
-These controls reduce exposure but are not a complete sandbox or a substitute for host/container-runtime hardening. The API still performs ZIP inspection, heuristics, and dependency inventory itself. Uploaded project code is not intentionally executed; trusted scanner tools process the selected source files.
-
-## Important limitations
-- Findings are heuristic indicators, not proof that a vulnerability is exploitable. False positives and false negatives are expected.
-- The initial heuristic ruleset is intentionally small and is not a replacement for a professional security review.
-- Bandit, Ruff, and Gitleaks run in the isolated worker image. Gitleaks is copied from a pinned upstream image tag; tool status is reported explicitly when a scanner is unavailable or cannot complete.
-- OSV-Scanner runs only when explicitly enabled through the `osv-online` profile and `ENABLE_OSV_SCAN=true`. It scans a bounded set of recognized lockfiles, disables package/registry resolution, and queries OSV data. The OSV worker has outbound network access; Docker Compose alone does not restrict destination domains.
-- The worker is a dedicated container but is not yet a disposable per-job VM or hardened sandbox; do not expose this development deployment to untrusted public traffic.
-- Dependency inventory is metadata-only; OSV vulnerability database matching is not integrated yet. External database access is intentionally not enabled.
-- Website scanning now has an opt-in API route and a separate network-enabled worker for bounded passive HTTP-header checks. Authentication, persistence, AI analysis, active testing, and PDF/JSON reporting are not implemented yet. The authorization field is an explicit confirmation, not an identity/authentication system.
-- This development foundation is not production-hardened.
-
-## Security
-Only assess systems you own or are explicitly authorized to test. Treat uploaded archives as untrusted input.
-
-## Roadmap
-1. Add egress firewall/proxy allowlisting and integration tests for OSV API access
-2. Implement authorized website scanning with strict SSRF protections and scope controls
-3. Add evidence-grounded AI explanations via OpenRouter
-4. Add reports, audit history, authentication, persistence, and further hardening
-
-
-### Habilitar verificação passiva de sites (opcional)
-
-Somente para alvos próprios ou com autorização explícita:
-
+### Docker Compose
 ```bash
-ENABLE_WEBSITE_SCAN=true docker compose --profile website-scan up --build
+docker compose up --build
 ```
 
-A rota POST /api/analysis/website recebe JSON com url e authorized: true. O worker não publica porta no host e é alcançável pela API apenas pela rede interna dedicada. A rede de saída não é uma allowlist: antes de uso público, configure firewall/proxy de saída, autenticação, limites por usuário e auditoria de escopo.
+Painel: http://localhost:5173  
+Documentação da API: http://localhost:8000/docs
+
+O ambiente local usa `APP_ENV=development`. Para exigir uma chave de API também no desenvolvimento, defina `VULNSCAN_API_KEY` antes de iniciar o Compose. As rotas de análise aceitam a chave no cabeçalho `Authorization: Bearer SUA_CHAVE`.
+
+### Proteção da API
+- Todas as rotas em `/api/analysis` passam pela dependência de autenticação por chave Bearer.
+- Se `API_KEY` estiver configurada, a chave é obrigatória e comparada em tempo constante.
+- Em `APP_ENV=production`, a API falha de forma fechada (HTTP 503) se a chave não estiver configurada.
+- A rota de saúde permanece pública para healthchecks.
+- A chave é um segredo compartilhado de serviço, não um sistema de contas, sessões ou permissões individuais. Não substitui autenticação de usuários, rotação de credenciais, rate limiting ou auditoria.
+
+Para iniciar um ambiente com a proteção habilitada, configure um segredo forte fora do repositório:
+```bash
+export VULNSCAN_API_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+docker compose up --build
+```
+
+Para produção, configure também `APP_ENV=production` no ambiente de implantação e forneça `API_KEY` por um gerenciador de segredos. Não grave chaves no código, no frontend ou no Git.
+
+### Verificação passiva de sites (opcional)
+Somente para alvos próprios ou com autorização explícita:
+```bash
+ENABLE_WEBSITE_SCAN=true docker compose --profile website-scan up --build
+``
+
+A rota `POST /api/analysis/website` recebe `url` e `authorized: true`. O worker valida destinos HTTP(S), fixa o IP público validado, revalida redirecionamentos e faz uma requisição GET passiva limitada. Não executa payloads ou exploração. A rede de saída do Compose não é uma allowlist: antes de uso público, configure firewall/proxy de saída, autenticação de usuários, limites por usuário e auditoria de escopo.
+
+### Verificação de dependências com OSV (opcional)
+```bash
+ENABLE_OSV_SCAN=true docker compose --profile osv-online up --build
+``
+
+O worker OSV tem acesso externo para consultar dados de vulnerabilidades. O worker padrão de scanners continua sem rota externa. Docker Compose não restringe destinos por domínio; use firewall/proxy de saída em implantações reais.
+
+### Executar sem Docker
+Instale `backend/requirements.txt` e execute `uvicorn app.main:app --reload` dentro de `backend`. Para análise completa, configure os workers separadamente.
+
+### Frontend
+Execute `npm install` e `npm run dev` em `frontend`.
+
+## Recursos atuais
+- Recebe arquivos ZIP de até 25 MB por padrão.
+- Rejeita traversal de caminhos, links simbólicos, arquivos criptografados, expansão suspeita e arquivos excessivamente grandes.
+- Detecta marcadores de tecnologias e estrutura do projeto.
+- Executa verificações heurísticas limitadas e ferramentas estáticas em worker dedicado.
+- Detecta possíveis segredos sem copiar valores sensíveis para as evidências.
+- Inventaria manifestos de dependências para npm, Python, Rust, Go, Ruby, PHP, Maven e Gradle.
+- Pode consultar vulnerabilidades conhecidas via OSV-Scanner em worker separado e opt-in.
+- Oferece auditoria passiva limitada de cabeçalhos HTTP, com validação SSRF e worker separado, opt-in.
+- Protege as rotas de análise com chave Bearer configurável.
+
+## Isolamento dos workers
+Os workers usam usuário sem privilégios, sistema de arquivos somente leitura, diretório temporário limitado com `noexec` e `nosuid`, remoção de capabilities, `no-new-privileges`, limites de CPU/memória/processos e redes dedicadas. Esses controles reduzem riscos, mas não equivalem a uma sandbox completa nem substituem o endurecimento do host.
+
+## Limitações importantes
+- Achados heurísticos não provam explorabilidade; falsos positivos e negativos são esperados.
+- O conjunto inicial de regras é pequeno e não substitui uma revisão profissional.
+- O código enviado não é intencionalmente executado pela API.
+- A chave Bearer atual é compartilhada e não oferece identidade individual, autorização por papel ou sessões.
+- Ainda faltam persistência, histórico de auditoria, autenticação individual, limites por usuário, allowlist de saída, explicações por IA e relatórios PDF/JSON.
+- O worker de sites executa somente verificações passivas limitadas; não realiza testes ativos.
+- Esta base ainda não está pronta para receber tráfego público não confiável.
+
+## Segurança
+Avalie somente sistemas próprios ou para os quais exista autorização explícita. Trate arquivos enviados como entrada não confiável.
+
+## Próximas etapas
+1. Autenticação individual, sessões seguras e controle de acesso.
+2. Limites de uso, auditoria de escopo e persistência PostgreSQL.
+3. Histórico de análises e integração com o painel.
+4. Allowlist de saída por firewall/proxy e testes de integração.
+5. Relatórios JSON/PDF e explicações fundamentadas por IA.
