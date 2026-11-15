@@ -22,4 +22,4 @@ jobs:
           pip install -r backend/requirements.txt
       - name: Run tests
         working-directory: backend
-        run: pytest -q
+        run: python -m pytest -q
