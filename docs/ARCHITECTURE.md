@@ -37,7 +37,7 @@ The API has no direct external network. It reaches a dedicated SMTP proxy over a
 
 ## Metrics and recovery
 
-Prometheus scrapes internal HTTP request/latency and database-backed job-state metrics. Its UI is bound to loopback on port 9090 and is not proxied by the public frontend. Queue-backlog and HTTP 5xx alert rules are loaded, but notification delivery requires a separately configured Alertmanager. PostgreSQL backups are encrypted with age and have a restore smoke test in CI; the operator must schedule off-site backups and perform real restore drills.
+Prometheus scrapes internal HTTP request/latency and database-backed job-state metrics. Its UI is bound to loopback on port 9090 and is not proxied by the public frontend. Queue-backlog, HTTP 5xx and metrics-database alert rules are loaded, but notification delivery requires a separately configured Alertmanager. Production Compose rotates each service's local JSON logs at 10 MB × 5 files; centralized log aggregation remains an operator task. PostgreSQL backups are encrypted with age and have a restore smoke test in CI; the operator must schedule off-site backups and perform real restore drills.
 
 
 ## Account deletion
