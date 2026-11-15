@@ -47,8 +47,8 @@ if [[ -n "$BACKUP_REMOTE" ]]; then
   rclone copyto "$BACKUP_FILE.sha256" "$REMOTE_DIR/$(basename "$BACKUP_FILE").sha256"
   echo "Encrypted backup and checksum uploaded to $REMOTE_DIR"
   [[ "$BACKUP_LOCAL_RETENTION_DAYS" =~ ^[1-9][0-9]*$ ]] || { echo "BACKUP_LOCAL_RETENTION_DAYS must be a positive integer." >&2; exit 1; }
-  find "$BACKUP_DIR" -maxdepth 1 -type f \\
-    \\( -name "vulnscan-postgres-*.dump.age" -o -name "vulnscan-postgres-*.dump.age.sha256" \\) \\
+  find "$BACKUP_DIR" -maxdepth 1 -type f \
+    \( -name "vulnscan-postgres-*.dump.age" -o -name "vulnscan-postgres-*.dump.age.sha256" \) \
     -mtime +"$BACKUP_LOCAL_RETENTION_DAYS" -delete
 fi
 echo "Encrypted PostgreSQL backup created: $BACKUP_FILE"
