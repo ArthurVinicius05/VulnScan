@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from app.api.dependencies import get_db
 from app.db.database import Base
 from app.main import app
 from app.models.audit import AuditRecord
@@ -20,6 +21,15 @@ def audit_client(tmp_path, monkeypatch):
     Base.metadata.create_all(engine)
     test_sessions = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     monkeypatch.setattr(audit_history, "SessionLocal", test_sessions)
+
+    def override_db():
+        db = test_sessions()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_db
     token = "test-session-token"
     with test_sessions() as db:
         user = User(email="owner@example.com", password_hash="not-used")
@@ -32,6 +42,7 @@ def audit_client(tmp_path, monkeypatch):
     with TestClient(app) as client:
         client.headers.update({"Authorization": f"Bearer {token}"})
         yield client, test_sessions, user_id
+    app.dependency_overrides.clear()
     engine.dispose()
 
 
