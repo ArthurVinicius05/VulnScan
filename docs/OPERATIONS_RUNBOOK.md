@@ -77,7 +77,7 @@ Use a real sender domain and provider credentials. Configure the domain's SPF an
 
 ## 6. Schedule encrypted backups and prove restore
 
-Install age and rclone on the host. Configure the rclone remote as the deployment operator (the example systemd service runs as root), set BACKUP_REMOTE in .env.production, and test a manual backup first:
+Install age and rclone on the host. Configure rclone for the same Unix account that runs the systemd service (root by default). If using a dedicated account, grant it Docker access and update the service User= setting. Set BACKUP_REMOTE in .env.production and test a manual backup first:
 
 ~~~bash
 bash scripts/backup_postgres.sh
