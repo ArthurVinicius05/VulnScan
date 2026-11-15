@@ -12,6 +12,8 @@ TEXT_EXTENSIONS = {
 }
 MAX_FILE_BYTES = 512 * 1024
 MAX_TOTAL_SOURCE_BYTES = 5 * 1024 * 1024
+MAX_LINE_CHARS = 4096
+MAX_FINDINGS = 200
 
 RULES = [
     {
@@ -20,7 +22,7 @@ RULES = [
         "severity": "high",
         "confidence": "medium",
         "pattern": re.compile(
-            r"""(?i)\b(?:api[_-]?key|secret|password|passwd|access[_-]?token)\b\s*[:=]\s*["']([^"'\s]{16,})["']"""
+            r"""(?i)\b(?:api[_-]?key|secret|password|passwd|access[_-]?token|auth[_-]?token|client[_-]?secret)\b\s*[:=]\s*["']([^"'\s]{8,})["']"""
         ),
         "recommendation": "Move the value to a secret manager or environment variable, rotate it if real, and ensure it is not committed.",
     },
@@ -75,7 +77,9 @@ RULES = [
         "severity": "medium",
         "confidence": "low",
         "extensions": {".py", ".js", ".ts", ".java", ".php"},
-        "pattern": re.compile(r"""(?i)(?:execute|query)\s*\(\s*(?:f["']|["'][^"']*(?:SELECT|INSERT|UPDATE|DELETE)[^"']*["']\s*\+)"""),
+        "pattern": re.compile(
+            r"""(?i)\b(?:execute|query)\s*\(\s*(?:f["']|["'][^"'\r\n]{0,2048}?(?:SELECT|INSERT|UPDATE|DELETE)[^"'\r\n]{0,2048}?["']\s*\+)"""
+        ),
         "recommendation": "Use parameterized queries or prepared statements. This pattern is heuristic and requires manual verification.",
     },
 ]
@@ -84,6 +88,14 @@ PLACEHOLDER_VALUES = {
     "your_api_key", "changeme", "replace_me", "example", "xxxxxxxx",
     "your_secret", "password", "secret", "test",
 }
+
+
+def _redact_secret_line(line: str, pattern: re.Pattern) -> str:
+    """Redact on the complete line before shortening evidence for the API."""
+    return pattern.sub(
+        lambda match: match.group(0).replace(match.group(1), "[REDACTED]"),
+        line,
+    )
 
 
 def analyze_source_zip(data: bytes) -> list[dict]:
@@ -113,6 +125,9 @@ def analyze_source_zip(data: bytes) -> list[dict]:
                 continue
 
             for line_number, line in enumerate(source.splitlines(), start=1):
+                # Avoid pathological regex work on attacker-controlled giant lines.
+                if len(line) > MAX_LINE_CHARS:
+                    line = line[:MAX_LINE_CHARS]
                 for rule in RULES:
                     allowed = rule.get("extensions")
                     if allowed and suffix not in allowed:
@@ -124,14 +139,9 @@ def analyze_source_zip(data: bytes) -> list[dict]:
                         value = match.group(1).strip().lower()
                         if value in PLACEHOLDER_VALUES or value.startswith(("your_", "example_", "changeme")):
                             continue
-                    evidence = line.strip()[:240]
-                    if rule["id"] == "SECRET001":
-                        evidence = rule["pattern"].sub(
-                            lambda secret_match: secret_match.group(0).replace(
-                                secret_match.group(1), "[REDACTED]"
-                            ),
-                            evidence,
-                        )
+                        evidence = _redact_secret_line(line, rule["pattern"]).strip()[:240]
+                    else:
+                        evidence = line.strip()[:240]
                     findings.append({
                         "rule_id": rule["id"],
                         "title": rule["title"],
@@ -143,7 +153,7 @@ def analyze_source_zip(data: bytes) -> list[dict]:
                         "recommendation": rule["recommendation"],
                         "verified": False,
                     })
-                    if len(findings) >= 200:
+                    if len(findings) >= MAX_FINDINGS:
                         return findings
 
     return findings
