@@ -10,6 +10,7 @@ This checklist is a release gate, not a claim that the current deployment is cer
 - [x] Production Compose isolates the scanner worker and keeps website/OSV scanning disabled.
 - [x] Durable PostgreSQL analysis queue with row-lock claims, renewable leases, attempt ownership, bounded retries and atomic/idempotent audit writes.
 - [x] Dead-letter inspection and token-protected operator recovery; dead-letter source archives expire after a short configurable window.
+- [x] SSRF, private/mixed DNS answer, redirect and pinned-IP DNS-rebinding regression tests for the isolated passive website worker.
 - [x] Per-account monthly quotas, concurrent-job limits, queued-upload storage caps and user cancellation for jobs that have not started.
 - [x] TOTP MFA with encrypted secrets, replay protection, expiring login challenges, one-time recovery codes and session revocation.
 - [x] Python hash lockfile and npm lockfile are committed, drift-checked in pull requests, and used by pip hash verification and npm ci.
@@ -21,7 +22,7 @@ This checklist is a release gate, not a claim that the current deployment is cer
 
 ## Required before public launch
 
-- [ ] Apply and verify host-firewall allowlisting for SMTP proxy destination IPs/ports and DNS; keep website/OSV disabled until SSRF/redirect/DNS-rebinding tests and a separate egress policy pass.
+- [ ] Apply and verify host-firewall allowlisting for SMTP proxy destination IPs/ports and DNS; keep website/OSV disabled until the host-level egress policy is tested and reviewed.
 - [x] Pin every container image by digest and verify registry digests in CI through `images.lock`.
 - [x] Pin GitHub Actions to immutable commit SHAs and configure weekly Dependabot updates for actions, packages and container images.
 - [ ] Verify image provenance/signatures where available and document update/rollback cadence.
