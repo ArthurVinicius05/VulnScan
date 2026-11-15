@@ -8,10 +8,11 @@ This checklist is a release gate, not a claim that the current deployment is cer
 - [x] PostgreSQL integration tests run against a real PostgreSQL service in CI.
 - [x] API and scanner worker use a shared service token.
 - [x] Production Compose isolates the scanner worker and keeps website/OSV scanning disabled.
-- [x] Durable PostgreSQL analysis queue with row-lock claims, expiring leases, bounded retries and idempotent audit writes.
+- [x] Durable PostgreSQL analysis queue with row-lock claims, renewable leases, attempt ownership, bounded retries and atomic/idempotent audit writes.
+- [x] Dead-letter inspection and token-protected operator recovery; dead-letter source archives expire after a short configurable window.
 - [x] Per-account monthly quotas, concurrent-job limits, queued-upload storage caps and user cancellation for jobs that have not started.
 - [x] TOTP MFA with encrypted secrets, replay protection, expiring login challenges, one-time recovery codes and session revocation.
-- [x] Python hash lockfile and npm lockfile generated in CI; locked installs use pip hashes and npm ci.
+- [x] Python hash lockfile and npm lockfile are committed, drift-checked in pull requests, and used by pip hash verification and npm ci.
 - [x] API has no direct internet egress; SMTP is routed through a fixed-upstream proxy that rejects non-public DNS answers.
 - [x] Automated retention cleanup for completed/failed jobs, audit records, expired sessions, tokens and MFA challenges.
 - [x] Encrypted age-based PostgreSQL backup/restore scripts and a PostgreSQL + age restore smoke test in CI.
@@ -21,7 +22,6 @@ This checklist is a release gate, not a claim that the current deployment is cer
 ## Required before public launch
 
 - [ ] Apply and verify host-firewall allowlisting for SMTP proxy destination IPs/ports and DNS; keep website/OSV disabled until SSRF/redirect/DNS-rebinding tests and a separate egress policy pass.
-- [ ] Add dead-letter inspection and administrative recovery controls for repeatedly failed jobs.
 - [ ] Pin every container image by digest, verify provenance/signatures where available, and document update/rollback cadence.
 - [ ] Run load, abuse, concurrency, failure-recovery and backup/restore drills against a production-like environment.
 - [ ] Configure Alertmanager notifications, centralized logs, on-call ownership and incident response runbooks.
