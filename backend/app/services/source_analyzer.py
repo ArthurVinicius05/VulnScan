@@ -95,8 +95,10 @@ def analyze_source_zip(data: bytes) -> list[dict]:
         for info in archive.infolist():
             if info.is_dir():
                 continue
-            suffix = PurePosixPath(info.filename).suffix.lower()
-            if suffix not in TEXT_EXTENSIONS or info.file_size > MAX_FILE_BYTES:
+            filename = PurePosixPath(info.filename).name.lower()
+            suffix = PurePosixPath(filename).suffix.lower()
+            is_env_file = filename == ".env" or filename.startswith(".env.")
+            if (suffix not in TEXT_EXTENSIONS and not is_env_file) or info.file_size > MAX_FILE_BYTES:
                 continue
             if scanned_bytes + info.file_size > MAX_TOTAL_SOURCE_BYTES:
                 break
