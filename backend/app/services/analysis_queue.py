@@ -60,3 +60,35 @@ def cancel_queued_analysis(db: Session, *, user_id: str, job_id: str) -> Analysi
     db.commit()
     db.refresh(job)
     return job
+
+
+class AnalysisJobArchiveExpired(Exception):
+    pass
+
+
+class AnalysisJobNotRecoverable(Exception):
+    pass
+
+
+def requeue_dead_letter_analysis(db: Session, *, job_id: str) -> AnalysisJob | None:
+    """Recover a dead-letter job only while its short-lived archive is retained."""
+    job = db.scalar(
+        select(AnalysisJob).where(AnalysisJob.id == job_id).with_for_update()
+    )
+    if job is None:
+        return None
+    if job.status != "dead_letter":
+        raise AnalysisJobNotRecoverable("Somente jobs em dead-letter podem ser recuperados.")
+    if job.archive_data is None:
+        raise AnalysisJobArchiveExpired(
+            "O arquivo original já expirou por política de retenção. Solicite um novo envio ao usuário."
+        )
+    job.status = "queued"
+    job.attempts = 0
+    job.available_at = datetime.now(timezone.utc)
+    job.completed_at = None
+    job.lease_expires_at = None
+    job.error = None
+    db.commit()
+    db.refresh(job)
+    return job
