@@ -1,5 +1,7 @@
 import logging
 import time
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
@@ -19,6 +21,15 @@ from app.models.analysis_job import AnalysisJob
 
 is_production = settings.app_env.lower() == "production"
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    from app.core.production import validate_production_settings
+
+    validate_production_settings(settings)
+    yield
+
+
 HTTP_REQUESTS = Counter("vulnscan_http_requests_total", "HTTP requests handled by VulnScan.", ["method", "route", "status_code"])
 HTTP_REQUEST_DURATION = Histogram("vulnscan_http_request_duration_seconds", "HTTP request latency.", ["method", "route"])
 ANALYSIS_JOBS = Gauge("vulnscan_analysis_jobs", "Analysis jobs grouped by state.", ["status"])
@@ -31,6 +42,7 @@ app = FastAPI(
     docs_url=None if is_production else "/docs",
     redoc_url=None if is_production else "/redoc",
     openapi_url=None if is_production else "/openapi.json",
+    lifespan=lifespan,
 )
 
 app.add_middleware(RateLimitMiddleware)
@@ -92,9 +104,3 @@ def root():
         "docs": None if is_production else "/docs",
     }
 
-
-@app.on_event("startup")
-async def validate_production_runtime() -> None:
-    from app.core.production import validate_production_settings
-
-    validate_production_settings(settings)
