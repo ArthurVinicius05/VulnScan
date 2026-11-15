@@ -18,7 +18,7 @@ def test_production_settings_require_a_separate_operations_secret():
     valid = Settings(
         _env_file=None,
         app_env="production",
-        database_url="postgresql+psycopg://user:password@db:5432/vulnscan",
+        database_url="postgresql+psycopg://user:db-password-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx@db:5432/vulnscan",
         redis_url="redis://redis:6379/0",
         cors_origins=["https://app.example.test"],
         frontend_url="https://app.example.test",
