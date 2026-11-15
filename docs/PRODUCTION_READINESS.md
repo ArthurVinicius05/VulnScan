@@ -2,27 +2,36 @@
 
 This checklist is a release gate, not a claim that the current deployment is certified.
 
-## Implemented in the hardening PR
+## Implemented in the hardening branch
 
 - [x] Production startup validation rejects insecure or incomplete environment configuration.
-- [x] PostgreSQL integration checks run against a real PostgreSQL service in CI.
+- [x] PostgreSQL integration tests run against a real PostgreSQL service in CI.
 - [x] API and scanner worker use a shared service token.
 - [x] Production Compose isolates the scanner worker and keeps website/OSV scanning disabled.
-- [x] CI validates backend tests, frontend build, production Compose and container builds.
+- [x] Durable PostgreSQL analysis queue with row-lock claims, expiring leases, bounded retries and idempotent audit writes.
+- [x] Per-account monthly quotas, concurrent-job limits and queued-upload storage caps.
+- [x] TOTP MFA with encrypted secrets, replay protection, expiring login challenges, one-time recovery codes and session revocation.
+- [x] Python hash lockfile and npm lockfile generated in CI; locked installs use pip hashes and npm ci.
+- [x] API has no direct internet egress; SMTP is routed through a fixed-upstream proxy that rejects non-public DNS answers.
+- [x] Automated retention cleanup for completed/failed jobs, audit records, expired sessions, tokens and MFA challenges.
+- [x] Encrypted age-based PostgreSQL backup/restore scripts and a PostgreSQL + age restore smoke test in CI.
+- [x] Prometheus HTTP/queue metrics and queue/5xx alert rules; Prometheus UI bound to loopback only.
+- [x] CI builds backend, frontend, SMTP proxy, website worker and OSV worker images and validates production Compose.
 
-## Required engineering work before public launch
+## Required before public launch
 
-- [x] Replace synchronous request-bound source scans with a PostgreSQL-backed durable queue, row-lock claims, expiring leases, bounded retries and idempotent history writes. Cancellation is still pending.
-- [x] Enforce per-account monthly and concurrent analysis quotas transactionally in PostgreSQL. Storage retention and account-level cleanup policies remain pending.
-- [x] Implement MFA enrollment with encrypted TOTP secrets, one-time recovery codes, login challenges, replay protection and session revocation.
-- [ ] Commit reproducible Python and npm lockfiles; pin container images by digest and verify update automation.
-- [x] Remove direct egress from API and route SMTP through a fixed-upstream TCP proxy that rejects non-public DNS answers. [ ] Apply host-firewall allowlisting to the proxy's SMTP IP/port and add SSRF/redirect/DNS-rebinding integration tests before enabling website/OSV.
-- [ ] Add load, abuse, concurrency, backup/restore and disaster-recovery tests.
-- [ ] Add structured audit logs, metrics, alerting, retention/deletion workflows and incident response procedures.
-- [ ] Run an independent security review and validate deployment behind real HTTPS with SMTP deliverability controls.
+- [ ] Apply and verify host-firewall allowlisting for SMTP proxy destination IPs/ports and DNS; keep website/OSV disabled until SSRF/redirect/DNS-rebinding tests and a separate egress policy pass.
+- [ ] Add job cancellation, dead-letter inspection and administrative recovery controls.
+- [ ] Pin every container image by digest, verify provenance/signatures where available, and document update/rollback cadence.
+- [ ] Run load, abuse, concurrency, failure-recovery and backup/restore drills against a production-like environment.
+- [ ] Configure Alertmanager notifications, centralized logs, on-call ownership and incident response runbooks.
+- [ ] Validate real HTTPS/TLS, SMTP deliverability (SPF/DKIM/DMARC), secret rotation and PostgreSQL restore in the actual hosting environment.
+- [ ] Add an account/data deletion workflow and verify user data deletion across database, backups and logs.
+- [ ] Complete privacy/terms review for LGPD, identify the data controller/operator, publish contact details and confirm lawful basis/retention.
+- [ ] Commission an independent security review or penetration test, fix findings, and re-run regression/security tests.
 
 ## External operator responsibilities
 
 The repository cannot prove the security of a hosting provider, firewall, DNS, TLS certificate, SMTP relay, secrets manager, backup destination or monitoring account. Those controls must be configured and tested in the actual deployment environment before the service accepts untrusted public traffic.
 
-The merge of this PR is not a production deployment approval. Keep the service private until every required engineering and operator gate is closed.
+Merging the hardening PR is not a production deployment approval. Keep the service private until every required engineering and operator gate is closed.

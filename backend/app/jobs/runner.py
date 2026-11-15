@@ -1,10 +1,15 @@
 from __future__ import annotations
 import asyncio
 import logging
+import time
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from app.db.database import SessionLocal
 from app.models.analysis_job import AnalysisJob
+from app.models.audit import AuditRecord
+from app.models.account_token import AccountToken
+from app.models.mfa_challenge import MFAChallenge
+from app.models.user_session import UserSession
 from app.services.audit_history import save_audit
 from app.services.source_analysis import analyze_source_archive
 
@@ -79,9 +84,29 @@ def validate_worker_runtime() -> None:
         if not settings.scanner_worker_token or len(settings.scanner_worker_token) < 32:
             raise RuntimeError("Analysis worker requires a strong SCANNER_WORKER_TOKEN in production.")
 
+def cleanup_expired_data() -> dict[str, int]:
+    from app.core.config import settings
+    now = datetime.now(timezone.utc)
+    with SessionLocal() as db:
+        jobs = db.query(AnalysisJob).filter(AnalysisJob.status.in_(("completed", "failed")),
+            AnalysisJob.completed_at < now - timedelta(days=settings.analysis_job_retention_days)).delete(synchronize_session=False)
+        audits = db.query(AuditRecord).filter(AuditRecord.created_at < now - timedelta(days=settings.audit_retention_days)).delete(synchronize_session=False)
+        challenges = db.query(MFAChallenge).filter(MFAChallenge.expires_at < now).delete(synchronize_session=False)
+        sessions = db.query(UserSession).filter(UserSession.expires_at < now).delete(synchronize_session=False)
+        tokens = db.query(AccountToken).filter(AccountToken.expires_at < now).delete(synchronize_session=False)
+        db.commit()
+        return {"jobs": jobs, "audits": audits, "mfa_challenges": challenges, "sessions": sessions, "account_tokens": tokens}
+
 async def run_forever() -> None:
     validate_worker_runtime()
+    last_cleanup = 0.0
     while True:
+        if time.monotonic() - last_cleanup >= 24 * 60 * 60:
+            try:
+                cleanup_expired_data()
+            except Exception:
+                logger.exception("Scheduled retention cleanup failed.")
+            last_cleanup = time.monotonic()
         if not await process_one_job():
             await asyncio.sleep(POLL_SECONDS)
 

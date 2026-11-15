@@ -50,6 +50,12 @@ def validate_production_settings(config: Settings = settings) -> None:
         errors.append("MONTHLY_ANALYSIS_LIMIT must be at least 1")
     if not 1 <= config.max_concurrent_analyses <= config.monthly_analysis_limit:
         errors.append("MAX_CONCURRENT_ANALYSES must be between 1 and MONTHLY_ANALYSIS_LIMIT")
+    if config.max_queued_storage_mb < config.max_upload_mb:
+        errors.append("MAX_QUEUED_STORAGE_MB must be at least MAX_UPLOAD_MB")
+    if not 1 <= config.analysis_job_retention_days <= 3650:
+        errors.append("ANALYSIS_JOB_RETENTION_DAYS must be between 1 and 3650")
+    if not 1 <= config.audit_retention_days <= 3650:
+        errors.append("AUDIT_RETENTION_DAYS must be between 1 and 3650")
     if not 1 <= config.max_upload_mb <= 100:
         errors.append("MAX_UPLOAD_MB must be between 1 and 100")
     if not 1 <= config.max_archive_files <= 10000:

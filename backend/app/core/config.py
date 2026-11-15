@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     mfa_encryption_key: str | None = None
     monthly_analysis_limit: int = 30
     max_concurrent_analyses: int = 2
+    max_queued_storage_mb: int = 50
+    analysis_job_retention_days: int = 30
+    audit_retention_days: int = 180
     enable_osv_scan: bool = False
     osv_worker_url: str = "http://osv-worker:8002"
     osv_worker_timeout_seconds: float = 55.0

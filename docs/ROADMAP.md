@@ -1,34 +1,32 @@
-# Roadmap VulnScan
+# VulnScan roadmap
 
-## Implementado
-- [x] API FastAPI e painel React/TypeScript
-- [x] Inspeção segura de ZIP sem extração ou execução do código enviado
-- [x] Análise heurística inicial e integrações opcionais Bandit, Ruff e Gitleaks
-- [x] Inventário de dependências para múltiplos ecossistemas
-- [x] OSV-Scanner opcional em worker separado
-- [x] Auditoria passiva de sites com validação SSRF e worker isolado (opt-in)
-- [x] Contas individuais, sessões em cookies HttpOnly, CSRF e histórico privado
-- [x] Rate limiting Redis compartilhado e fallback local limitado
-- [x] Verificação de e-mail via SMTP, tokens de uso único e expiração
-- [x] Recuperação de senha com resposta anti-enumeração e revogação de sessões
-- [x] Testes automatizados e CI para backend, frontend e imagens de containers
+## Implemented
+- [x] FastAPI backend and React/TypeScript frontend.
+- [x] Safe ZIP inspection without extracting or executing uploaded source.
+- [x] Initial heuristic analysis and isolated Bandit, Ruff and Gitleaks integrations.
+- [x] Dependency inventory across supported ecosystems.
+- [x] Optional OSV scanner in a separate worker.
+- [x] Passive website assessment with SSRF checks and a separate opt-in worker.
+- [x] Per-account sessions, CSRF, private audit history and email verification.
+- [x] Redis-backed shared rate limiting.
+- [x] Durable PostgreSQL queue, leases, retries and idempotent audit history.
+- [x] Monthly, concurrent and queued-storage quotas per account.
+- [x] TOTP MFA, encrypted secrets, recovery codes and replay protection.
+- [x] Reproducible Python/npm lockfiles and locked dependency installation.
+- [x] SMTP-only egress proxy, internal networks and scanner isolation.
+- [x] Automated data retention cleanup and encrypted PostgreSQL backup/restore tooling.
+- [x] Prometheus metrics and initial queue/5xx alert rules.
+- [x] CI for tests, PostgreSQL integration, backup/restore smoke test, container builds and production Compose validation.
 
-## Próxima fase — Operação segura e produto
-1. [x] Fila durável assíncrona no PostgreSQL com leases, retries limitados e histórico idempotente. [ ] Cancelamento e operação de dead-letter.
-2. [x] Quotas mensais e limites de concorrência por conta. [ ] Retenção e limites de armazenamento.
-3. [x] MFA com TOTP, segredos criptografados, códigos de recuperação de uso único, desafios temporários, proteção contra replay e revogação de sessões.
-4. [ ] Lockfiles reproduzíveis para Python/npm e imagens fixadas por digest.
-5. [ ] Egress controlado e testes SSRF/DNS rebinding em ambiente isolado.
-6. [ ] Observabilidade, backup/restore, carga, abuso e resposta a incidentes.
-7. [ ] Revisão de segurança independente e implantação HTTPS real.
+## Remaining before public launch
+1. [ ] Job cancellation, dead-letter inspection and administrative recovery controls.
+2. [ ] Host firewall allowlisting and real deployment egress verification.
+3. [ ] Pin container images by digest and implement provenance/update/rollback checks.
+4. [ ] Add account/data deletion workflow and validate retention across backups/logs.
+5. [ ] Configure Alertmanager, centralized logs and incident-response runbooks.
+6. [ ] Complete SSRF/redirect/DNS-rebinding, load, abuse and failure-recovery tests.
+7. [ ] Test HTTPS, SMTP deliverability, backup and restore on real production infrastructure.
+8. [ ] Complete legal review of privacy/terms and fill operator/contact details.
+9. [ ] Independent security audit/penetration test and remediation.
 
-Ver `docs/PRODUCTION_READINESS.md` para os critérios de bloqueio de lançamento.
-
-## Critérios antes de produção
-- Configurar HTTPS, APP_ENV=production, CORS_ORIGINS e cookies Secure.
-- Configurar Redis monitorado e política noeviction.
-- Configurar SMTP e validar entregabilidade, SPF, DKIM e DMARC.
-- Usar PostgreSQL gerenciado com backups e restauração testada.
-- Aplicar egress allowlist para workers website/OSV por firewall/proxy.
-- Adicionar monitoramento, logs sem segredos, alertas, retenção e plano de resposta.
-- Executar revisão de segurança independente e testes de integração em ambiente isolado.
+See docs/PRODUCTION_READINESS.md for release gates.

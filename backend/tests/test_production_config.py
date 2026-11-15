@@ -41,12 +41,16 @@ def test_valid_production_configuration_is_accepted():
         ({"mfa_encryption_key": None}, "MFA_ENCRYPTION_KEY"),
         ({"smtp_host": None}, "SMTP_HOST"),
         ({"smtp_host": "smtp-proxy"}, "SMTP_TLS_SERVER_NAME"),
+        ({"smtp_host": "smtp-proxy"}, "SMTP_TLS_SERVER_NAME"),
         ({"smtp_username": "user"}, "SMTP_USERNAME"),
         ({"smtp_starttls": False}, "SMTP_STARTTLS"),
         ({"enable_website_scan": True}, "egress controls"),
         ({"max_upload_mb": 1000}, "MAX_UPLOAD_MB"),
         ({"monthly_analysis_limit": 0}, "MONTHLY_ANALYSIS_LIMIT"),
         ({"max_concurrent_analyses": 0}, "MAX_CONCURRENT_ANALYSES"),
+        ({"max_queued_storage_mb": 10}, "MAX_QUEUED_STORAGE_MB"),
+        ({"analysis_job_retention_days": 0}, "ANALYSIS_JOB_RETENTION_DAYS"),
+        ({"audit_retention_days": 4000}, "AUDIT_RETENTION_DAYS"),
     ],
 )
 def test_unsafe_production_configuration_fails_closed(override, message):

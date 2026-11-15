@@ -25,6 +25,14 @@ def enqueue_analysis(db: Session, *, user_id: str, filename: str, archive_data: 
         AnalysisJob.user_id == user_id, AnalysisJob.created_at >= month_start)) or 0
     if monthly_count >= settings.monthly_analysis_limit:
         raise AnalysisQuotaExceeded("Cota mensal de análises atingida.")
+    queued_storage = db.scalar(select(func.coalesce(func.sum(func.length(AnalysisJob.archive_data)), 0)).where(
+        AnalysisJob.user_id == user_id,
+        AnalysisJob.status.in_(("queued", "running")),
+        AnalysisJob.archive_data.is_not(None),
+    )) or 0
+    storage_limit = settings.max_queued_storage_mb * 1024 * 1024
+    if queued_storage + len(archive_data) > storage_limit:
+        raise AnalysisQuotaExceeded("Limite de armazenamento temporário de análises atingido. Aguarde a fila liberar espaço.")
     job = AnalysisJob(user_id=user_id, filename=filename[:255], status="queued",
         archive_data=archive_data, created_at=now, available_at=now)
     db.add(job)

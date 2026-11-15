@@ -3,8 +3,8 @@ FROM ghcr.io/gitleaks/gitleaks:v8.24.2 AS gitleaks
 FROM python:3.12-slim
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.lock .
+RUN pip install --no-cache-dir --require-hashes -r requirements.lock
 COPY --from=gitleaks /usr/bin/gitleaks /usr/local/bin/gitleaks
 COPY app ./app
 COPY migrations ./migrations

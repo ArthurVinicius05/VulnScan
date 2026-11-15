@@ -21,3 +21,20 @@ Per-account monthly and concurrent job limits are enforced inside the same trans
 ## Remaining production gates
 
 MFA, reproducible dependency lockfiles, network egress enforcement, load/abuse tests, observability, backup/restore drills and an independent security review are still required. See \`docs/PRODUCTION_READINESS.md\`.
+
+
+## Queue, quotas and retention
+
+Source ZIP submissions create durable PostgreSQL jobs. The API enforces per-account monthly, concurrency and pending-upload-storage limits in the same transaction as enqueueing. The worker claims rows with skip-locked semantics, uses expiring leases and bounded retries, and writes the audit record idempotently. Raw ZIP bytes are cleared on completion or terminal failure. Completed/failed job metadata is retained for 30 days, audit reports for 180 days, and expired sessions, account tokens and MFA challenges are cleaned daily.
+
+## MFA and account protection
+
+TOTP secrets are encrypted with a Fernet key supplied by the operator. Login uses a short-lived, attempt-limited challenge; TOTP steps cannot be replayed, and recovery codes are random one-time values stored only as hashes. Disabling MFA revokes all sessions.
+
+## SMTP-only egress
+
+The API has no direct external network. It reaches a dedicated SMTP proxy over an internal-only network. The proxy resolves one configured SMTP upstream at startup, rejects non-public IP answers, pins the resolved IPs for the process lifetime and forwards only to the configured port. The host firewall must still restrict the proxy to the relay's current public IPs and port. Website and OSV workers remain disabled in production until separate egress/SSRF controls are verified.
+
+## Metrics and recovery
+
+Prometheus scrapes internal HTTP request/latency and database-backed job-state metrics. Its UI is bound to loopback on port 9090 and is not proxied by the public frontend. Queue-backlog and HTTP 5xx alert rules are loaded, but notification delivery requires a separately configured Alertmanager. PostgreSQL backups are encrypted with age and have a restore smoke test in CI; the operator must schedule off-site backups and perform real restore drills.

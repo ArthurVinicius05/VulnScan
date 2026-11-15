@@ -6,7 +6,11 @@ from app.db.database import Base
 from app.models.analysis_job import AnalysisJob
 from app.models.user import User
 from app.services.analysis_queue import AnalysisQuotaExceeded, enqueue_analysis
-from app.jobs.runner import claim_next_job, _retry_or_fail
+from app.jobs.runner import claim_next_job, _retry_or_fail, cleanup_expired_data
+from app.models.audit import AuditRecord
+from app.models.account_token import AccountToken
+from app.models.mfa_challenge import MFAChallenge
+from app.models.user_session import UserSession
 
 @pytest.fixture
 def queue_db(tmp_path, monkeypatch):
@@ -18,6 +22,7 @@ def queue_db(tmp_path, monkeypatch):
         db.add(user); db.commit(); user_id = user.id
     monkeypatch.setattr("app.services.analysis_queue.settings.max_concurrent_analyses", 2)
     monkeypatch.setattr("app.services.analysis_queue.settings.monthly_analysis_limit", 3)
+    monkeypatch.setattr("app.services.analysis_queue.settings.max_queued_storage_mb", 50)
     monkeypatch.setattr("app.jobs.runner.SessionLocal", sessions)
     yield sessions, user_id
     engine.dispose()
@@ -44,6 +49,16 @@ def test_monthly_quota_counts_completed_and_queued_jobs(queue_db, monkeypatch):
         with pytest.raises(AnalysisQuotaExceeded, match="mensal"):
             enqueue_analysis(db, user_id=user_id, filename="over-quota.zip", archive_data=b"data")
 
+def test_queued_archive_storage_is_bounded_per_account(queue_db, monkeypatch):
+    sessions, user_id = queue_db
+    monkeypatch.setattr("app.services.analysis_queue.settings.max_concurrent_analyses", 10)
+    monkeypatch.setattr("app.services.analysis_queue.settings.max_queued_storage_mb", 10)
+    with sessions() as db:
+        enqueue_analysis(db, user_id=user_id, filename="six.zip", archive_data=b"x" * (6 * 1024 * 1024))
+        with pytest.raises(AnalysisQuotaExceeded, match="armazenamento temporário"):
+            enqueue_analysis(db, user_id=user_id, filename="five.zip", archive_data=b"x" * (5 * 1024 * 1024))
+
+
 def test_claim_marks_job_running_and_retry_requeues(queue_db):
     sessions, user_id = queue_db
     with sessions() as db:
@@ -60,3 +75,21 @@ def test_claim_marks_job_running_and_retry_requeues(queue_db):
         assert current.status == "queued"
         assert current.archive_data == b"zip"
         assert current.lease_expires_at is None
+
+
+def test_retention_cleanup_removes_expired_records_and_old_jobs(queue_db, monkeypatch):
+    sessions, user_id = queue_db
+    monkeypatch.setattr("app.core.config.settings.analysis_job_retention_days", 30)
+    monkeypatch.setattr("app.core.config.settings.audit_retention_days", 180)
+    old = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    with sessions() as db:
+        db.add(AnalysisJob(user_id=user_id, filename="old.zip", status="completed", archive_data=None,
+            result={}, attempts=1, max_attempts=3, created_at=old, available_at=old, completed_at=old))
+        db.add(AuditRecord(user_id=user_id, analysis_type="static_source_analysis", target="old.zip",
+            status="completed", finding_count=0, result={}, created_at=old))
+        db.add(UserSession(user_id=user_id, token_hash="d" * 64, expires_at=old, created_at=old))
+        db.add(AccountToken(user_id=user_id, token_hash="e" * 64, purpose="verify_email", expires_at=old, created_at=old))
+        db.add(MFAChallenge(user_id=user_id, token_hash="f" * 64, attempts=0, expires_at=old, created_at=old))
+        db.commit()
+    counts = cleanup_expired_data()
+    assert counts == {"jobs": 1, "audits": 1, "mfa_challenges": 1, "sessions": 1, "account_tokens": 1}
