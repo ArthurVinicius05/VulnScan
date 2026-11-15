@@ -20,7 +20,7 @@ type Result = {
   notice: string
   finding_count: number
   findings: Finding[]
-  scanner_tools?: { status: string; tools: { name: string; status: string }[] }
+  scanner_tools?: { status: string; tools: { name: string; status: string }[]; security_tools?: { name: string; status: string; reason?: string }[] }
   dependencies?: { manifest_count: number; manifests: { file: string; ecosystem: string; status: string; dependency_count: number | null }[]; notice: string; network_access: boolean; packages_installed: boolean }
 }
 
@@ -67,7 +67,7 @@ export default function App() {
             {error && <div className="error">{error}</div>}
             {result && <div className="result"><b><FileArchive size={16}/> Analysis completed</b><p>{result.file_count} files · {result.detected_technologies.join(', ') || 'No known stack markers detected'}</p><small>{result.notice}</small>
               <div className="findings-summary"><AlertTriangle size={16}/> {result.finding_count} potential finding(s)</div>
-              {result.scanner_tools && <div className="tool-status"><b>Static tools</b>{result.scanner_tools.tools.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {tool.status}</span>)}</div>}
+              {result.scanner_tools && <div className="tool-status"><b>Static tools</b>{result.scanner_tools.tools.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {tool.status}</span>)}{result.scanner_tools.security_tools?.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {tool.status}{tool.reason ? ' · ' + tool.reason : ''}</span>)}</div>}
               {result.dependencies && <div className="dependency-inventory">
                 <b>Dependency manifests · {result.dependencies.manifest_count}</b>
                 <small>{result.dependencies.notice}</small>
