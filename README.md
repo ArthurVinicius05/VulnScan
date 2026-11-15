@@ -7,7 +7,7 @@ Plataforma modular de auditoria de segurança para avaliações autorizadas de s
 ## Tecnologias
 - Frontend: React, TypeScript, Vite e Lucide
 - Backend/API: Python, FastAPI e Pydantic Settings
-- Persistência: SQLAlchemy, SQLite no desenvolvimento e PostgreSQL configurável
+- Persistência: SQLAlchemy, Alembic, SQLite no desenvolvimento e PostgreSQL configurável
 - Ferramentas: Bandit, Ruff, Gitleaks e OSV-Scanner (opcional)
 - Testes: pytest
 - Ambiente: Docker Compose
@@ -22,7 +22,7 @@ docker compose up --build
 Painel: http://localhost:5173  
 Documentação da API: http://localhost:8000/docs
 
-O ambiente local usa `APP_ENV=development` e cria o banco SQLite `vulnscan.db` dentro do backend. O arquivo não contém o ZIP original, apenas metadados e resultados da análise. Para persistência PostgreSQL, configure `DATABASE_URL=postgresql+psycopg://usuario:senha@host:5432/vulnscan` e mantenha as credenciais fora do Git. O Compose recebe `DATABASE_URL` do ambiente. Para exigir uma chave de API também no desenvolvimento, defina `VULNSCAN_API_KEY` antes de iniciar o Compose. As rotas de análise aceitam a chave no cabeçalho `Authorization: Bearer SUA_CHAVE`.
+O ambiente local usa `APP_ENV=development` e aplica as migrações Alembic antes de iniciar a API, criando/atualizando o banco SQLite `vulnscan.db` dentro do backend. O arquivo não contém o ZIP original, apenas metadados e resultados da análise. Para persistência PostgreSQL, configure `DATABASE_URL=postgresql+psycopg://usuario:senha@host:5432/vulnscan` e mantenha as credenciais fora do Git. O Compose recebe `DATABASE_URL` do ambiente. Para exigir uma chave de API também no desenvolvimento, defina `VULNSCAN_API_KEY` antes de iniciar o Compose. As rotas de análise aceitam a chave no cabeçalho `Authorization: Bearer SUA_CHAVE`.
 
 ### Proteção da API
 - Todas as rotas em `/api/analysis` passam pela dependência de autenticação por chave Bearer.
@@ -56,7 +56,7 @@ ENABLE_OSV_SCAN=true docker compose --profile osv-online up --build
 O worker OSV tem acesso externo para consultar dados de vulnerabilidades. O worker padrão de scanners continua sem rota externa. Docker Compose não restringe destinos por domínio; use firewall/proxy de saída em implantações reais.
 
 ### Executar sem Docker
-Instale `backend/requirements.txt` e execute `uvicorn app.main:app --reload` dentro de `backend`. Para análise completa, configure os workers separadamente.
+Instale `backend/requirements.txt`, entre em `backend`, aplique `alembic upgrade head` e execute `uvicorn app.main:app --reload`. Para análise completa, configure os workers separadamente.
 
 ### Frontend
 Execute `npm install` e `npm run dev` em `frontend`.
@@ -81,7 +81,7 @@ Os workers usam usuário sem privilégios, sistema de arquivos somente leitura, 
 - O conjunto inicial de regras é pequeno e não substitui uma revisão profissional.
 - O código enviado não é intencionalmente executado pela API.
 - A chave Bearer atual é compartilhada e não oferece identidade individual, autorização por papel ou sessões.
-- A persistência inicial usa `create_all`; migrações Alembic ainda não foram configuradas. O SQLite é o padrão de desenvolvimento; PostgreSQL pode ser informado via `DATABASE_URL`.
+- O esquema do banco é versionado por migrações Alembic; execute `alembic upgrade head` após atualizar a aplicação. O SQLite é o padrão de desenvolvimento; PostgreSQL pode ser informado via `DATABASE_URL`.
 - O histórico atual é compartilhado no workspace, pois ainda não há identidade individual nem isolamento de registros por usuário.
 - Ainda faltam autenticação individual, limites por usuário, allowlist de saída, explicações por IA e relatórios PDF/JSON.
 - O worker de sites executa somente verificações passivas limitadas; não realiza testes ativos.
@@ -92,7 +92,7 @@ Avalie somente sistemas próprios ou para os quais exista autorização explíci
 
 ## Próximas etapas
 1. Autenticação individual, sessões seguras e controle de acesso por usuário.
-2. Migrações Alembic, PostgreSQL gerenciado e isolamento do histórico por usuário.
+2. PostgreSQL gerenciado e isolamento do histórico por usuário.
 3. Integração do histórico ao painel React.
 4. Limites de uso, auditoria de escopo e allowlist de saída por firewall/proxy.
 5. Relatórios JSON/PDF e explicações fundamentadas por IA.
