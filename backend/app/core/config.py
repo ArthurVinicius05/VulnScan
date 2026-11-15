@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     smtp_username: str | None = None
     smtp_password: str | None = None
     smtp_starttls: bool = True
+    smtp_tls_server_name: str | None = None
     mail_from: str | None = None
     max_upload_mb: int = 25
     max_archive_files: int = 3000

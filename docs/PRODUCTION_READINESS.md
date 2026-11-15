@@ -16,7 +16,7 @@ This checklist is a release gate, not a claim that the current deployment is cer
 - [x] Enforce per-account monthly and concurrent analysis quotas transactionally in PostgreSQL. Storage retention and account-level cleanup policies remain pending.
 - [x] Implement MFA enrollment with encrypted TOTP secrets, one-time recovery codes, login challenges, replay protection and session revocation.
 - [ ] Commit reproducible Python and npm lockfiles; pin container images by digest and verify update automation.
-- [ ] Apply enforceable egress policy (firewall or controlled proxy) for every service with network access; add SSRF/redirect/DNS-rebinding integration tests.
+- [x] Remove direct egress from API and route SMTP through a fixed-upstream TCP proxy that rejects non-public DNS answers. [ ] Apply host-firewall allowlisting to the proxy's SMTP IP/port and add SSRF/redirect/DNS-rebinding integration tests before enabling website/OSV.
 - [ ] Add load, abuse, concurrency, backup/restore and disaster-recovery tests.
 - [ ] Add structured audit logs, metrics, alerting, retention/deletion workflows and incident response procedures.
 - [ ] Run an independent security review and validate deployment behind real HTTPS with SMTP deliverability controls.

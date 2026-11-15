@@ -114,3 +114,11 @@ Avalie somente sistemas próprios ou para os quais exista autorização explíci
 2. PostgreSQL gerenciado, backups, observabilidade e operação de produção.
 3. Relatórios exportáveis JSON/PDF e explicações fundamentadas por IA.
 4. MFA, administração de contas e política de convites.
+
+
+### Egresso de SMTP
+
+Na configuração de produção, a API não tem interface de saída direta. O envio de e-mail passa pelo contêiner `smtp-proxy`, que só encaminha TCP para o único `SMTP_UPSTREAM_HOST:SMTP_UPSTREAM_PORT` configurado e rejeita DNS que resolva para IP não público. Configure o firewall do host para permitir saída do proxy apenas aos IPs públicos atuais do relay SMTP e à porta escolhida (mais DNS estritamente necessário). Não conecte API, scanner ou analysis-worker diretamente à rede de egress. Website e OSV permanecem desativados até uma política de egress própria e testes SSRF serem concluídos.
+
+
+O valor de `SMTP_TLS_SERVER_NAME` deve ser exatamente o hostname presente no certificado TLS do relay e corresponder a `SMTP_UPSTREAM_HOST`. O proxy resolve esse hostname na inicialização e fixa os IPs até ser reiniciado; reinicie-o após mudanças de DNS do provedor.

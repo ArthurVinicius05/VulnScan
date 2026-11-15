@@ -40,6 +40,7 @@ def test_valid_production_configuration_is_accepted():
         ({"scanner_worker_token": "short"}, "SCANNER_WORKER_TOKEN"),
         ({"mfa_encryption_key": None}, "MFA_ENCRYPTION_KEY"),
         ({"smtp_host": None}, "SMTP_HOST"),
+        ({"smtp_host": "smtp-proxy"}, "SMTP_TLS_SERVER_NAME"),
         ({"smtp_username": "user"}, "SMTP_USERNAME"),
         ({"smtp_starttls": False}, "SMTP_STARTTLS"),
         ({"enable_website_scan": True}, "egress controls"),

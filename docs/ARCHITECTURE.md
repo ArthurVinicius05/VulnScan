@@ -9,7 +9,7 @@ Uploads are persisted in the PostgreSQL job row before the API returns HTTP 202.
 ## Trust boundaries
 
 - Browser uploads are untrusted and bounded before queue insertion.
-- API and analysis worker can access PostgreSQL; only the API has the SMTP egress interface.
+- API and analysis worker can access PostgreSQL; the API reaches SMTP only over a dedicated internal network. The SMTP proxy is the sole service attached to the outbound SMTP network and forwards to one pinned, configured public upstream.
 - Analysis worker can reach only the isolated scanner service, which requires a shared bearer token.
 - Website and OSV scans remain disabled in the production profile until enforceable egress rules and SSRF controls are verified.
 - No uploaded project code is executed by the API.
