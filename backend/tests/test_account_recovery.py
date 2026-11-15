@@ -28,7 +28,7 @@ def _client_with_db(tmp_path):
             db.close()
 
     app.dependency_overrides[get_db] = override_db
-    return TestClient(app), sessions, engine
+    return TestClient(app, client=("127.0.0.12", 12345)), sessions, engine
 
 
 def test_reset_password_token_is_single_use_and_revokes_sessions(tmp_path, monkeypatch):
