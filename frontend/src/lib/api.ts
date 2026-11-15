@@ -43,6 +43,20 @@ export type AuditHistoryItem = {
   created_at: string
 }
 
+export type AuditDetail = AuditHistoryItem & {
+  result: {
+    findings?: { rule_id?: string; title?: string; severity?: string; file?: string; url?: string; line?: number | null; evidence?: string; recommendation?: string }[]
+    [key: string]: unknown
+  }
+}
+
+export async function fetchAuditDetail(id: string): Promise<AuditDetail> {
+  const response = await fetch(`${API_URL}/api/history/${encodeURIComponent(id)}`, { headers: authHeaders() })
+  const payload = await response.json()
+  if (!response.ok) throw new Error(payload.detail ?? 'Falha ao carregar o relatório.')
+  return payload as AuditDetail
+}
+
 export async function fetchAuditHistory(): Promise<AuditHistoryItem[]> {
   const response = await fetch(`${API_URL}/api/history?limit=20&offset=0`, { headers: authHeaders() })
   const payload = await response.json()
