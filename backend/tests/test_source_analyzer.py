@@ -33,3 +33,10 @@ def test_marks_heuristic_findings_as_unverified():
     data = make_zip([("page.js", "element.innerHTML = value")])
     findings = analyze_source_zip(data)
     assert findings and findings[0]["verified"] is False
+
+
+
+def test_scans_dot_env_files_for_credentials():
+    data = make_zip([(".env", 'API_KEY="abc1234567890abcdef"\\n')])
+    findings = analyze_source_zip(data)
+    assert any(item["rule_id"] == "SECRET001" and item["file"] == ".env" for item in findings)
