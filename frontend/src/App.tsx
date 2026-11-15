@@ -74,7 +74,7 @@ export default function App() {
   async function endSession() { await logout(); setAuthenticated(false); setHistory([]); setResult(null) }
 
   if (authChecking) return <div className="auth-screen"><p>Verificando sessão…</p></div>
-  if (!authenticated && (showRecovery || new URLSearchParams(window.location.search).has('verify') || new URLSearchParams(window.location.search).has('reset'))) return <AccountRecovery onBack={() => { setShowRecovery(false); window.history.replaceState({}, '', window.location.pathname) }} />
+  if (!authenticated && (showRecovery || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('verify') || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('reset'))) return <AccountRecovery onBack={() => { setShowRecovery(false); window.history.replaceState({}, '', window.location.pathname) }} />
   if (!authenticated) return <div className="auth-screen"><form className="auth-card" onSubmit={submitAuth}>
     <div className="brand-mark"><ShieldCheck size={24}/></div><h1>VulnScan Pro</h1>
     <p>{authMode === 'login' ? 'Entre na sua conta para acessar suas auditorias.' : 'Crie sua conta para manter seu histórico privado.'}</p>
