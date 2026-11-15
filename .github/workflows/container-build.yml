@@ -16,7 +16,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
       - name: Validate Compose configuration
         run: docker compose config --quiet
-      - name: Build backend and scanner-worker image
+      - name: Build isolated scanner image
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -24,3 +24,11 @@ jobs:
           push: false
           load: true
           tags: vulnscan-backend:ci
+      - name: Build opt-in OSV worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile.osv
+          push: false
+          load: true
+          tags: vulnscan-osv-worker:ci
