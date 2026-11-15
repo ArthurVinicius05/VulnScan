@@ -24,6 +24,14 @@ jobs:
           push: false
           load: true
           tags: vulnscan-backend:ci
+      - name: Build opt-in website worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile.website
+          push: false
+          load: true
+          tags: vulnscan-website-worker:ci
       - name: Build opt-in OSV worker image
         uses: docker/build-push-action@v6
         with:
