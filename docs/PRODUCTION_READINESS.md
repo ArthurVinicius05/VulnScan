@@ -13,6 +13,7 @@ This checklist is a release gate, not a claim that the current deployment is cer
 - [x] SSRF, private/mixed DNS answer, redirect and pinned-IP DNS-rebinding regression tests for the isolated passive website worker.
 - [x] Per-account monthly quotas, concurrent-job limits, queued-upload storage caps and user cancellation for jobs that have not started.
 - [x] TOTP MFA with encrypted secrets, replay protection, expiring login challenges, one-time recovery codes and session revocation.
+- [x] Transactional MFA encryption-key rotation CLI with dry-run validation and all-or-nothing database commit.
 - [x] Python hash lockfile and npm lockfile are committed, drift-checked in pull requests, and used by pip hash verification and npm ci.
 - [x] API has no direct internet egress; SMTP is routed through a fixed-upstream proxy that rejects non-public DNS answers.
 - [x] Automated retention cleanup for completed/failed jobs, audit records, expired sessions, tokens and MFA challenges.
@@ -29,7 +30,7 @@ This checklist is a release gate, not a claim that the current deployment is cer
 - [x] Automated PostgreSQL concurrency/worker-claim tests and encrypted backup/restore smoke test in CI.
 - [ ] Run load/abuse and full failure-recovery/restore drills against a production-like environment.
 - [ ] Configure Alertmanager notifications, centralized logs, on-call ownership and incident response runbooks.
-- [ ] Validate real HTTPS/TLS, SMTP deliverability (SPF/DKIM/DMARC), secret rotation and PostgreSQL restore in the actual hosting environment.
+- [ ] Validate real HTTPS/TLS, SMTP deliverability (SPF/DKIM/DMARC), service-token/DB credential rotation and PostgreSQL restore in the actual hosting environment.
 - [x] Add authenticated account deletion for live database records; [ ] verify deletion across off-site backups and logs and document backup expiry/restore implications.
 - [ ] Complete privacy/terms review for LGPD, identify the data controller/operator, publish contact details and confirm lawful basis/retention.
 - [ ] Commission an independent security review or penetration test, fix findings, and re-run regression/security tests.
