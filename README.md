@@ -59,7 +59,7 @@ O ambiente local pode ativar contas automaticamente quando SMTP não está confi
 - Jobs concluídos, falhos, cancelados e dead-letter: metadados removidos após 30 dias.
 - Arquivos originais de jobs dead-letter: apagados após 72 horas por padrão.
 - Relatórios de auditoria: retidos por 180 dias.
-- Desafios MFA, sessões e tokens expirados: limpeza diária pelo worker.
+- Arquivos de dead-letter fora da janela de recuperação, jobs expirados, relatórios, desafios MFA, sessões e tokens expirados: limpeza horária pelo worker.
 - Os prazos são configuráveis por ANALYSIS_JOB_RETENTION_DAYS e AUDIT_RETENTION_DAYS. A política pública de privacidade deve refletir os valores reais da implantação.
 
 ### Egress e isolamento
