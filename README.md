@@ -22,18 +22,19 @@ docker compose up --build
 Painel: http://localhost:5173  
 Documentação da API: http://localhost:8000/docs
 
-O ambiente local usa `APP_ENV=development` e aplica as migrações Alembic antes de iniciar a API, criando/atualizando o banco SQLite `vulnscan.db` dentro do backend. O arquivo não contém o ZIP original, apenas metadados e resultados da análise. Para persistência PostgreSQL, configure `DATABASE_URL=postgresql+psycopg://usuario:senha@host:5432/vulnscan` e mantenha as credenciais fora do Git. O Compose recebe `DATABASE_URL` do ambiente. O cadastro inicial é aberto; implemente verificação de e-mail, limitação de tentativas e política de cadastro antes de disponibilizar publicamente. As rotas privadas aceitam o token de sessão no cabeçalho `Authorization: Bearer TOKEN`.
+O ambiente local usa `APP_ENV=development` e aplica as migrações Alembic antes de iniciar a API, criando/atualizando o banco SQLite `vulnscan.db` dentro do backend. O arquivo não contém o ZIP original, apenas metadados e resultados da análise. Para persistência PostgreSQL, configure `DATABASE_URL=postgresql+psycopg://usuario:senha@host:5432/vulnscan` e mantenha as credenciais fora do Git. O Compose recebe `DATABASE_URL` do ambiente. O cadastro inicial é aberto; implemente verificação de e-mail, limitação de tentativas e política de cadastro antes de disponibilizar publicamente. A sessão é enviada em cookie HttpOnly; em produção, defina `APP_ENV=production` para ativar automaticamente o atributo Secure. O frontend e a API devem usar HTTPS em produção.
 
 ### Contas e proteção da API
 - Cadastro e login individuais estão disponíveis em `POST /api/auth/register` e `POST /api/auth/login`.
 - Senhas são armazenadas com hash Argon2id; a API nunca retorna o hash.
 - As sessões usam tokens aleatórios; somente o hash SHA-256 do token é persistido. A validade padrão é de 12 horas.
 - Use `GET /api/auth/me` para consultar a conta atual e `POST /api/auth/logout` para revogar a sessão atual.
-- As rotas de análise e histórico exigem uma sessão Bearer válida.
+- A API entrega a sessão em cookie HttpOnly, SameSite=Lax e Secure em produção. O cookie CSRF é legível pelo frontend e deve ser enviado no cabeçalho `X-CSRF-Token` em operações mutáveis autenticadas.
+- As rotas de análise e histórico exigem uma sessão válida; as origens de frontend permitidas devem ser configuradas em `CORS_ORIGINS`.
 - Cada nova auditoria é associada ao usuário autenticado. Listagem e detalhes só retornam registros pertencentes àquela conta.
 - Auditorias criadas antes da migração de contas ficam sem proprietário e não são exibidas no histórico individual.
 - O cadastro inicial é aberto. Antes de disponibilizar publicamente, implemente verificação de e-mail, limitação de tentativas, recuperação de senha e política de criação de contas.
-- O frontend mantém o token em `sessionStorage`. Isso evita persistência após encerrar a sessão do navegador, mas não protege contra XSS; cookies HttpOnly com proteção CSRF são uma melhoria necessária antes de produção.
+- A sessão não fica disponível ao JavaScript: o token é mantido em cookie HttpOnly. A proteção CSRF compara o valor do cookie CSRF com o cabeçalho `X-CSRF-Token`; configure corretamente `CORS_ORIGINS` e use HTTPS em produção.
 
 ### Verificação passiva de sites (opcional)
 Somente para alvos próprios ou com autorização explícita:
@@ -75,7 +76,7 @@ Os workers usam usuário sem privilégios, sistema de arquivos somente leitura, 
 - Achados heurísticos não provam explorabilidade; falsos positivos e negativos são esperados.
 - O conjunto inicial de regras é pequeno e não substitui uma revisão profissional.
 - O código enviado não é intencionalmente executado pela API.
-- Ainda não há papéis/permissões administrativas, verificação de e-mail, recuperação de senha, rate limiting de login ou proteção CSRF baseada em cookie.
+- Ainda não há papéis/permissões administrativas, verificação de e-mail, recuperação de senha ou rate limiting distribuído para login.
 - O esquema do banco é versionado por migrações Alembic; execute `alembic upgrade head` após atualizar a aplicação. O SQLite é o padrão de desenvolvimento; PostgreSQL pode ser informado via `DATABASE_URL`.
 - O histórico é isolado por conta para auditorias novas; registros legados sem proprietário não aparecem no histórico individual.
 - Ainda faltam rate limiting distribuído, allowlist de saída aplicada por firewall/proxy, explicações por IA e relatórios PDF/JSON.
@@ -86,7 +87,7 @@ Os workers usam usuário sem privilégios, sistema de arquivos somente leitura, 
 Avalie somente sistemas próprios ou para os quais exista autorização explícita. Trate arquivos enviados como entrada não confiável.
 
 ## Próximas etapas
-1. Endurecimento da autenticação: cookies HttpOnly/Secure/SameSite, proteção CSRF, rate limiting e recuperação de conta.
+1. Rate limiting distribuído, recuperação de conta, verificação de e-mail e política de cadastro.
 2. Limites de uso por usuário, auditoria de escopo e allowlist de saída por firewall/proxy.
 3. PostgreSQL gerenciado e operação de produção com backups e monitoramento.
 4. Relatórios exportáveis JSON/PDF e explicações fundamentadas por IA.
