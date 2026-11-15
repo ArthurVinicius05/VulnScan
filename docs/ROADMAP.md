@@ -21,7 +21,7 @@
 ## Remaining before public launch
 1. [ ] Dead-letter inspection and administrative recovery controls for repeatedly failed jobs.
 2. [ ] Host firewall allowlisting and real deployment egress verification.
-3. [x] Pin container images by multi-platform digest and verify registry digests in CI. [ ] Add signature/provenance checks and update/rollback cadence.
+3. [ ] Pin container images by digest and implement provenance/update/rollback checks.
 4. [x] Add authenticated account deletion for live database records. [ ] Verify deletion across backups/logs and document backup expiry.
 5. [ ] Configure Alertmanager, centralized logs and incident-response runbooks.
 6. [ ] Complete SSRF/redirect/DNS-rebinding, load, abuse and failure-recovery tests.

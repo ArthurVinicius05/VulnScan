@@ -22,7 +22,7 @@ This checklist is a release gate, not a claim that the current deployment is cer
 
 - [ ] Apply and verify host-firewall allowlisting for SMTP proxy destination IPs/ports and DNS; keep website/OSV disabled until SSRF/redirect/DNS-rebinding tests and a separate egress policy pass.
 - [ ] Add dead-letter inspection and administrative recovery controls for repeatedly failed jobs.
-- [x] Pin all Dockerfile/Compose/CI images to multi-platform manifest digests and verify registry digests in CI. [ ] Verify signatures/provenance where available and document update/rollback cadence.
+- [ ] Pin every container image by digest, verify provenance/signatures where available, and document update/rollback cadence.
 - [ ] Run load, abuse, concurrency, failure-recovery and backup/restore drills against a production-like environment.
 - [ ] Configure Alertmanager notifications, centralized logs, on-call ownership and incident response runbooks.
 - [ ] Validate real HTTPS/TLS, SMTP deliverability (SPF/DKIM/DMARC), secret rotation and PostgreSQL restore in the actual hosting environment.
