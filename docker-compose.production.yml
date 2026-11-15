@@ -73,7 +73,7 @@ services:
       retries: 5
       start_period: 20s
     restart: unless-stopped
-    networks: [app_internal, scanner_internal]
+    networks: [app_internal, scanner_internal, backend_egress]
     mem_limit: 768m
     cpus: 1.5
 
@@ -133,3 +133,4 @@ networks:
         - subnet: 172.30.0.0/24
   scanner_internal:
     internal: true
+  backend_egress:
