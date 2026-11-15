@@ -10,6 +10,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     op.add_column("users", sa.Column("email_verified_at", sa.DateTime(timezone=True), nullable=True))
+    # Preserve access for accounts created before email verification existed.
+    op.execute("UPDATE users SET email_verified_at = created_at WHERE email_verified_at IS NULL")
     op.create_table("account_tokens",
         sa.Column("id", sa.String(length=36), nullable=False),
         sa.Column("user_id", sa.String(length=36), nullable=False),
