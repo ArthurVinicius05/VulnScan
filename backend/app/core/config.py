@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     enable_osv_scan: bool = False
     osv_worker_url: str = "http://osv-worker:8002"
     osv_worker_timeout_seconds: float = 55.0
+    enable_website_scan: bool = False
+    website_worker_url: str = "http://website-worker:8003"
+    website_worker_timeout_seconds: float = 20.0
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

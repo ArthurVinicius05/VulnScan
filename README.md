@@ -19,7 +19,9 @@ Run: `docker compose up --build`
 Dashboard: http://localhost:5173  
 API docs: http://localhost:8000/docs
 
-The API sends Python archives to a private `scanner-worker` service. The worker is not published to the host and is attached only to an internal Docker network.\n\nOSV scanning is opt-in: set `ENABLE_OSV_SCAN=true` and start Compose with `--profile osv-online`. This starts a separate `osv-worker` with outbound network access for OSV vulnerability matching. The default scanner-worker remains isolated without an external route. Docker networking does not enforce a domain allowlist; production deployments must add an egress firewall/proxy policy if outbound traffic must be restricted to OSV endpoints.
+The API sends Python archives to a private `scanner-worker` service. The worker is not published to the host and is attached only to an internal Docker network.\n\nWebsite scanning is opt-in: set ENABLE_WEBSITE_SCAN=true and start Compose with --profile website-scan. The API forwards explicitly authorized requests to a separate unprivileged worker. The worker validates HTTP(S) targets, pins public IP addresses, revalidates redirects, and performs a bounded passive GET. It does not run exploit payloads. Compose does not provide destination allowlisting; production deployments must enforce egress firewall/proxy rules, authentication, and rate limits before enabling it.
+
+OSV scanning is opt-in: set `ENABLE_OSV_SCAN=true` and start Compose with `--profile osv-online`. This starts a separate `osv-worker` with outbound network access for OSV vulnerability matching. The default scanner-worker remains isolated without an external route. Docker networking does not enforce a domain allowlist; production deployments must add an egress firewall/proxy policy if outbound traffic must be restricted to OSV endpoints.
 
 ### Run without Docker
 Install backend requirements from `backend/requirements.txt`, then run `uvicorn app.main:app --reload` from the backend directory.
@@ -61,7 +63,7 @@ These controls reduce exposure but are not a complete sandbox or a substitute fo
 - OSV-Scanner runs only when explicitly enabled through the `osv-online` profile and `ENABLE_OSV_SCAN=true`. It scans a bounded set of recognized lockfiles, disables package/registry resolution, and queries OSV data. The OSV worker has outbound network access; Docker Compose alone does not restrict destination domains.
 - The worker is a dedicated container but is not yet a disposable per-job VM or hardened sandbox; do not expose this development deployment to untrusted public traffic.
 - Dependency inventory is metadata-only; OSV vulnerability database matching is not integrated yet. External database access is intentionally not enabled.
-- Website scanning, authentication, persistence, AI analysis, and PDF/JSON reporting are not implemented yet.
+- Website scanning now has an opt-in API route and a separate network-enabled worker for bounded passive HTTP-header checks. Authentication, persistence, AI analysis, active testing, and PDF/JSON reporting are not implemented yet. The authorization field is an explicit confirmation, not an identity/authentication system.
 - This development foundation is not production-hardened.
 
 ## Security
@@ -72,3 +74,14 @@ Only assess systems you own or are explicitly authorized to test. Treat uploaded
 2. Implement authorized website scanning with strict SSRF protections and scope controls
 3. Add evidence-grounded AI explanations via OpenRouter
 4. Add reports, audit history, authentication, persistence, and further hardening
+
+
+### Habilitar verificação passiva de sites (opcional)
+
+Somente para alvos próprios ou com autorização explícita:
+
+```bash
+ENABLE_WEBSITE_SCAN=true docker compose --profile website-scan up --build
+```
+
+A rota POST /api/analysis/website recebe JSON com url e authorized: true. O worker não publica porta no host e é alcançável pela API apenas pela rede interna dedicada. A rede de saída não é uma allowlist: antes de uso público, configure firewall/proxy de saída, autenticação, limites por usuário e auditoria de escopo.

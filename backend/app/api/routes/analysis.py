@@ -1,10 +1,12 @@
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from pydantic import BaseModel, Field
 
 from app.core.config import settings
 from app.services.dependency_inventory import inventory_dependency_manifests
 from app.services.osv_client import scan_dependencies
 from app.services.source_analyzer import analyze_source_zip
 from app.services.worker_client import scan_python_archive
+from app.services.website_client import scan_website_target
 from app.services.zip_inspector import inspect_zip
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
@@ -50,4 +52,28 @@ async def analyze_source_zip_endpoint(file: UploadFile = File(...)):
         },
         "dependencies": dependency_result,
         **metadata,
+    }
+
+
+class WebsiteScanRequest(BaseModel):
+    url: str = Field(min_length=1, max_length=2048)
+    authorized: bool
+
+
+@router.post("/website")
+async def analyze_website_endpoint(request: WebsiteScanRequest):
+    if request.authorized is not True:
+        raise HTTPException(status_code=403, detail="Confirme que possui autorização para avaliar este alvo.")
+    if not settings.enable_website_scan:
+        raise HTTPException(status_code=503, detail="A verificação de sites está desativada. Habilite o worker isolado explicitamente.")
+    try:
+        result = await scan_website_target(request.url, authorized=True)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if result.get("status") == "unavailable":
+        raise HTTPException(status_code=503, detail=result.get("reason"))
+    return {
+        **result,
+        "analysis_type": "website_security_audit",
+        "notice": "Verificação passiva limitada à página inicial e aos redirecionamentos validados. Não executa payloads, fuzzing ou exploração. Use somente alvos sob sua autorização.",
     }
