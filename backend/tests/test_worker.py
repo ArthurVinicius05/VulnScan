@@ -18,3 +18,16 @@ def test_worker_rejects_oversized_archive(monkeypatch):
         files={"file": ("source.zip", b"x" * 9, "application/zip")},
     )
     assert response.status_code == 413
+
+
+def test_worker_returns_scanner_result_for_archive(monkeypatch):
+    import app.worker as worker
+
+    expected = {"status": "skipped", "tools": [], "findings": []}
+    monkeypatch.setattr(worker, "run_python_tools", lambda content: expected)
+    response = TestClient(app).post(
+        "/scan/python",
+        files={"file": ("source.zip", b"small archive", "application/zip")},
+    )
+    assert response.status_code == 200
+    assert response.json() == expected
