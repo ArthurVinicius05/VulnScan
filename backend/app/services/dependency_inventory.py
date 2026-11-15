@@ -87,7 +87,7 @@ def inventory_dependency_manifests(data: bytes) -> dict:
             elif basename == "go.mod":
                 count = sum(
                     1 for line in text.splitlines()
-                    if re.match(r"^\\s*[^/\\s]+\\.[^/\\s]+\\s+\\S+", line)
+                    if re.match(r"^\\s*[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)+\\s+v[0-9]", line)
                 )
 
             detected.append({"file": info.filename, "ecosystem": ecosystem,
