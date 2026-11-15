@@ -33,7 +33,7 @@ services:
       timeout: 3s
       retries: 10
     networks:
-      - default
+      - redis_internal
 
   scanner-worker:
         condition: service_healthy
@@ -148,3 +148,5 @@ networks:
   website_internal:
     internal: true
   website_egress:
+  redis_internal:
+    internal: true
