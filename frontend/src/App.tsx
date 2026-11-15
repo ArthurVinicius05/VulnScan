@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import AccountRecovery from './AccountRecovery'
 import { ShieldCheck, LayoutDashboard, Globe, FolderCode, History, Settings, Bell, Search, UploadCloud, FileArchive, Activity, ChevronRight, LockKeyhole, ScanSearch, AlertTriangle } from 'lucide-react'
 import { authenticate, checkSession, fetchAuditDetail, fetchAuditHistory, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
 
@@ -44,6 +45,7 @@ export default function App() {
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
   const [authBusy, setAuthBusy] = useState(false)
+  const [showRecovery, setShowRecovery] = useState(false)
 
   async function refreshHistory() {
     try { setHistory(await fetchAuditHistory()); setHistoryError('') }
@@ -72,6 +74,7 @@ export default function App() {
   async function endSession() { await logout(); setAuthenticated(false); setHistory([]); setResult(null) }
 
   if (authChecking) return <div className="auth-screen"><p>Verificando sessão…</p></div>
+  if (!authenticated && (showRecovery || new URLSearchParams(window.location.search).has('verify') || new URLSearchParams(window.location.search).has('reset'))) return <AccountRecovery onBack={() => { setShowRecovery(false); window.history.replaceState({}, '', window.location.pathname) }} />
   if (!authenticated) return <div className="auth-screen"><form className="auth-card" onSubmit={submitAuth}>
     <div className="brand-mark"><ShieldCheck size={24}/></div><h1>VulnScan Pro</h1>
     <p>{authMode === 'login' ? 'Entre na sua conta para acessar suas auditorias.' : 'Crie sua conta para manter seu histórico privado.'}</p>
@@ -79,6 +82,7 @@ export default function App() {
     <label>Senha<input type="password" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} required minLength={12} maxLength={128} value={password} onChange={e=>setPassword(e.target.value)}/></label>
     {authMode === 'register' && <small>A senha deve ter pelo menos 12 caracteres.</small>}
     {authError && <div className="error">{authError}</div>}
+    {authMode === 'login' && <button type="button" className="auth-switch" onClick={() => setShowRecovery(true)}>Esqueci minha senha / confirmar e-mail</button>}
     <button className="primary-btn" disabled={authBusy}>{authBusy ? 'Aguarde…' : authMode === 'login' ? 'Entrar' : 'Criar conta'}</button>
     <button type="button" className="auth-switch" onClick={()=>{setAuthMode(authMode === 'login' ? 'register' : 'login');setAuthError('')}}>{authMode === 'login' ? 'Ainda não tem conta? Cadastre-se' : 'Já tem conta? Entrar'}</button>
   </form></div>
