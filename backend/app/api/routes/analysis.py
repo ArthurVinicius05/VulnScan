@@ -1,6 +1,7 @@
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
+from app.core.auth import require_api_key
 from app.core.config import settings
 from app.services.dependency_inventory import inventory_dependency_manifests
 from app.services.osv_client import scan_dependencies
@@ -9,7 +10,11 @@ from app.services.worker_client import scan_python_archive
 from app.services.website_client import scan_website_target
 from app.services.zip_inspector import inspect_zip
 
-router = APIRouter(prefix="/analysis", tags=["analysis"])
+router = APIRouter(
+    prefix="/analysis",
+    tags=["analysis"],
+    dependencies=[Depends(require_api_key)],
+)
 
 
 @router.post("/source-zip")
