@@ -13,6 +13,7 @@ from app.db.database import Base
 from app.main import app
 from app.models.mfa_recovery_code import MFARecoveryCode
 from app.models.user import User
+from app.services.mfa_key_rotation import MFAKeyRotationError, rotate_mfa_encryption_key
 from app.services.mfa import (
     consume_recovery_code, decrypt_secret, encrypt_secret, generate_totp_secret,
     issue_recovery_codes, matching_totp_step,
@@ -89,3 +90,86 @@ def test_login_requires_totp_challenge_and_issues_session(tmp_path, monkeypatch)
     finally:
         app.dependency_overrides.clear()
         engine.dispose()
+
+
+
+def test_mfa_key_rotation_supports_dry_run_and_atomic_apply(tmp_path):
+    old_key = Fernet.generate_key()
+    new_key = Fernet.generate_key()
+    old_cipher = Fernet(old_key)
+    new_cipher = Fernet(new_key)
+    engine = create_engine(f"sqlite:///{tmp_path / 'mfa-rotation.db'}")
+    Base.metadata.create_all(engine)
+    sessions = sessionmaker(bind=engine, expire_on_commit=False)
+
+    with sessions() as db:
+        user = User(
+            email="rotation@example.test",
+            password_hash="hash",
+            mfa_enabled=True,
+            mfa_secret_encrypted=old_cipher.encrypt(b"active-totp-secret").decode("ascii"),
+            mfa_pending_secret_encrypted=old_cipher.encrypt(b"pending-totp-secret").decode("ascii"),
+        )
+        db.add(user)
+        db.commit()
+        user_id = user.id
+
+        dry_run = rotate_mfa_encryption_key(
+            db,
+            old_key=old_key.decode("ascii"),
+            new_key=new_key.decode("ascii"),
+            apply=False,
+        )
+        assert dry_run == {"accounts": 1, "secrets": 2}
+        unchanged = db.get(User, user_id)
+        assert old_cipher.decrypt(unchanged.mfa_secret_encrypted.encode("ascii")) == b"active-totp-secret"
+
+        applied = rotate_mfa_encryption_key(
+            db,
+            old_key=old_key.decode("ascii"),
+            new_key=new_key.decode("ascii"),
+            apply=True,
+        )
+        assert applied == {"accounts": 1, "secrets": 2}
+        rotated = db.get(User, user_id)
+        assert new_cipher.decrypt(rotated.mfa_secret_encrypted.encode("ascii")) == b"active-totp-secret"
+        assert new_cipher.decrypt(rotated.mfa_pending_secret_encrypted.encode("ascii")) == b"pending-totp-secret"
+
+    engine.dispose()
+
+
+def test_mfa_key_rotation_rolls_back_every_secret_if_one_cannot_decrypt(tmp_path):
+    old_key = Fernet.generate_key()
+    new_key = Fernet.generate_key()
+    other_key = Fernet.generate_key()
+    engine = create_engine(f"sqlite:///{tmp_path / 'mfa-rotation-rollback.db'}")
+    Base.metadata.create_all(engine)
+    sessions = sessionmaker(bind=engine, expire_on_commit=False)
+
+    with sessions() as db:
+        first = User(
+            email="valid-rotation@example.test",
+            password_hash="hash",
+            mfa_secret_encrypted=Fernet(old_key).encrypt(b"valid-secret").decode("ascii"),
+        )
+        second = User(
+            email="invalid-rotation@example.test",
+            password_hash="hash",
+            mfa_secret_encrypted=Fernet(other_key).encrypt(b"unknown-secret").decode("ascii"),
+        )
+        db.add_all([first, second])
+        db.commit()
+        first_id = first.id
+        original = first.mfa_secret_encrypted
+
+        with pytest.raises(MFAKeyRotationError, match="nenhuma chave foi alterada"):
+            rotate_mfa_encryption_key(
+                db,
+                old_key=old_key.decode("ascii"),
+                new_key=new_key.decode("ascii"),
+                apply=True,
+            )
+        db.expire_all()
+        assert db.get(User, first_id).mfa_secret_encrypted == original
+
+    engine.dispose()
