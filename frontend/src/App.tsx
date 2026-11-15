@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ShieldCheck, LayoutDashboard, Globe, FolderCode, History, Settings, Bell, Search, UploadCloud, FileArchive, Activity, ChevronRight, LockKeyhole, ScanSearch, AlertTriangle } from 'lucide-react'
-import { fetchAuditHistory, uploadSourceZip, type AuditHistoryItem } from './lib/api'
+import { authenticate, fetchAuditHistory, getAccessToken, logout, uploadSourceZip, type AuditHistoryItem } from './lib/api'
 
 type Finding = {
   rule_id: string
@@ -35,13 +35,39 @@ export default function App() {
   const [result, setResult] = useState<Result | null>(null)
   const [history, setHistory] = useState<AuditHistoryItem[]>([])
   const [historyError, setHistoryError] = useState('')
+  const [authenticated, setAuthenticated] = useState(Boolean(getAccessToken()))
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [authError, setAuthError] = useState('')
+  const [authBusy, setAuthBusy] = useState(false)
 
   async function refreshHistory() {
     try { setHistory(await fetchAuditHistory()); setHistoryError('') }
     catch (e) { setHistoryError(e instanceof Error ? e.message : 'Falha ao carregar histórico.') }
   }
 
-  useEffect(() => { void refreshHistory() }, [])
+  useEffect(() => { if (authenticated) void refreshHistory() }, [authenticated])
+
+  async function submitAuth(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setAuthBusy(true); setAuthError('')
+    try { await authenticate(email, password, authMode); setAuthenticated(true); setPassword('') }
+    catch (e) { setAuthError(e instanceof Error ? e.message : 'Falha na autenticação.') }
+    finally { setAuthBusy(false) }
+  }
+
+  async function endSession() { await logout(); setAuthenticated(false); setHistory([]); setResult(null) }
+
+  if (!authenticated) return <div className="auth-screen"><form className="auth-card" onSubmit={submitAuth}>
+    <div className="brand-mark"><ShieldCheck size={24}/></div><h1>VulnScan Pro</h1>
+    <p>{authMode === 'login' ? 'Entre na sua conta para acessar suas auditorias.' : 'Crie sua conta para manter seu histórico privado.'}</p>
+    <label>E-mail<input type="email" autoComplete="email" required maxLength={254} value={email} onChange={e=>setEmail(e.target.value)}/></label>
+    <label>Senha<input type="password" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} required minLength={12} maxLength={128} value={password} onChange={e=>setPassword(e.target.value)}/></label>
+    {authMode === 'register' && <small>A senha deve ter pelo menos 12 caracteres.</small>}
+    {authError && <div className="error">{authError}</div>}
+    <button className="primary-btn" disabled={authBusy}>{authBusy ? 'Aguarde…' : authMode === 'login' ? 'Entrar' : 'Criar conta'}</button>
+    <button type="button" className="auth-switch" onClick={()=>{setAuthMode(authMode === 'login' ? 'register' : 'login');setAuthError('')}}>{authMode === 'login' ? 'Ainda não tem conta? Cadastre-se' : 'Já tem conta? Entrar'}</button>
+  </form></div>
 
   async function runAnalysis() {
     if (!file) return
@@ -64,7 +90,7 @@ export default function App() {
       <div className="sidebar-bottom"><a><Settings size={18}/> Settings</a><div className="profile"><div className="avatar">AV</div><div><b>Workspace</b><small>Local environment</small></div></div></div>
     </aside>
     <main className="main">
-      <header className="topbar"><div className="crumb">Workspace <ChevronRight size={14}/> <b>Overview</b></div><div className="top-actions"><button className="icon-btn"><Search size={18}/></button><button className="icon-btn"><Bell size={18}/></button><div className="avatar">AV</div></div></header>
+      <header className="topbar"><div className="crumb">Workspace <ChevronRight size={14}/> <b>Overview</b></div><div className="top-actions"><button className="auth-logout" onClick={()=>void endSession()}>Sair</button><button className="icon-btn"><Search size={18}/></button><button className="icon-btn"><Bell size={18}/></button><div className="avatar">AV</div></div></header>
       <section className="content">
         <div className="welcome"><div><div className="eyebrow"><span className="live-dot"/> SECURITY WORKSPACE</div><h1>Security overview</h1><p>Find weaknesses before attackers do. Audit only codebases and websites you are authorized to test.</p></div><div className="date-chip"><Activity size={15}/> SYSTEM READY</div></div>
         <div className="stats">
