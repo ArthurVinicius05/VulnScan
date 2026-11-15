@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { ShieldCheck, LayoutDashboard, Globe, FolderCode, History, Settings, Bell, Search, UploadCloud, FileArchive, Activity, ChevronRight, LockKeyhole, ScanSearch, AlertTriangle } from 'lucide-react'
-import { authenticate, fetchAuditHistory, getAccessToken, logout, uploadSourceZip, type AuditHistoryItem } from './lib/api'
+import { authenticate, fetchAuditDetail, fetchAuditHistory, getAccessToken, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
 
 type Finding = {
   rule_id: string
@@ -35,6 +35,8 @@ export default function App() {
   const [result, setResult] = useState<Result | null>(null)
   const [history, setHistory] = useState<AuditHistoryItem[]>([])
   const [historyError, setHistoryError] = useState('')
+  const [selectedAudit, setSelectedAudit] = useState<AuditDetail | null>(null)
+  const [detailBusy, setDetailBusy] = useState(false)
   const [authenticated, setAuthenticated] = useState(Boolean(getAccessToken()))
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
@@ -45,6 +47,13 @@ export default function App() {
   async function refreshHistory() {
     try { setHistory(await fetchAuditHistory()); setHistoryError('') }
     catch (e) { setHistoryError(e instanceof Error ? e.message : 'Falha ao carregar histórico.') }
+  }
+
+  async function openAudit(id: string) {
+    setDetailBusy(true); setHistoryError('')
+    try { setSelectedAudit(await fetchAuditDetail(id)) }
+    catch (e) { setHistoryError(e instanceof Error ? e.message : 'Falha ao carregar relatório.') }
+    finally { setDetailBusy(false) }
   }
 
   useEffect(() => { if (authenticated) void refreshHistory() }, [authenticated])
@@ -125,7 +134,7 @@ export default function App() {
           </section>
           <section className="panel"><div className="panel-icon cyan"><Globe size={21}/></div><div className="panel-title"><h3>Website scanner</h3><span className="coming">COMING IN PHASE 3</span></div><p>Review HTTPS configuration, security headers, cookie attributes, and exposed information on authorized targets.</p><div className="disabled-input"><Globe size={17}/><span>https://your-authorized-domain.com</span><LockKeyhole size={15}/></div><button className="secondary-btn" disabled>Website scanning is not enabled yet</button><div className="safety-note"><LockKeyhole size={15}/> Active checks will require explicit authorization and safe scope controls.</div></section>
         </div>
-        <section className="panel audit-history" id="audit-history"><div className="section-heading"><div><h2>Audit history</h2><p>Latest completed assessments saved in this workspace.</p></div><button className="secondary-btn" onClick={() => void refreshHistory()}>Refresh</button></div>{historyError && <div className="error">{historyError}</div>}{history.length === 0 && !historyError ? <p>No saved audits yet.</p> : <div className="history-list">{history.map(item => <article className="history-item" key={item.id}><div><b>{item.target}</b><small>{item.analysis_type.replaceAll("_", " ")} · {new Date(item.created_at).toLocaleString()}</small></div><span className="findings-summary">{item.finding_count} finding(s)</span></article>)}</div>}</section>
+        <section className="panel audit-history" id="audit-history"><div className="section-heading"><div><h2>Audit history</h2><p>Latest completed assessments saved in this workspace.</p></div><button className="secondary-btn" onClick={() => void refreshHistory()}>Refresh</button></div>{historyError && <div className="error">{historyError}</div>}{history.length === 0 && !historyError ? <p>No saved audits yet.</p> : <div className="history-list">{history.map(item => <article className="history-item" key={item.id}><div><b>{item.target}</b><small>{item.analysis_type.replaceAll("_", " ")} · {new Date(item.created_at).toLocaleString()}</small></div><span className="findings-summary">{item.finding_count} finding(s)</span><button className="history-view" onClick={() => void openAudit(item.id)}>Ver relatório</button></article>)}</div>}{detailBusy && <p>Carregando relatório…</p>}{selectedAudit && <div className="audit-detail"><div className="audit-detail-heading"><div><h3>{selectedAudit.target}</h3><small>{selectedAudit.analysis_type.replaceAll('_', ' ')} · {new Date(selectedAudit.created_at).toLocaleString()}</small></div><button className="history-view" onClick={() => setSelectedAudit(null)}>Fechar</button></div><p>{selectedAudit.finding_count} achado(s) registrado(s)</p>{selectedAudit.result.findings?.length ? selectedAudit.result.findings.map((finding, index) => <article className="finding" key={(finding.rule_id ?? 'finding') + index}><div className="finding-heading"><b>{finding.title ?? finding.rule_id ?? 'Achado de segurança'}</b><span className={'severity ' + (finding.severity ?? 'unknown')}>{(finding.severity ?? 'unknown').toUpperCase()}</span></div><small>{finding.rule_id ?? '—'} · {finding.file ?? finding.url ?? '—'}{finding.line ? ':' + finding.line : ''}</small>{finding.evidence && <pre>{finding.evidence}</pre>}{finding.recommendation && <p>{finding.recommendation}</p>}</article>) : <p>Nenhum detalhe de achado foi armazenado neste registro.</p>}</div>}}</section>
         <div className="bottom-note"><ShieldCheck size={17}/><span><b>Built with security in mind.</b> Uploaded code is treated as untrusted input and is never executed by this service.</span></div>
         <footer>VULNSCAN PRO · STATIC ANALYSIS BUILD 0.2.0 · FOR AUTHORIZED SECURITY TESTING</footer>
       </section>
