@@ -81,8 +81,8 @@ O Compose de desenvolvimento não deve ser publicado na internet. Para preparar 
 
 1. Copie .env.production.example para .env.production.
 2. Gere uma senha PostgreSQL longa e aleatória; mantenha DATABASE_URL consistente com ela.
-3. Gere SCANNER_WORKER_TOKEN aleatório e forte.
-4. Gere MFA_ENCRYPTION_KEY com:
+3. Gere `SCANNER_WORKER_TOKEN` e `OPS_ADMIN_TOKEN` como segredos aleatórios independentes, com pelo menos 32 caracteres. O token de operações é usado somente no header `X-Operations-Token`; nunca o inclua no bundle frontend.
+4. Gere `MFA_ENCRYPTION_KEY` com:
 
 ~~~bash
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
@@ -123,7 +123,7 @@ O script valida o checksum, descriptografa e executa pg_restore. Faça exercíci
 ## CI e testes
 
 O workflow CI:
-- Gera lockfiles Python com hashes e npm lockfile; no push à branch de trabalho, atualiza os lockfiles automaticamente.
+- Verifica que os lockfiles Python com hashes e npm lockfile estão versionados e sincronizados com os manifests; no push à branch de trabalho, atualiza lockfiles quando necessário.
 - Instala dependências com --require-hashes e npm ci.
 - Executa testes backend, testes de integração PostgreSQL e smoke test de backup/restauração criptografados.
 - Faz build das imagens backend, frontend, SMTP proxy, website worker e OSV worker.
