@@ -22,7 +22,8 @@ This checklist is a release gate, not a claim that the current deployment is cer
 ## Required before public launch
 
 - [ ] Apply and verify host-firewall allowlisting for SMTP proxy destination IPs/ports and DNS; keep website/OSV disabled until SSRF/redirect/DNS-rebinding tests and a separate egress policy pass.
-- [ ] Pin every container image by digest, verify provenance/signatures where available, and document update/rollback cadence.
+- [x] Pin every container image by digest and verify registry digests in CI through `images.lock`.
+- [ ] Verify image provenance/signatures where available and document update/rollback cadence.
 - [ ] Run load, abuse, concurrency, failure-recovery and backup/restore drills against a production-like environment.
 - [ ] Configure Alertmanager notifications, centralized logs, on-call ownership and incident response runbooks.
 - [ ] Validate real HTTPS/TLS, SMTP deliverability (SPF/DKIM/DMARC), secret rotation and PostgreSQL restore in the actual hosting environment.
