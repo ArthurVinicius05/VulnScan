@@ -122,19 +122,16 @@ def _finish_job(
 
         audit = db.scalar(select(AuditRecord).where(AuditRecord.job_id == job_id))
         if audit is None:
-            db.add(
-                AuditRecord(
-                    user_id=user_id,
-                    analysis_type="static_source_analysis",
-                    target=filename[:2048],
-                    status=str(result.get("status", "completed"))[:32],
-                    finding_count=int(
-                        result.get("finding_count", len(result.get("findings", [])))
-                    ),
-                    result=result,
-                    job_id=job_id,
-                )
-            )
+            audit = AuditRecord(job_id=job_id)
+            db.add(audit)
+        audit.user_id = user_id
+        audit.analysis_type = "static_source_analysis"
+        audit.target = filename[:2048]
+        audit.status = str(result.get("status", "completed"))[:32]
+        audit.finding_count = int(
+            result.get("finding_count", len(result.get("findings", [])))
+        )
+        audit.result = result
 
         job.status = "completed"
         job.result = result
