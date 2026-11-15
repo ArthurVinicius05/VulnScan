@@ -1,42 +1,33 @@
 import asyncio
 import time
 from collections import OrderedDict, deque
-
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-
 from app.core.config import settings
-
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Shared Redis fixed-window limits with a bounded development fallback."""
-
     MAX_LOCAL_KEYS = 10_000
-
     def __init__(self, app):
         super().__init__(app)
         self._local_hits = OrderedDict()
         self._local_lock = asyncio.Lock()
         self._redis = None
-
     @staticmethod
     def _policy(path: str):
-        if path in {"/api/auth/login", "/api/auth/register"}:
+        if path in {"/api/auth/login", "/api/auth/register", "/api/auth/request-password-reset", "/api/auth/resend-verification"}:
             return "auth", 10, 300
         if path in {"/api/analysis/source-zip", "/api/analysis/website"}:
             return "analysis", 5, 600
         return None
-
     async def _allow_local(self, key: str, limit: int, window: int) -> bool:
         now = time.monotonic()
         cutoff = now - window
         async with self._local_lock:
-            # Expire inactive buckets so arbitrary client identifiers cannot grow memory forever.
             expired = [item for item, hits in self._local_hits.items() if not hits or hits[-1] <= cutoff]
             for item in expired:
                 self._local_hits.pop(item, None)
-
             hits = self._local_hits.pop(key, deque())
             while hits and hits[0] <= cutoff:
                 hits.popleft()
@@ -48,31 +39,21 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             while len(self._local_hits) > self.MAX_LOCAL_KEYS:
                 self._local_hits.popitem(last=False)
             return True
-
     async def _allow_redis(self, key: str, limit: int, window: int) -> bool:
         if self._redis is None:
             from redis.asyncio import Redis
             self._redis = Redis.from_url(settings.redis_url, decode_responses=True)
         count = await self._redis.eval(
-            "local n = redis.call('INCR', KEYS[1]); "
-            "if n == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]); end; "
-            "return n",
-            1,
-            key,
-            window,
-        )
+            "local n = redis.call('INCR', KEYS[1]); if n == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]); end; return n",
+            1, key, window)
         return int(count) <= limit
-
     async def dispatch(self, request: Request, call_next):
         policy = self._policy(request.url.path)
         if policy is None or request.method != "POST":
             return await call_next(request)
-
         category, limit, window = policy
-        # Use the transport peer address; do not trust client-supplied X-Forwarded-For.
         client_ip = request.client.host if request.client else "unknown"
         key = f"vulnscan:rate:{category}:{client_ip}"
-
         try:
             if settings.redis_url:
                 allowed = await self._allow_redis(key, limit, window)
@@ -84,11 +65,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             if settings.app_env.lower() == "production":
                 return JSONResponse(status_code=503, content={"detail": "Serviço de proteção contra abuso indisponível."})
             allowed = await self._allow_local(key, limit, window)
-
         if not allowed:
-            return JSONResponse(
-                status_code=429,
-                content={"detail": "Limite de requisições atingido. Tente novamente mais tarde."},
-                headers={"Retry-After": str(window)},
-            )
+            return JSONResponse(status_code=429, content={"detail": "Limite de requisições atingido. Tente novamente mais tarde."},
+                headers={"Retry-After": str(window)})
         return await call_next(request)
