@@ -18,7 +18,6 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.engine import make_url
 
 from app.core.config import settings
-from app.db.database import Base
 from app.models.account_token import AccountToken
 from app.models.analysis_job import AnalysisJob  # noqa: F401  # Registers the queue table in shared metadata.
 from app.models.audit import AuditRecord
