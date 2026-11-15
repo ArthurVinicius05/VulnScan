@@ -14,7 +14,7 @@ This checklist is a release gate, not a claim that the current deployment is cer
 
 - [x] Replace synchronous request-bound source scans with a PostgreSQL-backed durable queue, row-lock claims, expiring leases, bounded retries and idempotent history writes. Cancellation is still pending.
 - [x] Enforce per-account monthly and concurrent analysis quotas transactionally in PostgreSQL. Storage retention and account-level cleanup policies remain pending.
-- [ ] Implement MFA enrollment, recovery codes, login challenge and session revocation.
+- [x] Implement MFA enrollment with encrypted TOTP secrets, one-time recovery codes, login challenges, replay protection and session revocation.
 - [ ] Commit reproducible Python and npm lockfiles; pin container images by digest and verify update automation.
 - [ ] Apply enforceable egress policy (firewall or controlled proxy) for every service with network access; add SSRF/redirect/DNS-rebinding integration tests.
 - [ ] Add load, abuse, concurrency, backup/restore and disaster-recovery tests.

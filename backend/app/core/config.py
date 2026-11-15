@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     scanner_worker_url: str = "http://scanner-worker:8001"
     scanner_worker_timeout_seconds: float = 30.0
     scanner_worker_token: str | None = None
+    mfa_encryption_key: str | None = None
     monthly_analysis_limit: int = 30
     max_concurrent_analyses: int = 2
     enable_osv_scan: bool = False

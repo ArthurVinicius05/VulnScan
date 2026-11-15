@@ -36,6 +36,14 @@ def validate_production_settings(config: Settings = settings) -> None:
         errors.append("SMTP_STARTTLS must be enabled")
     if config.enable_website_scan or config.enable_osv_scan:
         errors.append("Website and OSV scanning must remain disabled until egress controls are validated")
+    if not config.mfa_encryption_key:
+        errors.append("MFA_ENCRYPTION_KEY is required to encrypt MFA secrets at rest")
+    else:
+        try:
+            from cryptography.fernet import Fernet
+            Fernet(config.mfa_encryption_key.encode("ascii"))
+        except (ValueError, UnicodeEncodeError):
+            errors.append("MFA_ENCRYPTION_KEY must be a valid Fernet key")
     if config.monthly_analysis_limit < 1:
         errors.append("MONTHLY_ANALYSIS_LIMIT must be at least 1")
     if not 1 <= config.max_concurrent_analyses <= config.monthly_analysis_limit:

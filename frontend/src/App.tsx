@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import AccountRecovery from './AccountRecovery'
 import { ShieldCheck, LayoutDashboard, Globe, FolderCode, History, Settings, Bell, Search, UploadCloud, FileArchive, Activity, ChevronRight, LockKeyhole, ScanSearch, AlertTriangle } from 'lucide-react'
-import { ApiError, authenticate, checkSession, fetchAuditDetail, fetchAuditHistory, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
+import { ApiError, authenticate, checkSession, completeMfaLogin, fetchMfaStatus, beginMfaSetup, confirmMfaSetup, disableMfa, fetchAuditDetail, fetchAuditHistory, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
 
 type Finding = {
   rule_id: string
@@ -53,6 +53,14 @@ export default function App() {
   const [authNotice, setAuthNotice] = useState('')
   const [authBusy, setAuthBusy] = useState(false)
   const [showRecovery, setShowRecovery] = useState(false)
+  const [mfaChallenge, setMfaChallenge] = useState('')
+  const [mfaLoginCode, setMfaLoginCode] = useState('')
+  const [mfaEnabled, setMfaEnabled] = useState(false)
+  const [mfaSetup, setMfaSetup] = useState<{ secret: string; otpauth_url: string } | null>(null)
+  const [mfaRecoveryCodes, setMfaRecoveryCodes] = useState<string[]>([])
+  const [mfaActionCode, setMfaActionCode] = useState('')
+  const [mfaMessage, setMfaMessage] = useState('')
+  const [mfaError, setMfaError] = useState('')
 
   async function refreshHistory() {
     try { setHistory(await fetchAuditHistory()); setHistoryError('') }
@@ -69,23 +77,74 @@ export default function App() {
   useEffect(() => {
     void checkSession().then(setAuthenticated).catch(() => setAuthenticated(false)).finally(() => setAuthChecking(false))
   }, [])
-  useEffect(() => { if (authenticated) void refreshHistory() }, [authenticated])
+  useEffect(() => { if (authenticated) { void refreshHistory(); void fetchMfaStatus().then(setMfaEnabled).catch(() => setMfaError('Não foi possível consultar o status de MFA.')) } }, [authenticated])
 
   async function submitAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setAuthBusy(true); setAuthError('')
     try {
-      const session = await authenticate(email, password, authMode)
+      const authResult = await authenticate(email, password, authMode)
       setPassword('')
-      if (session) { setAuthenticated(true); setAuthNotice('') }
-      else setAuthNotice('Conta criada. Verifique seu e-mail para ativá-la antes de entrar.')
+      if (authResult?.mfa_required === true && typeof authResult.challenge_token === 'string') {
+        setMfaChallenge(authResult.challenge_token)
+        setAuthNotice('')
+      } else if (authResult?.user) {
+        setAuthenticated(true)
+        setAuthNotice('')
+      } else {
+        setAuthNotice(typeof authResult?.message === 'string' ? authResult.message : 'Conta criada. Verifique seu e-mail para ativá-la antes de entrar.')
+      }
     } catch (e) { setAuthError(e instanceof Error ? e.message : 'Falha na autenticação.') }
     finally { setAuthBusy(false) }
+  }
+
+  async function submitMfaLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!mfaChallenge) return
+    setAuthBusy(true); setAuthError('')
+    try {
+      await completeMfaLogin(mfaChallenge, mfaLoginCode)
+      setMfaChallenge(''); setMfaLoginCode(''); setAuthenticated(true)
+    } catch (e) { setAuthError(e instanceof Error ? e.message : 'Não foi possível validar MFA.') }
+    finally { setAuthBusy(false) }
+  }
+
+  async function startMfaSetup() {
+    setMfaError(''); setMfaMessage(''); setMfaRecoveryCodes([])
+    try { setMfaSetup(await beginMfaSetup()) }
+    catch (e) { setMfaError(e instanceof Error ? e.message : 'Não foi possível iniciar MFA.') }
+  }
+
+  async function activateMfa() {
+    setMfaError(''); setMfaMessage('')
+    try {
+      const codes = await confirmMfaSetup(mfaActionCode)
+      setMfaEnabled(true); setMfaSetup(null); setMfaActionCode('')
+      setMfaRecoveryCodes(codes)
+      setMfaMessage('MFA ativado. Salve os códigos de recuperação em local seguro.')
+    } catch (e) { setMfaError(e instanceof Error ? e.message : 'Não foi possível ativar MFA.') }
+  }
+
+  async function deactivateMfa() {
+    setMfaError(''); setMfaMessage('')
+    try {
+      const message = await disableMfa(mfaActionCode)
+      setMfaEnabled(false); setAuthenticated(false); setHistory([]); setResult(null)
+      setMfaActionCode(''); setMfaRecoveryCodes([]); setMfaMessage(message)
+    } catch (e) { setMfaError(e instanceof Error ? e.message : 'Não foi possível desativar MFA.') }
   }
 
   async function endSession() { await logout(); setAuthenticated(false); setHistory([]); setResult(null) }
 
   if (authChecking) return <div className="auth-screen"><p>Verificando sessão…</p></div>
   if (!authenticated && (showRecovery || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('verify') || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('reset'))) return <AccountRecovery onBack={() => { setShowRecovery(false); window.history.replaceState({}, '', window.location.pathname) }} />
+  if (!authenticated && mfaChallenge) return <div className="auth-screen"><form className="auth-card" onSubmit={submitMfaLogin}>
+    <div className="brand-mark"><ShieldCheck size={24}/></div><h1>Verificação em duas etapas</h1>
+    <p>Digite o código do seu aplicativo autenticador ou um código de recuperação.</p>
+    <label>Código MFA<input inputMode="text" autoComplete="one-time-code" required minLength={6} maxLength={64} value={mfaLoginCode} onChange={e=>setMfaLoginCode(e.target.value)}/></label>
+    {authError && <div className="error">{authError}</div>}
+    <button className="primary-btn" disabled={authBusy}>{authBusy ? 'Validando…' : 'Confirmar código'}</button>
+    <button type="button" className="auth-switch" onClick={()=>{setMfaChallenge('');setMfaLoginCode('');setAuthError('')}}>Voltar ao login</button>
+  </form></div>
   if (!authenticated) return <div className="auth-screen"><form className="auth-card" onSubmit={submitAuth}>
     <div className="brand-mark"><ShieldCheck size={24}/></div><h1>VulnScan Pro</h1>
     <p>{authMode === 'login' ? 'Entre na sua conta para acessar suas auditorias.' : 'Crie sua conta para manter seu histórico privado.'}</p>
@@ -128,6 +187,25 @@ export default function App() {
           <div className="stat-card"><div className="stat-top"><span>Issues detected</span><LockKeyhole size={18}/></div><strong>{result?.finding_count ?? '—'}</strong><small>{result ? 'Current archive' : 'Run your first audit'}</small></div>
           <div className="stat-card"><div className="stat-top"><span>Security score</span><ShieldCheck size={18}/></div><strong>—</strong><small>Scoring not implemented</small></div>
         </div>
+        <section className="panel account-security" id="account-security">
+          <div className="section-heading"><div><h2>Account security</h2><p>Protect your account with an authenticator app and one-time recovery codes.</p></div><span className={mfaEnabled ? 'available' : 'coming'}>{mfaEnabled ? 'MFA ENABLED' : 'MFA NOT ENABLED'}</span></div>
+          {mfaEnabled ? <div>
+            <p>Multi-factor authentication is active for this account.</p>
+            <label>Authenticator code or recovery code<input value={mfaActionCode} onChange={e=>setMfaActionCode(e.target.value)} maxLength={64} placeholder="6-digit code or recovery code"/></label>
+            <button className="secondary-btn" disabled={!mfaActionCode} onClick={()=>void deactivateMfa()}>Disable MFA and sign out all sessions</button>
+          </div> : <div>
+            {!mfaSetup ? <button className="primary-btn" onClick={()=>void startMfaSetup()}>Set up MFA</button> : <div>
+              <p>In your authenticator app, add an account manually with this secret:</p>
+              <pre>{mfaSetup.secret}</pre>
+              <small>Provisioning URI: {mfaSetup.otpauth_url}</small>
+              <label>Enter the current 6-digit code<input inputMode="numeric" autoComplete="one-time-code" value={mfaActionCode} onChange={e=>setMfaActionCode(e.target.value)} maxLength={6} placeholder="123456"/></label>
+              <button className="primary-btn" disabled={mfaActionCode.length !== 6} onClick={()=>void activateMfa()}>Confirm and enable MFA</button>
+            </div>}
+          </div>}
+          {mfaError && <div className="error">{mfaError}</div>}
+          {mfaMessage && <div className="success">{mfaMessage}</div>}
+          {mfaRecoveryCodes.length > 0 && <details open><summary>Recovery codes — save them now</summary><ul>{mfaRecoveryCodes.map(code=><li key={code}><code>{code}</code></li>)}</ul><small>Each code can be used once. They will not be shown again.</small></details>}
+        </section>
         <div className="section-heading"><div><h2>Start an assessment</h2><p>Choose a target type to begin your security review.</p></div></div>
         <div className="scan-grid">
           <section className="panel"><div className="panel-icon purple"><FolderCode size={21}/></div><div className="panel-title"><h3>Source code analysis</h3><span className="available">AVAILABLE · PHASE 2</span></div><p>Inspect project structure and run bounded static checks for common insecure coding patterns. Uploaded code is never executed.</p>

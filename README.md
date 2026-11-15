@@ -95,7 +95,7 @@ O Compose de desenvolvimento acima não deve ser publicado na internet. Para pre
 
 1. Copie `.env.production.example` para `.env.production`.
 2. Gere uma senha longa e aleatória para o PostgreSQL e configure `DATABASE_URL` com a senha URL-encoded correspondente.
-3. Ajuste `CORS_ORIGINS` e `FRONTEND_URL` para a origem HTTPS real da aplicação e gere `SCANNER_WORKER_TOKEN` como um segredo aleatório longo (não reutilize a senha do banco).
+3. Ajuste `CORS_ORIGINS` e `FRONTEND_URL` para a origem HTTPS real da aplicação, gere `SCANNER_WORKER_TOKEN` e gere `MFA_ENCRYPTION_KEY` com `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. Guarde a chave MFA em um gerenciador de segredos e não a perca: sem ela, os segredos TOTP armazenados não poderão ser descriptografados.
 4. Configure SMTP antes de habilitar o cadastro de usuários.
 5. Inicie com `docker compose --env-file .env.production -f docker-compose.production.yml up --build -d`.
 6. Coloque um proxy TLS gerenciado (Caddy, Nginx ou serviço equivalente) na frente da porta local `127.0.0.1:8080`. O cookie de sessão é Secure em produção; não use o serviço sem HTTPS.

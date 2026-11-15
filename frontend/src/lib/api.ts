@@ -50,8 +50,7 @@ export async function authenticate(email: string, password: string, mode: 'login
   })
   const payload = await readPayload(response)
   ensureSuccess(response, payload, 'Não foi possível autenticar.')
-  if (!payload.user) return null
-  return payload.user
+  return payload
 }
 
 export async function logout() {
@@ -153,4 +152,53 @@ export async function resendVerification(email: string): Promise<string> {
   const payload = await readPayload(response)
   ensureSuccess(response, payload, 'Não foi possível reenviar.')
   return typeof payload.message === 'string' ? payload.message : 'Solicitação recebida.'
+}
+
+export async function completeMfaLogin(challengeToken: string, code: string) {
+  const response = await fetch(`${API_URL}/api/auth/mfa/challenge`, {
+    method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ challenge_token: challengeToken, code }),
+  })
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Não foi possível validar o segundo fator.')
+  return payload.user
+}
+
+export async function fetchMfaStatus(): Promise<boolean> {
+  const response = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' })
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Não foi possível consultar a segurança da conta.')
+  return payload.mfa_enabled === true
+}
+
+export async function beginMfaSetup(): Promise<{ secret: string; otpauth_url: string }> {
+  const response = await fetch(`${API_URL}/api/auth/mfa/setup`, {
+    method: 'POST', credentials: 'include', headers: csrfHeaders(),
+  })
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Não foi possível iniciar a configuração de MFA.')
+  if (typeof payload.secret !== 'string' || typeof payload.otpauth_url !== 'string') {
+    throw new ApiError('A API não retornou os dados de configuração MFA.', 502)
+  }
+  return { secret: payload.secret, otpauth_url: payload.otpauth_url }
+}
+
+export async function confirmMfaSetup(code: string): Promise<string[]> {
+  const response = await fetch(`${API_URL}/api/auth/mfa/enable`, {
+    method: 'POST', credentials: 'include', headers: { ...csrfHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  })
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Não foi possível ativar MFA.')
+  return Array.isArray(payload.recovery_codes) ? payload.recovery_codes.filter((item): item is string => typeof item === 'string') : []
+}
+
+export async function disableMfa(code: string): Promise<string> {
+  const response = await fetch(`${API_URL}/api/auth/mfa/disable`, {
+    method: 'POST', credentials: 'include', headers: { ...csrfHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  })
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Não foi possível desativar MFA.')
+  return typeof payload.message === 'string' ? payload.message : 'MFA desativado.'
 }

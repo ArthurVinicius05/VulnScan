@@ -51,6 +51,7 @@ services:
       SCANNER_WORKER_URL: http://scanner-worker:8001
       SCANNER_WORKER_TIMEOUT_SECONDS: 30
       SCANNER_WORKER_TOKEN: ${SCANNER_WORKER_TOKEN:?Set SCANNER_WORKER_TOKEN in .env.production}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?Set MFA_ENCRYPTION_KEY in .env.production}
       ENABLE_OSV_SCAN: "false"
       ENABLE_WEBSITE_SCAN: "false"
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips=172.30.0.10"
