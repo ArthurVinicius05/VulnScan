@@ -57,10 +57,10 @@ These controls reduce exposure but are not a complete sandbox or a substitute fo
 ## Important limitations
 - Findings are heuristic indicators, not proof that a vulnerability is exploitable. False positives and false negatives are expected.
 - The initial heuristic ruleset is intentionally small and is not a replacement for a professional security review.
-- Bandit and Ruff run only when their executables/packages are available in the worker image. Gitleaks is installed from a pinned upstream image tag in the worker build.
+- Bandit, Ruff, and Gitleaks run in the isolated worker image. Gitleaks is copied from a pinned upstream image tag; tool status is reported explicitly when a scanner is unavailable or cannot complete.
 - OSV-Scanner is intentionally not executed yet. Dependency inventory remains metadata-only; no package installation or vulnerability database lookup occurs.
 - The worker is a dedicated container but is not yet a disposable per-job VM or hardened sandbox; do not expose this development deployment to untrusted public traffic.
-- Dependency inventory is metadata-only; vulnerability database matching (for example OSV) and secret scanning with Gitleaks are not integrated yet. External database access is intentionally not enabled.
+- Dependency inventory is metadata-only; OSV vulnerability database matching is not integrated yet. External database access is intentionally not enabled.
 - Website scanning, authentication, persistence, AI analysis, and PDF/JSON reporting are not implemented yet.
 - This development foundation is not production-hardened.
 
