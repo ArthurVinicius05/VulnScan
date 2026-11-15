@@ -66,7 +66,7 @@ Execute `npm install` e `npm run dev` em `frontend`.
 - Pode consultar vulnerabilidades conhecidas via OSV-Scanner em worker separado e opt-in.
 - Oferece auditoria passiva limitada de cabeçalhos HTTP, com validação SSRF e worker separado, opt-in.
 - Protege as rotas de análise e histórico com sessões Bearer individuais e isolamento do histórico por usuário.
-- Persiste auditorias concluídas e disponibiliza histórico paginado e detalhes por identificador.
+- Persiste auditorias concluídas e disponibiliza histórico paginado, isolamento por conta e visualização dos detalhes dos relatórios no painel React.
 
 ## Isolamento dos workers
 Os workers usam usuário sem privilégios, sistema de arquivos somente leitura, diretório temporário limitado com `noexec` e `nosuid`, remoção de capabilities, `no-new-privileges`, limites de CPU/memória/processos e redes dedicadas. Esses controles reduzem riscos, mas não equivalem a uma sandbox completa nem substituem o endurecimento do host.
@@ -87,7 +87,6 @@ Avalie somente sistemas próprios ou para os quais exista autorização explíci
 
 ## Próximas etapas
 1. Endurecimento da autenticação: cookies HttpOnly/Secure/SameSite, proteção CSRF, rate limiting e recuperação de conta.
-2. Integração do histórico e visualização detalhada no painel React.
-3. Limites de uso por usuário, auditoria de escopo e allowlist de saída por firewall/proxy.
-4. PostgreSQL gerenciado e operação de produção com backups e monitoramento.
-5. Relatórios JSON/PDF e explicações fundamentadas por IA.
+2. Limites de uso por usuário, auditoria de escopo e allowlist de saída por firewall/proxy.
+3. PostgreSQL gerenciado e operação de produção com backups e monitoramento.
+4. Relatórios exportáveis JSON/PDF e explicações fundamentadas por IA.
