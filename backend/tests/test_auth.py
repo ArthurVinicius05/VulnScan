@@ -34,11 +34,12 @@ def test_register_login_me_and_logout(client):
     payload = {"email": "User@Example.com", "password": "correct horse battery staple"}
     created = client.post("/api/auth/register", json=payload)
     assert created.status_code == 201
-    token = created.json()["access_token"]
     assert created.json()["user"]["email"] == "user@example.com"
-    client.headers.update({"Authorization": f"Bearer {token}"})
+    cookies = created.cookies
+    assert "httponly" in created.headers["set-cookie"].lower()
+    csrf = cookies.get("vulnscan_csrf")
     assert client.get("/api/auth/me").json()["email"] == "user@example.com"
-    assert client.post("/api/auth/logout").status_code == 204
+    assert client.post("/api/auth/logout", headers={"X-CSRF-Token": csrf}).status_code == 204
     assert client.get("/api/auth/me").status_code == 401
 
 
