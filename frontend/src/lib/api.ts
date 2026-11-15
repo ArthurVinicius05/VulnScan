@@ -1,5 +1,34 @@
-
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+
+type ApiPayload = {
+  detail?: string
+  message?: string
+  user?: { id: string; email: string }
+  items?: AuditHistoryItem[]
+  [key: string]: unknown
+}
+
+async function readPayload(response: Response): Promise<ApiPayload> {
+  const contentType = response.headers.get('content-type') ?? ''
+  if (contentType.includes('application/json')) {
+    try {
+      return await response.json() as ApiPayload
+    } catch {
+      return { detail: 'A API retornou uma resposta JSON inválida.' }
+    }
+  }
+  const text = await response.text().catch(() => '')
+  return {
+    detail: text.trim().slice(0, 300) || `A API retornou uma resposta inesperada (HTTP ${response.status}).`,
+  }
+}
+
+function ensureSuccess(response: Response, payload: ApiPayload, fallback: string): void {
+  if (!response.ok) {
+    const detail = typeof payload.detail === 'string' ? payload.detail : fallback
+    throw new Error(`${detail} (HTTP ${response.status})`)
+  }
+}
 
 function csrfHeaders(): Record<string, string> {
   const cookie = document.cookie.split('; ').find(item => item.startsWith('vulnscan_csrf='))
@@ -8,8 +37,12 @@ function csrfHeaders(): Record<string, string> {
 }
 
 export async function checkSession(): Promise<boolean> {
-  const response = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' })
-  return response.ok
+  try {
+    const response = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' })
+    return response.ok
+  } catch {
+    return false
+  }
 }
 
 export async function authenticate(email: string, password: string, mode: 'login' | 'register') {
@@ -17,20 +50,20 @@ export async function authenticate(email: string, password: string, mode: 'login
     method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   })
-  const payload = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(payload.detail ?? 'Não foi possível autenticar.')
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Não foi possível autenticar.')
   // Registration with SMTP enabled does not issue a session until email verification.
   if (!payload.user) return null
-  return payload.user as { id: string; email: string }
+  return payload.user
 }
 
 export async function logout() {
-  try {
-    await fetch(`${API_URL}/api/auth/logout`, {
-      method: 'POST', credentials: 'include', headers: csrfHeaders(),
-    })
-  } finally {
-    // Cookies are cleared by the API; JavaScript cannot clear the HttpOnly session cookie.
+  const response = await fetch(`${API_URL}/api/auth/logout`, {
+    method: 'POST', credentials: 'include', headers: csrfHeaders(),
+  })
+  if (!response.ok && response.status !== 401) {
+    const payload = await readPayload(response)
+    ensureSuccess(response, payload, 'Não foi possível encerrar a sessão.')
   }
 }
 
@@ -40,8 +73,8 @@ export async function uploadSourceZip(file: File) {
   const response = await fetch(`${API_URL}/api/analysis/source-zip`, {
     method: 'POST', credentials: 'include', headers: csrfHeaders(), body,
   })
-  const payload = await response.json()
-  if (!response.ok) throw new Error(payload.detail ?? 'Falha ao analisar o arquivo.')
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Falha ao analisar o arquivo.')
   return payload
 }
 
@@ -63,16 +96,16 @@ export type AuditDetail = AuditHistoryItem & {
 
 export async function fetchAuditDetail(id: string): Promise<AuditDetail> {
   const response = await fetch(`${API_URL}/api/history/${encodeURIComponent(id)}`, { credentials: 'include' })
-  const payload = await response.json()
-  if (!response.ok) throw new Error(payload.detail ?? 'Falha ao carregar o relatório.')
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Falha ao carregar o relatório.')
   return payload as AuditDetail
 }
 
 export async function fetchAuditHistory(): Promise<AuditHistoryItem[]> {
   const response = await fetch(`${API_URL}/api/history?limit=20&offset=0`, { credentials: 'include' })
-  const payload = await response.json()
-  if (!response.ok) throw new Error(payload.detail ?? 'Falha ao carregar o histórico.')
-  return payload.items ?? []
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Falha ao carregar o histórico.')
+  return Array.isArray(payload.items) ? payload.items : []
 }
 
 export async function requestPasswordReset(email: string): Promise<string> {
@@ -80,9 +113,9 @@ export async function requestPasswordReset(email: string): Promise<string> {
     method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   })
-  const payload = await response.json()
-  if (!response.ok) throw new Error(payload.detail ?? 'Não foi possível solicitar a redefinição.')
-  return payload.message
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Não foi possível solicitar a redefinição.')
+  return typeof payload.message === 'string' ? payload.message : 'Solicitação recebida.'
 }
 
 export async function resetPassword(token: string, password: string): Promise<string> {
@@ -90,9 +123,9 @@ export async function resetPassword(token: string, password: string): Promise<st
     method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token, password }),
   })
-  const payload = await response.json()
-  if (!response.ok) throw new Error(payload.detail ?? 'Link inválido ou expirado.')
-  return payload.message
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Link inválido ou expirado.')
+  return typeof payload.message === 'string' ? payload.message : 'Senha redefinida.'
 }
 
 export async function verifyEmail(token: string): Promise<string> {
@@ -100,9 +133,9 @@ export async function verifyEmail(token: string): Promise<string> {
     method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token }),
   })
-  const payload = await response.json()
-  if (!response.ok) throw new Error(payload.detail ?? 'Não foi possível confirmar o e-mail.')
-  return payload.message
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Não foi possível confirmar o e-mail.')
+  return typeof payload.message === 'string' ? payload.message : 'E-mail confirmado.'
 }
 
 export async function resendVerification(email: string): Promise<string> {
@@ -110,7 +143,7 @@ export async function resendVerification(email: string): Promise<string> {
     method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   })
-  const payload = await response.json()
-  if (!response.ok) throw new Error(payload.detail ?? 'Não foi possível reenviar.')
-  return payload.message
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Não foi possível reenviar.')
+  return typeof payload.message === 'string' ? payload.message : 'Solicitação recebida.'
 }
