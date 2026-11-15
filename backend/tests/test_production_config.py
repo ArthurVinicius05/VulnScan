@@ -7,7 +7,7 @@ from app.core.production import validate_production_settings
 def production_settings(**overrides):
     values = {
         "app_env": "production",
-        "database_url": "postgresql+psycopg://vulnscan:secret@db:5432/vulnscan",
+        "database_url": "postgresql+psycopg://vulnscan:db-password-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx@db:5432/vulnscan",
         "redis_url": "redis://redis:6379/0",
         "cors_origins": ["https://vulnscan.example.test"],
         "frontend_url": "https://vulnscan.example.test",
@@ -34,6 +34,7 @@ def test_valid_production_configuration_is_accepted():
     ("override", "message"),
     [
         ({"database_url": "sqlite:///./vulnscan.db"}, "PostgreSQL"),
+        ({"database_url": "postgresql+psycopg://vulnscan:short@db:5432/vulnscan"}, "32 characters"),
         ({"redis_url": None}, "REDIS_URL"),
         ({"cors_origins": ["http://insecure.example.test"]}, "HTTPS origins"),
         ({"frontend_url": "http://vulnscan.example.test"}, "FRONTEND_URL"),
