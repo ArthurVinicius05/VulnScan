@@ -24,6 +24,10 @@ BACKUP_LOCAL_RETENTION_DAYS="${BACKUP_LOCAL_RETENTION_DAYS:-14}"
 : "${POSTGRES_DB:?POSTGRES_DB is required}"
 : "${BACKUP_RECIPIENT:?Set BACKUP_RECIPIENT to an age public recipient}"
 command -v age >/dev/null || { echo "Install age before creating encrypted backups." >&2; exit 1; }
+if [[ -n "$BACKUP_REMOTE" ]]; then
+  command -v rclone >/dev/null || { echo "BACKUP_REMOTE is set but rclone is not installed." >&2; exit 1; }
+  [[ "$BACKUP_LOCAL_RETENTION_DAYS" =~ ^[1-9][0-9]*$ ]] || { echo "BACKUP_LOCAL_RETENTION_DAYS must be a positive integer." >&2; exit 1; }
+fi
 
 BACKUP_DIR="${BACKUP_DIR:-$ROOT_DIR/backups}"
 mkdir -p "$BACKUP_DIR"
@@ -41,12 +45,10 @@ mv "$TEMP_FILE" "$BACKUP_FILE"
 (cd "$BACKUP_DIR" && sha256sum "$(basename "$BACKUP_FILE")" > "$(basename "$BACKUP_FILE").sha256")
 chmod 600 "$BACKUP_FILE" "$BACKUP_FILE.sha256"
 if [[ -n "$BACKUP_REMOTE" ]]; then
-  command -v rclone >/dev/null || { echo "BACKUP_REMOTE is set but rclone is not installed." >&2; exit 1; }
   REMOTE_DIR="${BACKUP_REMOTE%/}"
   rclone copyto "$BACKUP_FILE" "$REMOTE_DIR/$(basename "$BACKUP_FILE")"
   rclone copyto "$BACKUP_FILE.sha256" "$REMOTE_DIR/$(basename "$BACKUP_FILE").sha256"
   echo "Encrypted backup and checksum uploaded to $REMOTE_DIR"
-  [[ "$BACKUP_LOCAL_RETENTION_DAYS" =~ ^[1-9][0-9]*$ ]] || { echo "BACKUP_LOCAL_RETENTION_DAYS must be a positive integer." >&2; exit 1; }
   find "$BACKUP_DIR" -maxdepth 1 -type f \
     \( -name "vulnscan-postgres-*.dump.age" -o -name "vulnscan-postgres-*.dump.age.sha256" \) \
     -mtime +"$BACKUP_LOCAL_RETENTION_DAYS" -delete
