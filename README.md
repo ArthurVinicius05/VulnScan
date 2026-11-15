@@ -78,7 +78,7 @@ Os workers usam usuário sem privilégios, sistema de arquivos somente leitura, 
 - Ainda não há papéis/permissões administrativas, verificação de e-mail, recuperação de senha, rate limiting de login ou proteção CSRF baseada em cookie.
 - O esquema do banco é versionado por migrações Alembic; execute `alembic upgrade head` após atualizar a aplicação. O SQLite é o padrão de desenvolvimento; PostgreSQL pode ser informado via `DATABASE_URL`.
 - O histórico é isolado por conta para auditorias novas; registros legados sem proprietário não aparecem no histórico individual.
-- Ainda faltam limites de uso por usuário, allowlist de saída aplicada por firewall/proxy, explicações por IA e relatórios PDF/JSON.
+- Ainda faltam rate limiting distribuído, allowlist de saída aplicada por firewall/proxy, explicações por IA e relatórios PDF/JSON.
 - O worker de sites executa somente verificações passivas limitadas; não realiza testes ativos.
 - Esta base ainda não está pronta para receber tráfego público não confiável.
 
