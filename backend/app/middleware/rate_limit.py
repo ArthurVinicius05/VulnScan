@@ -20,6 +20,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return "auth", 10, 300
         if path in {"/api/analysis/source-zip", "/api/analysis/website"}:
             return "analysis", 5, 600
+        if path.startswith("/api/ops/"):
+            return "ops", 10, 300
         return None
     async def _allow_local(self, key: str, limit: int, window: int) -> bool:
         now = time.monotonic()
