@@ -2,6 +2,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.core.config import settings
 from app.services.scanner_integrations import run_python_tools
+from app.services.dependency_inventory import inventory_dependency_manifests
 from app.services.source_analyzer import analyze_source_zip
 from app.services.zip_inspector import inspect_zip
 
@@ -26,6 +27,7 @@ async def analyze_source_zip_endpoint(file: UploadFile = File(...)):
         )
         heuristic_findings = analyze_source_zip(content)
         tool_result = run_python_tools(content)
+        dependency_result = inventory_dependency_manifests(content)
     except (ValueError, OSError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -38,5 +40,6 @@ async def analyze_source_zip_endpoint(file: UploadFile = File(...)):
         "finding_count": len(findings),
         "findings": findings,
         "scanner_tools": tool_result,
+        "dependencies": dependency_result,
         **metadata,
     }
