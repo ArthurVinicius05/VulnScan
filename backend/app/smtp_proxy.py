@@ -7,7 +7,8 @@ import os
 import socket
 
 logger = logging.getLogger("vulnscan.smtp_proxy")
-LISTEN_HOST = "0.0.0.0"
+# Container-only listener; Compose restricts this service to internal SMTP networks.
+LISTEN_HOST = "0.0.0.0"  # nosec B104
 LISTEN_PORT = 2525
 BUFFER_SIZE = 64 * 1024
 

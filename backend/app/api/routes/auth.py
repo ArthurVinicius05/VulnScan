@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 from hmac import compare_digest
@@ -29,6 +30,7 @@ from app.services.mfa import (
 )
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
+logger = logging.getLogger(__name__)
 SESSION_HOURS = 12
 SESSION_COOKIE = "vulnscan_session"
 CSRF_COOKIE = "vulnscan_csrf"
@@ -183,7 +185,7 @@ def resend_verification(payload: EmailRequest, request: Request, db: Session = D
         try:
             _send_link(user.email, "verify_email", _create_account_token(db, user, "verify_email"))
         except Exception:
-            pass
+            logger.warning("Email dispatch failed for account verification or reset.", exc_info=True)
     return {"message": "Se a conta existir e precisar de confirmação, enviaremos um novo link."}
 
 
@@ -195,7 +197,7 @@ def request_password_reset(payload: EmailRequest, request: Request, db: Session 
         try:
             _send_link(user.email, "password_reset", _create_account_token(db, user, "password_reset"))
         except Exception:
-            pass
+            logger.warning("Email dispatch failed for account verification or reset.", exc_info=True)
     return {"message": "Se o e-mail estiver cadastrado, enviaremos instruções para redefinir a senha."}
 
 
