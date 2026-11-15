@@ -22,7 +22,7 @@ docker compose up --build
 Painel: http://localhost:5173  
 Documentação da API: http://localhost:8000/docs
 
-O ambiente local usa `APP_ENV=development` e aplica as migrações Alembic antes de iniciar a API, criando/atualizando o banco SQLite `vulnscan.db` dentro do backend. O arquivo não contém o ZIP original, apenas metadados e resultados da análise. Para persistência PostgreSQL, configure `DATABASE_URL=postgresql+psycopg://usuario:senha@host:5432/vulnscan` e mantenha as credenciais fora do Git. O Compose recebe `DATABASE_URL` do ambiente. Para exigir uma chave de API também no desenvolvimento, defina `VULNSCAN_API_KEY` antes de iniciar o Compose. As rotas de análise aceitam a chave no cabeçalho `Authorization: Bearer SUA_CHAVE`.
+O ambiente local usa `APP_ENV=development` e aplica as migrações Alembic antes de iniciar a API, criando/atualizando o banco SQLite `vulnscan.db` dentro do backend. O arquivo não contém o ZIP original, apenas metadados e resultados da análise. Para persistência PostgreSQL, configure `DATABASE_URL=postgresql+psycopg://usuario:senha@host:5432/vulnscan` e mantenha as credenciais fora do Git. O Compose recebe `DATABASE_URL` do ambiente. O cadastro inicial é aberto; implemente verificação de e-mail, limitação de tentativas e política de cadastro antes de disponibilizar publicamente. As rotas privadas aceitam o token de sessão no cabeçalho `Authorization: Bearer TOKEN`.
 
 ### Proteção da API
 - Todas as rotas em `/api/analysis` passam pela dependência de autenticação por chave Bearer.
@@ -80,7 +80,7 @@ Os workers usam usuário sem privilégios, sistema de arquivos somente leitura, 
 - Achados heurísticos não provam explorabilidade; falsos positivos e negativos são esperados.
 - O conjunto inicial de regras é pequeno e não substitui uma revisão profissional.
 - O código enviado não é intencionalmente executado pela API.
-- A chave Bearer atual é compartilhada e não oferece identidade individual, autorização por papel ou sessões.
+- Ainda não há papéis/permissões administrativas, verificação de e-mail, recuperação de senha, rate limiting de login ou proteção CSRF baseada em cookie.
 - O esquema do banco é versionado por migrações Alembic; execute `alembic upgrade head` após atualizar a aplicação. O SQLite é o padrão de desenvolvimento; PostgreSQL pode ser informado via `DATABASE_URL`.
 - O histórico atual é compartilhado no workspace, pois ainda não há identidade individual nem isolamento de registros por usuário.
 - Ainda faltam autenticação individual, limites por usuário, allowlist de saída, explicações por IA e relatórios PDF/JSON.
