@@ -6,9 +6,44 @@ services:
     environment:
       APP_ENV: development
       CORS_ORIGINS: http://localhost:5173
+      SCANNER_WORKER_URL: http://scanner-worker:8001
+      SCANNER_WORKER_TIMEOUT_SECONDS: 30
     volumes:
       - ./backend:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      scanner-worker:
+        condition: service_healthy
+    networks:
+      - default
+      - scanner_internal
+
+  scanner-worker:
+    build: ./backend
+    command: uvicorn app.worker:app --host 0.0.0.0 --port 8001
+    environment:
+      APP_ENV: production
+    expose:
+      - "8001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    networks:
+      - scanner_internal
+
   frontend:
     build: ./frontend
     ports:
@@ -17,3 +52,7 @@ services:
       - backend
     environment:
       VITE_API_URL: http://localhost:8000
+
+networks:
+  scanner_internal:
+    internal: true
