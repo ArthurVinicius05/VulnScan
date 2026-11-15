@@ -56,7 +56,10 @@ async def analyze_source_zip_endpoint(file: UploadFile = File(...), csrf_token: 
         or heuristic_coverage["files_over_total_limit"] > 0
         or len(heuristic_findings) >= heuristic_coverage["max_findings"]
     )
-    scanner_partial = any(value not in {"completed", "skipped"} for value in tool_statuses + security_statuses)
+    scanner_partial = (
+        any(value not in {"completed", "skipped"} for value in tool_statuses + security_statuses)
+        or dependency_result.get("status") != "completed"
+    )
     analysis_status = "partial" if heuristic_partial or scanner_partial or tool_result.get("status") in {"partial", "unavailable"} else "completed"
     response = {
         "status": analysis_status,
