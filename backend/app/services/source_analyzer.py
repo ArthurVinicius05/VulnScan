@@ -124,6 +124,14 @@ def analyze_source_zip(data: bytes) -> list[dict]:
                         value = match.group(1).strip().lower()
                         if value in PLACEHOLDER_VALUES or value.startswith(("your_", "example_", "changeme")):
                             continue
+                    evidence = line.strip()[:240]
+                    if rule["id"] == "SECRET001":
+                        evidence = rule["pattern"].sub(
+                            lambda secret_match: secret_match.group(0).replace(
+                                secret_match.group(1), "[REDACTED]"
+                            ),
+                            evidence,
+                        )
                     findings.append({
                         "rule_id": rule["id"],
                         "title": rule["title"],
@@ -131,7 +139,7 @@ def analyze_source_zip(data: bytes) -> list[dict]:
                         "confidence": rule["confidence"],
                         "file": info.filename,
                         "line": line_number,
-                        "evidence": line.strip()[:240],
+                        "evidence": evidence,
                         "recommendation": rule["recommendation"],
                         "verified": False,
                     })
