@@ -1,6 +1,13 @@
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
-export class ApiError extends Error {\n  constructor(message: string, readonly status: number) {\n    super(message)\n    this.name = 'ApiError'\n  }\n}\n\ntype ApiPayload = {
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message)
+    this.name = 'ApiError'
+  }
+}
+
+type ApiPayload = {
   detail?: string
   message?: string
   user?: { id: string; email: string }
