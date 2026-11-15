@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     max_extracted_mb: int = 100
     scanner_worker_url: str = "http://scanner-worker:8001"
     scanner_worker_timeout_seconds: float = 30.0
+    scanner_worker_token: str | None = None
     enable_osv_scan: bool = False
     osv_worker_url: str = "http://osv-worker:8002"
     osv_worker_timeout_seconds: float = 55.0
