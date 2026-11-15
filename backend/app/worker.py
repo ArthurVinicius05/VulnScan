@@ -1,6 +1,7 @@
 from fastapi import FastAPI, File, HTTPException, UploadFile
 
 from app.services.scanner_integrations import run_python_tools
+from app.services.security_tool_integrations import run_security_tools
 
 app = FastAPI(
     title="VulnScan isolated scanner worker",
@@ -24,6 +25,12 @@ async def scan_python(file: UploadFile = File(...)):
         raise HTTPException(status_code=413, detail="Archive exceeds worker limit.")
 
     try:
-        return run_python_tools(content)
+        python_result = run_python_tools(content)
+        security_result = run_security_tools(content)
+        return {
+            **python_result,
+            "findings": python_result.get("findings", []) + security_result["findings"],
+            "security_tools": security_result["tools"],
+        }
     except (ValueError, OSError) as exc:
         raise HTTPException(status_code=400, detail="Archive could not be scanned.") from exc
