@@ -77,7 +77,7 @@ export async function uploadSourceZip(file: File, onJobCreated?: (jobId: string)
   const deadline = Date.now() + 10 * 60 * 1000
   while (Date.now() < deadline) {
     await new Promise(resolve => setTimeout(resolve, 1500))
-    const statusResponse = await fetch(`${API_URL}/api/analysis/jobs/${encodeURIComponent(payload.job_id)}`, { credentials: 'include' })
+    const statusResponse = await fetch(`${API_URL}/api/analysis/jobs/${encodeURIComponent(payload.job_id)}`, { credentials: 'include', cache: 'no-store' })
     const statusPayload = await readPayload(statusResponse)
     ensureSuccess(statusResponse, statusPayload, 'Falha ao consultar o status da análise.')
     if (statusPayload.status === 'completed' && statusPayload.result && typeof statusPayload.result === 'object') {
@@ -169,7 +169,7 @@ export async function completeMfaLogin(challengeToken: string, code: string) {
 }
 
 export async function fetchMfaStatus(): Promise<boolean> {
-  const response = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' })
+  const response = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include', cache: 'no-store' })
   const payload = await readPayload(response)
   ensureSuccess(response, payload, 'Não foi possível consultar a segurança da conta.')
   return payload.mfa_enabled === true
