@@ -370,3 +370,30 @@
   .auth-controls { gap: 6px; }
   .theme-toggle { width: 32px; height: 32px; }
 }
+
+
+:root[data-theme="light"] .error { color: #b42318; }
+:root[data-theme="light"] .findings-summary { color: #946200; }
+:root[data-theme="light"] .account-danger-zone {
+  border-top: 1px solid #e5caca;
+  margin-top: 18px;
+  padding-top: 16px;
+}
+:root[data-theme="light"] .analysis-progress {
+  color: #52627a;
+  background: #f1f5fa;
+  border: 1px solid #dce4ef;
+  border-radius: 7px;
+  padding: 10px;
+}
+:root[data-theme="light"] .dependency-inventory {
+  color: #40536d;
+  background: #f5f8fc;
+  border: 1px solid #dce4ef;
+  border-radius: 7px;
+  padding: 10px;
+}
+:root[data-theme="light"] .dependency-inventory b { color: #263449; }
+:root[data-theme="light"] .dependency-inventory small,
+:root[data-theme="light"] .dependency-inventory span { color: #52627a; }
+:root[data-theme="light"] .audit-history .section-heading .secondary-btn { width: auto; }
