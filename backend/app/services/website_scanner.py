@@ -84,7 +84,7 @@ def _request_once(target: ValidatedTarget) -> HTTPResult:
                 path,
                 headers={
                     "Host": _host_header(target),
-                    "User-Agent": "VulnScan-Pro/0.4 (authorized passive audit)",
+                    "User-Agent": "VulnScan/0.4 (authorized passive audit)",
                     "Accept": "*/*",
                     "Connection": "close",
                 },

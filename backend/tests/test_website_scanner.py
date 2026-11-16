@@ -4,7 +4,7 @@ import socket
 import pytest
 
 from app.services.target_validation import TargetValidationError, ValidatedTarget
-from app.services.website_scanner import HTTPResult, PinnedHTTPConnection, _host_header, scan_website
+from app.services.website_scanner import HTTPResult, PinnedHTTPConnection, _host_header, _request_once, scan_website
 
 
 def target(url):
@@ -128,3 +128,36 @@ def test_connection_uses_pinned_address_without_second_dns_lookup(monkeypatch):
     assert connected == [(("93.184.216.34", 80), 1)]
     assert connection.sock is fake_socket
     connection.close()
+
+
+
+def test_passive_request_uses_current_vulnscan_user_agent(monkeypatch):
+    captured = {}
+
+    class FakeResponse:
+        status = 200
+
+        def getheaders(self):
+            return []
+
+        def read(self, _limit):
+            return b""
+
+    class FakeConnection:
+        def __init__(self, *_args, **_kwargs):
+            self.sock = None
+
+        def request(self, method, path, headers):
+            captured.update(method=method, path=path, headers=headers)
+
+        def getresponse(self):
+            return FakeResponse()
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr("app.services.website_scanner.PinnedHTTPConnection", FakeConnection)
+    _request_once(target("https://example.org"))
+
+    assert captured["method"] == "GET"
+    assert captured["headers"]["User-Agent"] == "VulnScan/0.4 (authorized passive audit)"
