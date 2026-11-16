@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { requestPasswordReset, resetPassword, verifyEmail, resendVerification } from './lib/api'
+import LanguageToggle from './LanguageToggle'
+import type { Language } from './i18n'
 
-type Props = { onBack: () => void }
+type Props = { onBack: () => void; language: Language; onLanguageChange: (language: Language) => void }
 
-export default function AccountRecovery({ onBack }: Props) {
+export default function AccountRecovery({ onBack, language, onLanguageChange }: Props) {
   const params = new URLSearchParams(window.location.hash.replace(/^#/, ''))
   const verifyToken = params.get('verify') ?? ''
   const resetToken = params.get('reset') ?? ''
@@ -12,6 +14,7 @@ export default function AccountRecovery({ onBack }: Props) {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const pt = language === 'pt-BR'
 
   async function run(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -21,27 +24,30 @@ export default function AccountRecovery({ onBack }: Props) {
       else if (resetToken) setMessage(await resetPassword(resetToken, password))
       else setMessage(await requestPasswordReset(email))
       if (verifyToken || resetToken) window.history.replaceState({}, '', window.location.pathname)
-    } catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível concluir a operação.') }
+    } catch (e) { setError(e instanceof Error ? e.message : (pt ? 'Não foi possível concluir a operação.' : 'Could not complete the request.')) }
     finally { setBusy(false) }
   }
 
   async function resend() {
     setBusy(true); setError(''); setMessage('')
     try { setMessage(await resendVerification(email)) }
-    catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível reenviar o e-mail.') }
+    catch (e) { setError(e instanceof Error ? e.message : (pt ? 'Não foi possível reenviar o e-mail.' : 'Could not resend the email.')) }
     finally { setBusy(false) }
   }
 
-  return <div className="auth-screen"><form className="auth-card" onSubmit={run}>
-    <div className="brand-mark">V</div>
-    <h1>{verifyToken ? 'Confirmar e-mail' : resetToken ? 'Nova senha' : 'Recuperar acesso'}</h1>
-    <p>{verifyToken ? 'Confirme seu endereço de e-mail para liberar o acesso.' : resetToken ? 'Escolha uma nova senha para sua conta.' : 'Informe seu e-mail para receber um link seguro de redefinição.'}</p>
-    {!verifyToken && !resetToken && <label>E-mail<input type="email" required maxLength={254} value={email} onChange={e=>setEmail(e.target.value)}/></label>}
-    {resetToken && <label>Nova senha<input type="password" required minLength={12} maxLength={128} autoComplete="new-password" value={password} onChange={e=>setPassword(e.target.value)}/></label>}
-    {message && <div className="success">{message}</div>}
-    {error && <div className="error">{error}</div>}
-    <button className="primary-btn" disabled={busy}>{busy ? 'Aguarde…' : verifyToken ? 'Confirmar e-mail' : resetToken ? 'Redefinir senha' : 'Enviar instruções'}</button>
-    {!verifyToken && !resetToken && <button type="button" className="auth-switch" disabled={busy} onClick={()=>void resend()}>Reenviar confirmação de e-mail</button>}
-    <button type="button" className="auth-switch" onClick={onBack}>Voltar ao login</button>
-  </form></div>
+  return <div className="auth-screen">
+    <div className="auth-language"><LanguageToggle language={language} onChange={onLanguageChange}/></div>
+    <form className="auth-card" onSubmit={run}>
+      <div className="brand-mark">V</div>
+      <h1>{verifyToken ? (pt ? 'Confirmar e-mail' : 'Confirm email') : resetToken ? (pt ? 'Nova senha' : 'New password') : (pt ? 'Recuperar acesso' : 'Recover access')}</h1>
+      <p>{verifyToken ? (pt ? 'Confirme seu endereço de e-mail para liberar o acesso.' : 'Confirm your email address to unlock access.') : resetToken ? (pt ? 'Escolha uma nova senha para sua conta.' : 'Choose a new password for your account.') : (pt ? 'Informe seu e-mail para receber um link seguro de redefinição.' : 'Enter your email to receive a secure reset link.')}</p>
+      {!verifyToken && !resetToken && <label>{pt ? 'E-mail' : 'Email'}<input type="email" required maxLength={254} value={email} onChange={e=>setEmail(e.target.value)}/></label>}
+      {resetToken && <label>{pt ? 'Nova senha' : 'New password'}<input type="password" required minLength={12} maxLength={128} autoComplete="new-password" value={password} onChange={e=>setPassword(e.target.value)}/></label>}
+      {message && <div className="success">{message}</div>}
+      {error && <div className="error">{error}</div>}
+      <button className="primary-btn" disabled={busy}>{busy ? (pt ? 'Aguarde…' : 'Please wait…') : verifyToken ? (pt ? 'Confirmar e-mail' : 'Confirm email') : resetToken ? (pt ? 'Redefinir senha' : 'Reset password') : (pt ? 'Enviar instruções' : 'Send instructions')}</button>
+      {!verifyToken && !resetToken && <button type="button" className="auth-switch" disabled={busy} onClick={()=>void resend()}>{pt ? 'Reenviar confirmação de e-mail' : 'Resend email verification'}</button>}
+      <button type="button" className="auth-switch" onClick={onBack}>{pt ? 'Voltar ao login' : 'Back to login'}</button>
+    </form>
+  </div>
 }

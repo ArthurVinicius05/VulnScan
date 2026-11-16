@@ -30,7 +30,8 @@ A visão oficial, os limites de escopo e os princípios do produto estão em [PR
 - [ ] Reorganize Workspace, Code Analyzer, Website Scanner and Audit History navigation.
 - [ ] Move account security, MFA and deletion into functional Settings sections.
 - [x] Add an account profile menu with signed-in email, email-verification status, a security/settings shortcut and sign-out.
-- [ ] Implement persistent light/dark theme and Portuguese (Brazil)/English localization.
+- [ ] Complete localization of backend-generated notices and finding content, and implement a persistent light/dark theme.
+- [x] Add a persistent PT-BR/English selector for the core workspace, login, MFA and account-recovery flows; the default follows the browser language.
 - [ ] Remove duplicated report summaries and improve evidence / remediation hierarchy.
 - [x] Remove inactive search and notification controls until they have real functionality; connect Overview, Code Analyzer, Audit History and Settings navigation anchors.
 
