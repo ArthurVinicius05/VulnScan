@@ -142,13 +142,13 @@ export default function App() {
     setMfaError(''); setMfaMessage('')
     try {
       const message = await deleteAccount(deletePassword, deleteMfaCode)
-      setAuthenticated(false); setHistory([]); setResult(null); setMfaEnabled(false)
+      setAuthenticated(false); setHistory([]); setSelectedAudit(null); setResult(null); setFile(null); setActiveJobId(null); setMfaEnabled(false)
       setDeleteAccountOpen(false); setDeletePassword(''); setDeleteMfaCode('')
       setAuthNotice(message)
     } catch (e) { setMfaError(e instanceof Error ? e.message : 'Não foi possível excluir a conta.') }
   }
 
-  async function endSession() { await logout(); setAuthenticated(false); setHistory([]); setResult(null) }
+  async function endSession() { await logout(); setAuthenticated(false); setHistory([]); setSelectedAudit(null); setResult(null); setFile(null); setActiveJobId(null) }
 
   if (authChecking) return <div className="auth-screen"><p>Verificando sessão…</p></div>
   if (!authenticated && (showRecovery || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('verify') || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('reset'))) return <AccountRecovery onBack={() => { setShowRecovery(false); window.history.replaceState({}, '', window.location.pathname) }} />
