@@ -18,8 +18,8 @@ A visão oficial, os limites de escopo e os princípios do produto estão em [PR
 ## Priority 1 — trust, privacy and reliability
 
 - [ ] Reproduce and resolve the reported account deletion / old-history reappearance scenario.
-- [ ] Add regression tests proving that re-registering with the same email cannot access prior account data.
-- [ ] Verify sensitive history responses use appropriate private no-store cache controls.
+- [x] Add regression tests proving that re-registering with the same email cannot access prior account data.
+- [x] Verify sensitive history responses use appropriate private no-store cache controls.
 - [ ] Validate deletion behavior across live records, logs and backup-retention disclosures.
 
 ## Priority 2 — existing web experience
@@ -29,7 +29,7 @@ A visão oficial, os limites de escopo e os princípios do produto estão em [PR
 - [ ] Add a profile menu for account actions, switching accounts and sign-out.
 - [ ] Implement persistent light/dark theme and Portuguese (Brazil)/English localization.
 - [ ] Remove duplicated report summaries and improve evidence / remediation hierarchy.
-- [ ] Make search and notifications either functional or clearly unavailable rather than inert controls.
+- [x] Remove inactive search and notification controls until they have real functionality; connect Overview, Code Analyzer, Audit History and Settings navigation anchors.
 
 ## Priority 3 — Code Analyzer depth
 
