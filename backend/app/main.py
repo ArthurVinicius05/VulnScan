@@ -36,7 +36,7 @@ ANALYSIS_JOBS = Gauge("vulnscan_analysis_jobs", "Analysis jobs grouped by state.
 METRICS_DB_ERRORS = Counter("vulnscan_metrics_db_collection_errors_total", "Database errors while collecting queue metrics.")
 
 app = FastAPI(
-    title="VulnScan Pro API",
+    title="VulnScan API",
     version="0.4.0",
     description="Security auditing foundation. Use only on authorized targets.",
     docs_url=None if is_production else "/docs",
@@ -99,7 +99,7 @@ def metrics():
 @app.get("/")
 def root():
     return {
-        "name": "VulnScan Pro API",
+        "name": "VulnScan API",
         "version": app.version,
         "docs": None if is_production else "/docs",
     }
