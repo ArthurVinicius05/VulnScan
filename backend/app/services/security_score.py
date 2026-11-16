@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
-SCORING_MODEL_VERSION = "1.0"
+SCORING_MODEL_VERSION = "1.1"
 SEVERITY_PENALTIES = {
     "critical": 30.0,
     "high": 15.0,
@@ -80,7 +80,7 @@ def calculate_security_score(
         "finding_count": len(findings),
         "severity_counts": dict(sorted(severity_counts.items())),
         "deductions": {key: round(value, 2) for key, value in sorted(deductions.items())},
-        "methodology": "severity_weighted_confidence_adjusted_v1",
+        "methodology": "severity_weighted_confidence_adjusted_v1_1",
         "disclaimer": (
             "A prioritization indicator only; it is not a certification, "
             "a penetration test, or proof that no vulnerabilities exist."
