@@ -18,9 +18,9 @@ def _set_private_no_store(response: Response) -> None:
 
 @router.get("")
 def list_audits(
+    response: Response,
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
-    response: Response = None,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
