@@ -45,6 +45,11 @@ def inventory_dependency_manifests(data: bytes) -> dict:
     detected = []
     skipped = 0
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        manifest_candidates = sum(
+            1 for info in archive.infolist()
+            if not info.is_dir() and _safe_name(info.filename)
+            and PurePosixPath(info.filename).name in MANIFESTS
+        )
         for info in archive.infolist():
             if info.is_dir():
                 continue
@@ -87,7 +92,7 @@ def inventory_dependency_manifests(data: bytes) -> dict:
             elif basename == "go.mod":
                 count = sum(
                     1 for line in text.splitlines()
-                    if re.match(r"^\\s*[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)+\\s+v[0-9]", line)
+                    if re.match(r"^\s*[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)+\s+v[0-9]", line)
                 )
 
             detected.append({"file": info.filename, "ecosystem": ecosystem,
@@ -95,8 +100,12 @@ def inventory_dependency_manifests(data: bytes) -> dict:
             if len(detected) >= MAX_MANIFESTS:
                 break
 
+    truncated = manifest_candidates > MAX_MANIFESTS
+    partial = truncated or any(item["status"] != "inventoried" for item in detected)
     return {
-        "status": "completed",
+        "status": "partial" if partial else "completed",
+        "truncated": truncated,
+        "manifest_candidates": manifest_candidates,
         "network_access": False,
         "packages_installed": False,
         "manifest_count": len(detected),

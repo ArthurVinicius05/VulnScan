@@ -1,69 +1,67 @@
-from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
+from app.api.dependencies import get_db
 from app.api.routes.auth import get_current_user
-from app.models.user import User
 from app.core.config import settings
+from app.models.analysis_job import AnalysisJob
+from app.models.user import User
+from app.services.analysis_queue import AnalysisQuotaExceeded, AnalysisJobNotCancellable, cancel_queued_analysis, enqueue_analysis
 from app.services.audit_history import save_audit
-from app.services.dependency_inventory import inventory_dependency_manifests
-from app.services.osv_client import scan_dependencies
-from app.services.source_analyzer import analyze_source_zip
-from app.services.worker_client import scan_python_archive
 from app.services.website_client import scan_website_target
 from app.services.zip_inspector import inspect_zip
 
-router = APIRouter(
-    prefix="/analysis",
-    tags=["analysis"],
-)
+router = APIRouter(prefix="/analysis", tags=["analysis"])
 
 
-@router.post("/source-zip")
-async def analyze_source_zip_endpoint(file: UploadFile = File(...), csrf_token: str | None = Header(default=None, alias="X-CSRF-Token"), user: User = Depends(get_current_user)):
+@router.post("/source-zip", status_code=status.HTTP_202_ACCEPTED)
+async def enqueue_source_zip_endpoint(
+    file: UploadFile = File(...),
+    csrf_token: str | None = Header(default=None, alias="X-CSRF-Token"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     if not file.filename or not file.filename.lower().endswith(".zip"):
         raise HTTPException(status_code=400, detail="Envie um arquivo .zip.")
-
     max_bytes = settings.max_upload_mb * 1024 * 1024
     content = await file.read(max_bytes + 1)
     if len(content) > max_bytes:
         raise HTTPException(status_code=413, detail=f"Arquivo excede o limite de {settings.max_upload_mb} MB.")
-
     try:
-        metadata = inspect_zip(
-            content,
-            max_files=settings.max_archive_files,
-            max_uncompressed_bytes=settings.max_extracted_mb * 1024 * 1024,
-        )
-        heuristic_findings = analyze_source_zip(content)
-        tool_result = await scan_python_archive(content)
-        dependency_result = inventory_dependency_manifests(content)
-        osv_result = await scan_dependencies(content)
+        inspect_zip(content, max_files=settings.max_archive_files,
+            max_uncompressed_bytes=settings.max_extracted_mb * 1024 * 1024)
     except (ValueError, OSError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    findings = heuristic_findings + tool_result.get("findings", []) + osv_result.get("findings", [])
-    response = {
-        "status": "completed",
-        "analysis_type": "static_source_analysis",
-        "filename": file.filename,
-        "notice": "Achados heurísticos e resultados de ferramentas estáticas. Eles não comprovam explorabilidade e exigem validação manual.",
-        "finding_count": len(findings),
-        "findings": findings,
-        "scanner_tools": {
-            **tool_result,
-            "security_tools": [
-                item for item in tool_result.get("security_tools", [])
-                if item.get("name") != "OSV-Scanner"
-            ] + [osv_result],
-        },
-        "dependencies": dependency_result,
-        **metadata,
-    }
     try:
-        save_audit(user_id=user.id, analysis_type="static_source_analysis", target=file.filename, result=response)
-    except Exception as exc:
-        raise HTTPException(status_code=503, detail="A análise foi concluída, mas não foi possível salvar o histórico.") from exc
-    return response
+        job = enqueue_analysis(db, user_id=user.id, filename=file.filename, archive_data=content)
+    except AnalysisQuotaExceeded as exc:
+        raise HTTPException(status_code=429, detail=exc.message) from exc
+    return {"job_id": job.id, "status": job.status,
+        "message": "Análise adicionada à fila. Consulte o status para acompanhar o processamento."}
+
+
+@router.get("/jobs/{job_id}")
+def get_analysis_job(job_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    job = db.scalar(select(AnalysisJob).where(AnalysisJob.id == job_id, AnalysisJob.user_id == user.id))
+    if job is None:
+        raise HTTPException(status_code=404, detail="Análise não encontrada.")
+    return {"job_id": job.id, "status": "failed" if job.status == "dead_letter" else job.status, "error": job.error, "attempts": job.attempts,
+        "created_at": job.created_at.isoformat(),
+        "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+        "result": job.result if job.status == "completed" else None}
+
+
+@router.post("/jobs/{job_id}/cancel")
+def cancel_analysis_job_endpoint(job_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    try:
+        job = cancel_queued_analysis(db, user_id=user.id, job_id=job_id)
+    except AnalysisJobNotCancellable as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if job is None:
+        raise HTTPException(status_code=404, detail="Análise não encontrada.")
+    return {"job_id": job.id, "status": job.status, "message": "Análise cancelada e upload temporário removido."}
 
 
 class WebsiteScanRequest(BaseModel):
@@ -72,7 +70,11 @@ class WebsiteScanRequest(BaseModel):
 
 
 @router.post("/website")
-async def analyze_website_endpoint(request: WebsiteScanRequest, csrf_token: str | None = Header(default=None, alias="X-CSRF-Token"), user: User = Depends(get_current_user)):
+async def analyze_website_endpoint(
+    request: WebsiteScanRequest,
+    csrf_token: str | None = Header(default=None, alias="X-CSRF-Token"),
+    user: User = Depends(get_current_user),
+):
     if request.authorized is not True:
         raise HTTPException(status_code=403, detail="Confirme que possui autorização para avaliar este alvo.")
     if not settings.enable_website_scan:
@@ -83,11 +85,8 @@ async def analyze_website_endpoint(request: WebsiteScanRequest, csrf_token: str 
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if result.get("status") == "unavailable":
         raise HTTPException(status_code=503, detail=result.get("reason"))
-    response = {
-        **result,
-        "analysis_type": "website_security_audit",
-        "notice": "Verificação passiva limitada à página inicial e aos redirecionamentos validados. Não executa payloads, fuzzing ou exploração. Use somente alvos sob sua autorização.",
-    }
+    response = {**result, "analysis_type": "website_security_audit",
+        "notice": "Verificação passiva limitada à página inicial e aos redirecionamentos validados. Não executa payloads, fuzzing ou exploração. Use somente alvos sob sua autorização."}
     try:
         save_audit(user_id=user.id, analysis_type="website_security_audit", target=request.url, result=response)
     except Exception as exc:

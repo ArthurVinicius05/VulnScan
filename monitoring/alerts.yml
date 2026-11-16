@@ -1,0 +1,32 @@
+groups:
+  - name: vulnscan-availability
+    rules:
+      - alert: VulnScanAnalysisQueueBacklog
+        expr: vulnscan_analysis_jobs{status="queued"} > 20
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "VulnScan analysis queue is backed up"
+          description: "More than 20 analyses have remained queued for at least 10 minutes."
+
+      - alert: VulnScanHighHTTP5xxRate
+        expr: |
+          sum(rate(vulnscan_http_requests_total{status_code=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(vulnscan_http_requests_total[5m])), 0.001) > 0.05
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "VulnScan API is returning elevated server errors"
+          description: "More than 5% of API requests returned 5xx responses over 10 minutes."
+
+      - alert: VulnScanMetricsDatabaseErrors
+        expr: increase(vulnscan_metrics_db_collection_errors_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "VulnScan cannot collect queue metrics"
+          description: "The API failed to query PostgreSQL while Prometheus was scraping metrics."

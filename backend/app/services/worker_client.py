@@ -12,6 +12,10 @@ async def scan_python_archive(content: bytes) -> dict:
             response = await client.post(
                 f"{settings.scanner_worker_url.rstrip('/')}/scan/python",
                 files={"file": ("source.zip", content, "application/zip")},
+                headers=(
+                    {"Authorization": f"Bearer {settings.scanner_worker_token}"}
+                    if settings.scanner_worker_token else {}
+                ),
             )
             response.raise_for_status()
             payload = response.json()

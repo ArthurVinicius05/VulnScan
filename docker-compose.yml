@@ -8,16 +8,25 @@ services:
       API_KEY: ${VULNSCAN_API_KEY:-}
       DATABASE_URL: ${DATABASE_URL:-sqlite:///./vulnscan.db}
       REDIS_URL: redis://redis:6379/0
-      CORS_ORIGINS: http://localhost:5173
+      CORS_ORIGINS: '${CORS_ORIGINS:-["http://localhost:5173"]}'
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USERNAME: ${SMTP_USERNAME:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      SMTP_TLS_SERVER_NAME: ${SMTP_TLS_SERVER_NAME:-}
       MAIL_FROM: ${MAIL_FROM:-}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-50}
+      MAX_ARCHIVE_FILES: ${MAX_ARCHIVE_FILES:-3000}
+      MAX_EXTRACTED_MB: ${MAX_EXTRACTED_MB:-100}
+      MAX_QUEUED_STORAGE_MB: ${MAX_QUEUED_STORAGE_MB:-100}
+      ANALYSIS_JOB_RETENTION_DAYS: ${ANALYSIS_JOB_RETENTION_DAYS:-30}
+      AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-180}
       SCANNER_WORKER_URL: http://scanner-worker:8001
       SCANNER_WORKER_TIMEOUT_SECONDS: 30
+      SCANNER_WORKER_TOKEN: ${SCANNER_WORKER_TOKEN:-}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-}
       ENABLE_OSV_SCAN: ${ENABLE_OSV_SCAN:-false}
       OSV_WORKER_URL: http://osv-worker:8002
       ENABLE_WEBSITE_SCAN: ${ENABLE_WEBSITE_SCAN:-false}
@@ -31,6 +40,12 @@ services:
         condition: service_healthy
       scanner-worker:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
     networks:
       - default
       - scanner_internal
@@ -39,7 +54,7 @@ services:
       - redis_internal
 
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
     command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
     expose:
       - "6379"
@@ -55,7 +70,8 @@ services:
     build: ./backend
     command: uvicorn app.worker:app --host 0.0.0.0 --port 8001
     environment:
-      APP_ENV: production
+      APP_ENV: ${APP_ENV:-development}
+      SCANNER_WORKER_TOKEN: ${SCANNER_WORKER_TOKEN:-}
     user: "10001:10001"
     expose:
       - "8001"
@@ -137,6 +153,38 @@ services:
     networks:
       - osv_internal
       - osv_egress
+
+  analysis-worker:
+    build: ./backend
+    command: ["python", "-m", "app.jobs.runner"]
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DATABASE_URL: ${DATABASE_URL:-sqlite:///./vulnscan.db}
+      REDIS_URL: redis://redis:6379/0
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-50}
+      MAX_ARCHIVE_FILES: ${MAX_ARCHIVE_FILES:-3000}
+      MAX_EXTRACTED_MB: ${MAX_EXTRACTED_MB:-100}
+      SCANNER_WORKER_URL: http://scanner-worker:8001
+      SCANNER_WORKER_TIMEOUT_SECONDS: 30
+      ANALYSIS_JOB_RETENTION_DAYS: ${ANALYSIS_JOB_RETENTION_DAYS:-30}
+      AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-180}
+      SCANNER_WORKER_TOKEN: ${SCANNER_WORKER_TOKEN:-}
+      ENABLE_OSV_SCAN: ${ENABLE_OSV_SCAN:-false}
+      ENABLE_WEBSITE_SCAN: ${ENABLE_WEBSITE_SCAN:-false}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      backend:
+        condition: service_healthy
+      scanner-worker:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - default
+      - scanner_internal
+      - osv_internal
+      - website_internal
+      - redis_internal
 
   frontend:
     build: ./frontend

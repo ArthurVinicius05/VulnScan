@@ -1,0 +1,12 @@
+[Unit]
+Description=VulnScan encrypted PostgreSQL backup
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+# Adjust this path to the directory where VulnScan is installed.
+WorkingDirectory=/opt/vulnscan
+ExecStart=/usr/bin/env bash /opt/vulnscan/scripts/backup_postgres.sh

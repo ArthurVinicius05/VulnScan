@@ -16,10 +16,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self._redis = None
     @staticmethod
     def _policy(path: str):
-        if path in {"/api/auth/login", "/api/auth/register", "/api/auth/request-password-reset", "/api/auth/resend-verification", "/api/auth/reset-password", "/api/auth/verify-email"}:
+        if path in {"/api/auth/login", "/api/auth/register", "/api/auth/request-password-reset", "/api/auth/resend-verification", "/api/auth/reset-password", "/api/auth/verify-email", "/api/auth/mfa/challenge", "/api/auth/mfa/setup", "/api/auth/mfa/enable", "/api/auth/mfa/disable"}:
             return "auth", 10, 300
         if path in {"/api/analysis/source-zip", "/api/analysis/website"}:
             return "analysis", 5, 600
+        if path.startswith("/api/ops/"):
+            return "ops", 10, 300
         return None
     async def _allow_local(self, key: str, limit: int, window: int) -> bool:
         now = time.monotonic()
@@ -49,9 +51,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return int(count) <= limit
     async def dispatch(self, request: Request, call_next):
         policy = self._policy(request.url.path)
-        if policy is None or request.method != "POST":
+        if policy is None:
             return await call_next(request)
         category, limit, window = policy
+        if request.method != "POST" and not (category == "ops" and request.method == "GET"):
+            return await call_next(request)
         client_ip = request.client.host if request.client else "unknown"
         key = f"vulnscan:rate:{category}:{client_ip}"
         try:

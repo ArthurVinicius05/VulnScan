@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily VulnScan PostgreSQL backup schedule
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+RandomizedDelaySec=30m
+Persistent=true
+Unit=vulnscan-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -12,3 +12,8 @@ psycopg[binary]>=3.2,<4.0
 Alembic>=1.14,<2.0
 pwdlib[argon2]>=0.2,<1.0
 redis>=5.0,<7.0
+
+pyotp>=2.9,<3.0
+cryptography>=50.0.0,<51.0.0
+
+prometheus-client>=0.21,<1.0

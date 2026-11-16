@@ -1,0 +1,257 @@
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  db:
+    logging: *default-logging
+    image: postgres:16-alpine@sha256:81e77a4833487b8132fe4b00bedd39dc3f74b8641e387f19312a48f7de218c2e
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vulnscan}
+      POSTGRES_USER: ${POSTGRES_USER:-vulnscan}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vulnscan} -d ${POSTGRES_DB:-vulnscan}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks: [app_internal]
+
+  redis:
+    logging: *default-logging
+    image: redis:7-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks: [app_internal]
+
+  backend:
+    logging: *default-logging
+    build: ./backend
+    environment:
+      APP_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env.production}
+      REDIS_URL: redis://redis:6379/0
+      CORS_ORIGINS: '${CORS_ORIGINS:?Set CORS_ORIGINS as a JSON array in .env.production}'
+      FRONTEND_URL: ${FRONTEND_URL:?Set FRONTEND_URL in .env.production}
+      SESSION_COOKIE_SECURE: "true"
+      SMTP_HOST: smtp-proxy
+      SMTP_PORT: 2525
+      SMTP_TLS_SERVER_NAME: ${SMTP_TLS_SERVER_NAME:?Set SMTP_TLS_SERVER_NAME in .env.production}
+      SMTP_UPSTREAM_HOST: ${SMTP_UPSTREAM_HOST:?Set SMTP_UPSTREAM_HOST in .env.production}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-50}
+      MAX_ARCHIVE_FILES: ${MAX_ARCHIVE_FILES:-3000}
+      MAX_EXTRACTED_MB: ${MAX_EXTRACTED_MB:-100}
+      MONTHLY_ANALYSIS_LIMIT: ${MONTHLY_ANALYSIS_LIMIT:-30}
+      MAX_CONCURRENT_ANALYSES: ${MAX_CONCURRENT_ANALYSES:-2}
+      MAX_QUEUED_STORAGE_MB: ${MAX_QUEUED_STORAGE_MB:-100}
+      ANALYSIS_JOB_RETENTION_DAYS: ${ANALYSIS_JOB_RETENTION_DAYS:-30}
+      AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-180}
+      SCANNER_WORKER_URL: http://scanner-worker:8001
+      SCANNER_WORKER_TIMEOUT_SECONDS: 30
+      SCANNER_WORKER_TOKEN: ${SCANNER_WORKER_TOKEN:?Set SCANNER_WORKER_TOKEN in .env.production}
+      OPS_ADMIN_TOKEN: ${OPS_ADMIN_TOKEN:?Set OPS_ADMIN_TOKEN in .env.production}
+      DEAD_LETTER_ARCHIVE_RETENTION_HOURS: ${DEAD_LETTER_ARCHIVE_RETENTION_HOURS:-72}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?Set MFA_ENCRYPTION_KEY in .env.production}
+      ENABLE_OSV_SCAN: "false"
+      ENABLE_WEBSITE_SCAN: "false"
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --proxy-headers --forwarded-allow-ips=172.30.0.10"
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,mode=1777
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    pids_limit: 128
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      scanner-worker:
+        condition: service_healthy
+      smtp-proxy:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    networks: [app_internal, scanner_internal, smtp_internal]
+    mem_limit: 768m
+    cpus: 1.5
+
+  scanner-worker:
+    logging: *default-logging
+    build: ./backend
+    command: ["uvicorn", "app.worker:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]
+    environment:
+      APP_ENV: production
+      SCANNER_WORKER_TOKEN: ${SCANNER_WORKER_TOKEN:?Set SCANNER_WORKER_TOKEN in .env.production}
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,mode=1777
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    networks: [scanner_internal]
+
+  smtp-proxy:
+    logging: *default-logging
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.smtp-proxy
+    environment:
+      SMTP_UPSTREAM_HOST: ${SMTP_UPSTREAM_HOST:?Set SMTP_UPSTREAM_HOST in .env.production}
+      SMTP_UPSTREAM_PORT: ${SMTP_UPSTREAM_PORT:-587}
+      SMTP_PROXY_MAX_CONNECTIONS: ${SMTP_PROXY_MAX_CONNECTIONS:-20}
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=8m,mode=1777
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    pids_limit: 32
+    mem_limit: 128m
+    cpus: 0.25
+    expose: ["2525"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1',2525),timeout=2).close()"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+    networks: [smtp_internal, backend_egress]
+
+  analysis-worker:
+    logging: *default-logging
+    build: ./backend
+    command: ["python", "-m", "app.jobs.runner"]
+    environment:
+      APP_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env.production}
+      REDIS_URL: redis://redis:6379/0
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-50}
+      MAX_ARCHIVE_FILES: ${MAX_ARCHIVE_FILES:-3000}
+      MAX_EXTRACTED_MB: ${MAX_EXTRACTED_MB:-100}
+      SCANNER_WORKER_URL: http://scanner-worker:8001
+      SCANNER_WORKER_TIMEOUT_SECONDS: 30
+      ANALYSIS_JOB_RETENTION_DAYS: ${ANALYSIS_JOB_RETENTION_DAYS:-30}
+      AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-180}
+      DEAD_LETTER_ARCHIVE_RETENTION_HOURS: ${DEAD_LETTER_ARCHIVE_RETENTION_HOURS:-72}
+      SCANNER_WORKER_TOKEN: ${SCANNER_WORKER_TOKEN:?Set SCANNER_WORKER_TOKEN in .env.production}
+      ENABLE_OSV_SCAN: "false"
+      ENABLE_WEBSITE_SCAN: "false"
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,mode=1777
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    pids_limit: 64
+    mem_limit: 768m
+    cpus: 1.5
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      scanner-worker:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [app_internal, scanner_internal]
+
+  prometheus:
+    logging: *default-logging
+    image: prom/prometheus:v3.5.0@sha256:63805ebb8d2b3920190daf1cb14a60871b16fd38bed42b857a3182bc621f4996
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-lifecycle
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    user: "65534:65534"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m,mode=1777
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    pids_limit: 64
+    mem_limit: 512m
+    cpus: 0.5
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [app_internal]
+
+  frontend:
+    logging: *default-logging
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.production
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m,mode=1777
+      - /var/cache/nginx:rw,noexec,nosuid,size=16m,mode=0755
+      - /var/run:rw,noexec,nosuid,size=1m,mode=0755
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    restart: unless-stopped
+    networks:
+      app_internal:
+        ipv4_address: 172.30.0.10
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+
+networks:
+  app_internal:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+  scanner_internal:
+    internal: true
+  smtp_internal:
+    internal: true
+  backend_egress:

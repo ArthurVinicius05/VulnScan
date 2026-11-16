@@ -1,0 +1,42 @@
+# Production readiness gate
+
+This checklist is a release gate, not a claim that the current deployment is certified.
+
+## Implemented in the hardening branch
+
+- [x] Production startup validation rejects insecure or incomplete environment configuration.
+- [x] PostgreSQL integration tests run against a real PostgreSQL service in CI.
+- [x] API and scanner worker use a shared service token.
+- [x] Production Compose isolates the scanner worker and keeps website/OSV scanning disabled.
+- [x] Durable PostgreSQL analysis queue with row-lock claims, renewable leases, attempt ownership, bounded retries and atomic/idempotent audit writes.
+- [x] Dead-letter inspection and token-protected operator recovery; dead-letter source archives expire after a short configurable window.
+- [x] SSRF, private/mixed DNS answer, redirect and pinned-IP DNS-rebinding regression tests for the isolated passive website worker.
+- [x] Per-account monthly quotas, concurrent-job limits, queued-upload storage caps and user cancellation for jobs that have not started.
+- [x] TOTP MFA with encrypted secrets, replay protection, expiring login challenges, one-time recovery codes and session revocation.
+- [x] Transactional MFA encryption-key rotation CLI with dry-run validation and all-or-nothing database commit.
+- [x] Python hash lockfile and npm lockfile are committed, drift-checked in pull requests, and used by pip hash verification and npm ci.
+- [x] API has no direct internet egress; SMTP is routed through a fixed-upstream proxy that rejects non-public DNS answers.
+- [x] Automated retention cleanup for completed/failed jobs, audit records, expired sessions, tokens and MFA challenges.
+- [x] Encrypted age-based PostgreSQL backup/restore scripts, optional rclone off-site upload, a systemd timer template and a PostgreSQL + age restore smoke test in CI.
+- [x] Prometheus HTTP/queue metrics and queue/5xx alert rules; Prometheus UI bound to loopback only.
+- [x] CI builds backend, frontend, SMTP proxy, website worker and OSV worker images and validates production Compose.
+
+## Required before public launch
+
+- [ ] Apply and verify host-firewall allowlisting for SMTP proxy destination IPs/ports and DNS; keep website/OSV disabled until the host-level egress policy is tested and reviewed.
+- [x] Pin every container image by digest and verify registry digests in CI through `images.lock`.
+- [x] Pin GitHub Actions to immutable commit SHAs and configure weekly Dependabot updates for actions, packages and container images.
+- [ ] Verify image provenance/signatures where available and document update/rollback cadence.
+- [x] Automated PostgreSQL concurrency/worker-claim tests and encrypted backup/restore smoke test in CI.
+- [ ] Run load/abuse and full failure-recovery/restore drills against a production-like environment.
+- [ ] Configure Alertmanager notifications, centralized logs, on-call ownership and incident response runbooks.
+- [ ] Validate real HTTPS/TLS, SMTP deliverability (SPF/DKIM/DMARC), service-token/DB credential rotation and PostgreSQL restore in the actual hosting environment.
+- [x] Add authenticated account deletion for live database records; [ ] verify deletion across off-site backups and logs and document backup expiry/restore implications.
+- [ ] Complete privacy/terms review for LGPD, identify the data controller/operator, publish contact details and confirm lawful basis/retention.
+- [ ] Commission an independent security review or penetration test, fix findings, and re-run regression/security tests.
+
+## External operator responsibilities
+
+The repository cannot prove the security of a hosting provider, firewall, DNS, TLS certificate, SMTP relay, secrets manager, backup destination or monitoring account. Those controls must be configured and tested in the actual deployment environment before the service accepts untrusted public traffic.
+
+Merging the hardening PR is not a production deployment approval. Keep the service private until every required engineering and operator gate is closed.

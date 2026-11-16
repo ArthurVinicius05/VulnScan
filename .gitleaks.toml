@@ -1,0 +1,11 @@
+title = "VulnScan secret scanning"
+
+[[allowlists]]
+description = "Deterministic fake credentials used only by source-analyzer redaction regression tests."
+paths = [
+  '''backend/tests/test_source_analyzer\.py''',
+]
+regexes = [
+  '''abc1234567890abcdef''',
+  '''super-secret-value-that-must-never-appear''',
+]

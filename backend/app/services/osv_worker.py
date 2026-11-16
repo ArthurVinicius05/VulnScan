@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import zipfile
@@ -126,10 +127,13 @@ async def scan(file: UploadFile = File(...)):
                 return {"status": "skipped", "reason": "No supported dependency lockfiles found.", "findings": []}
             stdout_path = Path(temp) / "osv-output.json"
             stderr_path = Path(temp) / "osv-error.log"
+            scanner_executable = shutil.which("osv-scanner")
+            if not scanner_executable:
+                return {"status": "unavailable", "findings": []}
             with stdout_path.open("wb") as stdout, stderr_path.open("wb") as stderr:
                 try:
                     proc = subprocess.run(
-                        ["osv-scanner", "scan", "source", "--recursive", "--no-resolve", "--format", "json", "--verbosity", "error", str(root)],
+                        [scanner_executable, "scan", "source", "--recursive", "--no-resolve", "--format", "json", "--verbosity", "error", str(root)],
                         cwd=temp, env={"PATH": os.environ.get("PATH", ""), "HOME": temp, "TMPDIR": temp},
                         stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr,
                         timeout=TIMEOUT_SECONDS, check=False, shell=False,
