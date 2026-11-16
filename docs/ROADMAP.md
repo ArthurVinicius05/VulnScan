@@ -43,7 +43,8 @@ A visão oficial, os limites de escopo e os princípios do produto estão em [PR
 - [ ] Expand language/framework support and explain findings with context-specific examples.
 - [ ] Add GitHub repository import with explicit read-only authorization and least-privilege permissions.
 - [ ] Add local directory selection in the desktop application.
-- [x] Support authenticated comparisons between analysis runs, including added/resolved finding counts and Security Score deltas when model versions match.\n- [ ] Add richer finding-level diffs and exportable reports.
+- [x] Support authenticated comparisons between analysis runs, including added/resolved finding counts and Security Score deltas when model versions match.\n- [x] Add bounded finding-level details for newly detected and resolved findings, omitting evidence/source snippets from comparison payloads.
+- [ ] Add exportable reports.
 
 ## Priority 4 — Website Scanner
 
