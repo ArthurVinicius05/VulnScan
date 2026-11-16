@@ -127,7 +127,7 @@ def test_audit_comparison_reports_added_resolved_and_score_delta(audit_client):
     assert response.status_code == 200
     payload = response.json()
     assert payload["findings"] == {
-        "added": 1, "resolved": 1, "unchanged": 1, "baseline_total": 2, "candidate_total": 2
+        "details_available": True, "added": 1, "resolved": 1, "unchanged": 1, "baseline_total": 2, "candidate_total": 2
     }
     assert payload["score"] == {
         "comparable": True, "baseline": 70, "candidate": 82, "delta": 12, "model_version": "1.0"
@@ -168,3 +168,35 @@ def test_audit_comparison_rejects_same_record(audit_client):
         user_id=user_id, analysis_type="static_source_analysis", target="project.zip", result={"findings": []}
     )
     assert client.get(f"/api/history/compare/{audit_id}/{audit_id}").status_code == 422
+
+
+
+def test_audit_comparison_marks_legacy_finding_details_unavailable(audit_client):
+    client, _, user_id = audit_client
+    baseline_id = audit_history.save_audit(
+        user_id=user_id, analysis_type="static_source_analysis", target="project.zip",
+        result={"finding_count": 3},
+    )
+    candidate_id = audit_history.save_audit(
+        user_id=user_id, analysis_type="static_source_analysis", target="project.zip",
+        result={"findings": [], "finding_count": 0},
+    )
+    response = client.get(f"/api/history/compare/{baseline_id}/{candidate_id}")
+    assert response.status_code == 200
+    assert response.json()["findings"]["details_available"] is False
+
+
+def test_audit_comparison_only_compares_matching_score_model_versions(audit_client):
+    client, _, user_id = audit_client
+    baseline_id = audit_history.save_audit(
+        user_id=user_id, analysis_type="static_source_analysis", target="project.zip",
+        result={"findings": [], "security_score": {"value": 70, "model_version": "1.0"}},
+    )
+    candidate_id = audit_history.save_audit(
+        user_id=user_id, analysis_type="static_source_analysis", target="project.zip",
+        result={"findings": [], "security_score": {"value": 90, "model_version": "2.0"}},
+    )
+    response = client.get(f"/api/history/compare/{baseline_id}/{candidate_id}")
+    assert response.status_code == 200
+    assert response.json()["score"]["comparable"] is False
+    assert response.json()["score"]["delta"] is None
