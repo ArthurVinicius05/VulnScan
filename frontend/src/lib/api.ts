@@ -259,3 +259,22 @@ export async function cancelAnalysisJob(jobId: string): Promise<string> {
   ensureSuccess(response, payload, 'Não foi possível cancelar a análise.')
   return typeof payload.message === 'string' ? payload.message : 'Análise cancelada.'
 }
+
+
+export type AuditComparison = {
+  baseline: { id: string; target: string; created_at: string }
+  candidate: { id: string; target: string; created_at: string }
+  findings: { details_available: boolean; added: number; resolved: number; unchanged: number; baseline_total: number; candidate_total: number }
+  severity_delta: Record<string, { baseline: number; candidate: number; delta: number }>
+  score: { comparable: boolean; baseline: number | null; candidate: number | null; delta: number | null; model_version: string | null }
+}
+
+export async function compareAudits(baselineId: string, candidateId: string): Promise<AuditComparison> {
+  const response = await fetch(
+    \`\${API_URL}/api/history/compare/\${encodeURIComponent(baselineId)}/\${encodeURIComponent(candidateId)}\`,
+    { credentials: 'include', cache: 'no-store' },
+  )
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Não foi possível comparar as auditorias.')
+  return payload as AuditComparison
+}
