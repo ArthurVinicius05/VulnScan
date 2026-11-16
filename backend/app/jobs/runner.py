@@ -82,6 +82,14 @@ def claim_next_job() -> tuple[str, str, str, bytes, int] | None:
         owner = db.scalar(select(User).where(User.id == user_id).with_for_update())
         if owner is None:
             # A stale/orphaned queue row must never be processed for a deleted account.
+            # Remove its retained upload and linked result so deleted-account data
+            # cannot remain in the queue or block later jobs.
+            db.query(AuditRecord).filter(AuditRecord.job_id == job_id).delete(
+                synchronize_session=False
+            )
+            orphan = db.get(AnalysisJob, job_id)
+            if orphan is not None:
+                db.delete(orphan)
             db.commit()
             return None
 
