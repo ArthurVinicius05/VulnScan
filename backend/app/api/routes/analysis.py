@@ -49,7 +49,8 @@ def get_analysis_job(job_id: str, response: Response, db: Session = Depends(get_
     response.headers["Expires"] = "0"
     job = db.scalar(select(AnalysisJob).where(AnalysisJob.id == job_id, AnalysisJob.user_id == user.id))
     if job is None:
-        raise HTTPException(status_code=404, detail="Análise não encontrada.")
+        response.status_code = 404
+        return {"detail": "Análise não encontrada."}
     return {"job_id": job.id, "status": "failed" if job.status == "dead_letter" else job.status, "error": job.error, "attempts": job.attempts,
         "created_at": job.created_at.isoformat(),
         "completed_at": job.completed_at.isoformat() if job.completed_at else None,
