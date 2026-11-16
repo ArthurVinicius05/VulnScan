@@ -94,9 +94,7 @@ def test_worker_skips_queue_rows_whose_account_no_longer_exists(queue_db):
     assert claim_next_job() is None
     with sessions() as db:
         orphan = db.get(AnalysisJob, orphan_id)
-        assert orphan is not None
-        assert orphan.status == "queued"
-        assert orphan.archive_data == b"private-upload"
+        assert orphan is None
 
 
 def test_claim_marks_job_running_and_retry_requeues(queue_db):
