@@ -33,7 +33,7 @@ A visão oficial, os limites de escopo e os princípios do produto estão em [PR
 - [ ] Complete localization of backend-generated notices and finding content.
 - [x] Add a persistent light/dark theme with a system-preference default and an in-app toggle.
 - [x] Add a persistent PT-BR/English selector for the core workspace, login, MFA and account-recovery flows; the default follows the browser language.
-- [ ] Remove duplicated report summaries and improve evidence / remediation hierarchy.
+- [x] Remove the repeated finding-count summary from expanded history reports and unify live/history finding cards with labeled evidence and remediation.
 - [x] Remove inactive search and notification controls until they have real functionality; connect Overview, Code Analyzer, Audit History and Settings navigation anchors.
 
 ## Priority 3 — Code Analyzer depth

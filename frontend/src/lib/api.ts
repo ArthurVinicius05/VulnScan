@@ -125,7 +125,7 @@ export type AuditHistoryItem = {
 
 export type AuditDetail = AuditHistoryItem & {
   result: {
-    findings?: { rule_id?: string; title?: string; severity?: string; file?: string; url?: string; line?: number | null; evidence?: string; recommendation?: string }[]
+    findings?: { rule_id?: string; title?: string; severity?: string; confidence?: string; file?: string; url?: string; line?: number | null; evidence?: string; recommendation?: string; verified?: boolean; aliases?: string[]; references?: string[]; package?: { name: string; version: string; ecosystem: string } }[]
     [key: string]: unknown
   }
 }
