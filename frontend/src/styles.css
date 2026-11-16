@@ -109,3 +109,43 @@
 }
 .profile-menu-content a:hover,
 .profile-menu-content button:hover { background: #20324d; }
+
+
+/* Persistent locale selector */
+.language-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid #263753;
+  border-radius: 8px;
+  background: #0d1728;
+}
+.language-toggle button {
+  border: 0;
+  border-radius: 5px;
+  padding: 6px 8px;
+  background: transparent;
+  color: #8394ae;
+  font: 600 9px 'DM Sans';
+  cursor: pointer;
+}
+.language-toggle button.selected {
+  background: #1c3555;
+  color: #b9e2ff;
+}
+.language-toggle button:focus-visible,
+.profile-menu > summary:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+.auth-language {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 40;
+}
+@media (max-width: 680px) {
+  .top-actions { gap: 7px; }
+  .language-toggle button { padding: 6px 6px; }
+}
