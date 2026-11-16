@@ -1,3 +1,4 @@
+import asyncio
 import io
 import zipfile
 
@@ -27,9 +28,8 @@ def isolated_scanners(monkeypatch):
     monkeypatch.setattr(source_analysis, "inventory_dependency_manifests", lambda _content: {"status": "completed", "manifest_count": 0, "manifests": []})
 
 
-@pytest.mark.asyncio
-async def test_binary_python_file_is_reported_as_partial_and_score_is_capped(isolated_scanners):
-    result = await source_analysis.analyze_source_archive(make_zip([("app.py", b"\x00\x01\x02")]), "binary.zip")
+def test_binary_python_file_is_reported_as_partial_and_score_is_capped(isolated_scanners):
+    result = asyncio.run(source_analysis.analyze_source_archive(make_zip([("app.py", b"\x00\x01\x02")]), "binary.zip"))
 
     assert result["status"] == "partial"
     assert result["coverage"]["heuristics"]["candidate_files"] == 1
@@ -39,9 +39,8 @@ async def test_binary_python_file_is_reported_as_partial_and_score_is_capped(iso
     assert "no_decodable_source_files" in result["security_score"]["cap_reasons"]
 
 
-@pytest.mark.asyncio
-async def test_archive_without_eligible_source_files_is_not_scored_as_fully_analyzed(isolated_scanners):
-    result = await source_analysis.analyze_source_archive(make_zip([("README.md", "documentation only")]), "docs.zip")
+def test_archive_without_eligible_source_files_is_not_scored_as_fully_analyzed(isolated_scanners):
+    result = asyncio.run(source_analysis.analyze_source_archive(make_zip([("README.md", "documentation only")]), "docs.zip"))
 
     assert result["status"] == "partial"
     assert result["coverage"]["heuristics"]["candidate_files"] == 0
