@@ -24,8 +24,7 @@ def list_audits(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    if response is not None:
-        _set_private_no_store(response)
+    _set_private_no_store(response)
     records = db.scalars(
         select(AuditRecord)
         .where(AuditRecord.user_id == user.id)
