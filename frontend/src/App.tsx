@@ -93,6 +93,7 @@ export default function App() {
         setMfaChallenge(authResult.challenge_token)
         setAuthNotice('')
       } else if (authResult?.user) {
+        setHistory([]); setSelectedAudit(null); setResult(null); setFile(null); setActiveJobId(null)
         setAuthenticated(true)
         setAuthNotice('')
       } else {
@@ -108,7 +109,9 @@ export default function App() {
     setAuthBusy(true); setAuthError('')
     try {
       await completeMfaLogin(mfaChallenge, mfaLoginCode)
-      setMfaChallenge(''); setMfaLoginCode(''); setAuthenticated(true)
+      setMfaChallenge(''); setMfaLoginCode('')
+      setHistory([]); setSelectedAudit(null); setResult(null); setFile(null); setActiveJobId(null)
+      setAuthenticated(true)
     } catch (e) { setAuthError(e instanceof Error ? e.message : 'Não foi possível validar MFA.') }
     finally { setAuthBusy(false) }
   }
