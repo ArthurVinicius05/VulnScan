@@ -44,7 +44,7 @@ export default function App() {
   const [language, setLanguage] = useState<Language>(getInitialLanguage)
   const validSections = ['overview', 'website-scanner', 'code-analyzer', 'audit-history', 'settings', 'profile'] as const
   const [activeSection, setActiveSection] = useState<string>(() => {
-    const requested = window.location.hash.replace(/^#/, '')
+    const requested = window.location.pathname.replace(/^\/+|\/+$/g, '') || 'overview'
     return (validSections as readonly string[]).includes(requested) ? requested : 'overview'
   })
   const [theme, setTheme] = useState<Theme>(() => {
@@ -57,12 +57,13 @@ export default function App() {
   const t = (key: TranslationKey) => translate(language, key)
   function navigateTo(section: string) {
     setActiveSection(section)
-    if (window.location.hash !== `#${section}`) window.history.pushState({}, '', `#${section}`)
+    const path = section === 'overview' ? '/overview' : `/${section}`
+    if (window.location.pathname !== path) window.history.pushState({}, '', path)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
   useEffect(() => {
     const syncRoute = () => {
-      const requested = window.location.hash.replace(/^#/, '')
+      const requested = window.location.pathname.replace(/^\/+|\/+$/g, '') || 'overview'
       setActiveSection((validSections as readonly string[]).includes(requested) ? requested : 'overview')
     }
     window.addEventListener('hashchange', syncRoute)
@@ -334,15 +335,15 @@ export default function App() {
       <div className="brand"><div className="brand-mark"><ShieldCheck size={22}/></div><div><strong>VulnScan</strong><small>SECURITY INTELLIGENCE</small></div></div>
       <div className="nav-label">{t('workspace').toUpperCase()}</div>
       <nav>
-        <a className={activeSection === "overview" ? "active" : ""} href="#overview" onClick={e=>{e.preventDefault();navigateTo('overview')}}><LayoutDashboard size={18}/> {t('overview')}</a>
-        <a className={activeSection === "website-scanner" ? "active" : ""} href="#website-scanner" onClick={e=>{e.preventDefault();navigateTo('website-scanner')}}><Globe size={18}/> {t('websiteScanner')}</a>
-        <a className={activeSection === "code-analyzer" ? "active" : ""} href="#code-analyzer" onClick={e=>{e.preventDefault();navigateTo('code-analyzer')}}><FolderCode size={18}/> {t('codeAnalyzer')}</a>
-        <a className={activeSection === "audit-history" ? "active" : ""} href="#audit-history" onClick={e=>{e.preventDefault();navigateTo('audit-history')}}><History size={18}/> {t('auditHistory')}</a>
+        <a className={activeSection === "overview" ? "active" : ""} href="/overview" onClick={e=>{e.preventDefault();navigateTo('overview')}}><LayoutDashboard size={18}/> {t('overview')}</a>
+        <a className={activeSection === "website-scanner" ? "active" : ""} href="/website-scanner" onClick={e=>{e.preventDefault();navigateTo('website-scanner')}}><Globe size={18}/> {t('websiteScanner')}</a>
+        <a className={activeSection === "code-analyzer" ? "active" : ""} href="/code-analyzer" onClick={e=>{e.preventDefault();navigateTo('code-analyzer')}}><FolderCode size={18}/> {t('codeAnalyzer')}</a>
+        <a className={activeSection === "audit-history" ? "active" : ""} href="/audit-history" onClick={e=>{e.preventDefault();navigateTo('audit-history')}}><History size={18}/> {t('auditHistory')}</a>
       </nav>
-      <div className="sidebar-bottom"><a className={activeSection === "settings" ? "active" : ""} href="#settings" onClick={e=>{e.preventDefault();navigateTo('settings')}}><Settings size={18}/> {t('settings')}</a></div>
+      <div className="sidebar-bottom"><a className={activeSection === "settings" ? "active" : ""} href="/settings" onClick={e=>{e.preventDefault();navigateTo('settings')}}><Settings size={18}/> {t('settings')}</a></div>
     </aside>
     <main className="main">
-      <header className="topbar"><div className="crumb">{t('workspace')} <ChevronRight size={14}/> <b>{activeSection === 'settings' ? t('settings') : activeSection === 'profile' ? t('profileTitle') : activeSection === 'website-scanner' ? t('websiteScanner') : activeSection === 'code-analyzer' ? t('codeAnalyzer') : activeSection === 'audit-history' ? t('auditHistory') : t('overview')}</b></div><div className="top-actions"><ThemeToggle theme={theme} onChange={setTheme} language={language}/><LanguageToggle language={language} onChange={setLanguage}/><details className="profile-menu"><summary><div className="avatar">AV</div><span>{t('account')}</span></summary><div className="profile-menu-content"><b>{t('account')}</b><small>{emailVerified ? t('verifiedEmail') : t('unverifiedEmail')}</small><a href="#profile" onClick={e=>{e.preventDefault();navigateTo('profile')}}>{t('profileTitle')}</a><a href="#settings" onClick={e=>{e.preventDefault();navigateTo('settings')}}>{t('securitySettings')}</a><button type="button" onClick={()=>void endSession()}>{t('signOut')}</button></div></details></div></header>
+      <header className="topbar"><div className="crumb">{t('workspace')} <ChevronRight size={14}/> <b>{activeSection === 'settings' ? t('settings') : activeSection === 'profile' ? t('profileTitle') : activeSection === 'website-scanner' ? t('websiteScanner') : activeSection === 'code-analyzer' ? t('codeAnalyzer') : activeSection === 'audit-history' ? t('auditHistory') : t('overview')}</b></div><div className="top-actions"><ThemeToggle theme={theme} onChange={setTheme} language={language}/><LanguageToggle language={language} onChange={setLanguage}/><details className="profile-menu"><summary><div className="avatar">AV</div><span>{t('account')}</span></summary><div className="profile-menu-content"><b>{t('account')}</b><small>{emailVerified ? t('verifiedEmail') : t('unverifiedEmail')}</small><a href="/profile" onClick={e=>{e.preventDefault();navigateTo('profile')}}>{t('profileTitle')}</a><a href="/settings" onClick={e=>{e.preventDefault();navigateTo('settings')}}>{t('securitySettings')}</a><button type="button" onClick={()=>void endSession()}>{t('signOut')}</button></div></details></div></header>
       <section className="content">
 {activeSection === 'overview' && <div className="route-page overview-page">
         <div className="welcome" id="overview"><div><div className="eyebrow"><span className="live-dot"/> {t('securityWorkspace')}</div><h1>{t('securityOverview')}</h1><p>{t('overviewDescription')}</p></div><div className="date-chip"><Activity size={15}/> {t('codeAnalyzerReady')}</div></div>
