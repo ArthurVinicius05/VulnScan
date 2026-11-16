@@ -5,7 +5,7 @@ import ThemeToggle, { type Theme } from './ThemeToggle'
 import FindingCard from './FindingCard'
 import { getInitialLanguage, translate, translateAnalysisType, translateBackendText, translateStatus, translateSeverity, type Language, type TranslationKey } from './i18n'
 import { ShieldCheck, LayoutDashboard, Globe, FolderCode, History, Settings, UploadCloud, FileArchive, Activity, ChevronRight, LockKeyhole, ScanSearch, AlertTriangle } from 'lucide-react'
-import { ApiError, authenticate, checkSession, completeMfaLogin, fetchAccountInfo, beginMfaSetup, confirmMfaSetup, disableMfa, fetchAuditDetail, fetchAuditHistory, cancelAnalysisJob, deleteAccount, logout, uploadSourceZip, scanWebsite, type AuditHistoryItem, type AuditDetail, type AuditComparison, type WebsiteScanResult } from './lib/api'
+import { ApiError, authenticate, checkSession, completeMfaLogin, fetchAccountInfo, beginMfaSetup, confirmMfaSetup, disableMfa, fetchAuditDetail, fetchAuditHistory, cancelAnalysisJob, deleteAccount, logout, uploadSourceZip, scanWebsite, compareAudits, type AuditHistoryItem, type AuditDetail, type AuditComparison, type WebsiteScanResult } from './lib/api'
 
 type Finding = {
   rule_id: string
