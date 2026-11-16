@@ -155,7 +155,7 @@ def compare_audits(
         "candidate": {"id": candidate.id, "target": candidate.target, "created_at": candidate.created_at.isoformat()},
         "findings": {
             "details_available": isinstance((baseline.result or {}).get("findings"), list) and isinstance((candidate.result or {}).get("findings"), list),
-            "added": sum(added.values()), "resolved": sum(resolved.values()),
+            "added": len(added_findings), "resolved": len(resolved_findings),
             "unchanged": unchanged, "baseline_total": sum(len(items) for items in baseline_findings.values()),
             "candidate_total": sum(len(items) for items in candidate_findings.values()),
         },
