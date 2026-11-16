@@ -266,14 +266,14 @@ export default function App() {
       <div className="nav-label">{t('workspace').toUpperCase()}</div>
       <nav>
         <a className="active" href="#overview"><LayoutDashboard size={18}/> {t('overview')}</a>
-        <a><Globe size={18}/> {t('websiteScanner')} <span className="soon">{t('soon')}</span></a>
+        <a className="nav-disabled" aria-disabled="true" title={t('websiteNotEnabled')}><Globe size={18}/> {t('websiteScanner')} <span className="soon">{t('soon')}</span></a>
         <a href="#code-analyzer"><FolderCode size={18}/> {t('codeAnalyzer')}</a>
         <a href="#audit-history"><History size={18}/> {t('auditHistory')}</a>
       </nav>
-      <div className="sidebar-bottom"><a href="#account-security"><Settings size={18}/> {t('settings')}</a><div className="profile"><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><div><b>{accountEmail || t('account')}</b><small>{emailVerified ? t('verifiedEmail') : t('unverifiedEmail')}</small></div></div></div>
+      <div className="sidebar-bottom"><a href="#settings"><Settings size={18}/> {t('settings')}</a><div className="profile"><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><div><b>{accountEmail || t('account')}</b><small>{emailVerified ? t('verifiedEmail') : t('unverifiedEmail')}</small></div></div></div>
     </aside>
     <main className="main">
-      <header className="topbar"><div className="crumb">{t('workspace')} <ChevronRight size={14}/> <b>{t('overview')}</b></div><div className="top-actions"><ThemeToggle theme={theme} onChange={setTheme} language={language}/><LanguageToggle language={language} onChange={setLanguage}/><details className="profile-menu"><summary><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><span>{t('account')}</span></summary><div className="profile-menu-content"><b>{accountEmail || t('account')}</b><small>{emailVerified ? t('verifiedEmail') : t('unverifiedEmail')}</small><a href="#account-security">{t('securitySettings')}</a><button type="button" onClick={()=>void endSession()}>{t('signOut')}</button></div></details></div></header>
+      <header className="topbar"><div className="crumb">{t('workspace')} <ChevronRight size={14}/> <b>{t('overview')}</b></div><div className="top-actions"><ThemeToggle theme={theme} onChange={setTheme} language={language}/><LanguageToggle language={language} onChange={setLanguage}/><details className="profile-menu"><summary><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><span>{t('account')}</span></summary><div className="profile-menu-content"><b>{accountEmail || t('account')}</b><small>{emailVerified ? t('verifiedEmail') : t('unverifiedEmail')}</small><a href="#settings">{t('securitySettings')}</a><button type="button" onClick={()=>void endSession()}>{t('signOut')}</button></div></details></div></header>
       <section className="content">
         <div className="welcome" id="overview"><div><div className="eyebrow"><span className="live-dot"/> {t('securityWorkspace')}</div><h1>{t('securityOverview')}</h1><p>{t('overviewDescription')}</p></div><div className="date-chip"><Activity size={15}/> {t('codeAnalyzerReady')}</div></div>
         <div className="stats">
@@ -281,8 +281,9 @@ export default function App() {
           <div className="stat-card"><div className="stat-top"><span>{t('issuesDetected')}</span><LockKeyhole size={18}/></div><strong>{result?.finding_count ?? '—'}</strong><small>{result ? t('currentArchive') : t('runFirstAudit')}</small></div>
           <div className="stat-card"><div className="stat-top"><span>{t('securityScore')}</span><ShieldCheck size={18}/></div><strong>—</strong><small>{t('scoringNotImplemented')}</small></div>
         </div>
-        <section className="panel account-security" id="account-security">
-          <div className="section-heading"><div><h2>{t('accountSecurity')}</h2><p>{t('accountSecurityDescription')}</p></div><span className={mfaEnabled ? 'available' : 'coming'}>{mfaEnabled ? t('mfaEnabled') : t('mfaNotEnabled')}</span></div>
+        <section className="panel account-security" id="settings">
+          <div className="settings-page-heading"><div><h2>{t('settings')}</h2><p>{t('settingsDescription')}</p></div></div>
+          <div className="section-heading" id="account-security"><div><h3>{t('accountSecurity')}</h3><p>{t('accountSecurityDescription')}</p></div><span className={mfaEnabled ? 'available' : 'coming'}>{mfaEnabled ? t('mfaEnabled') : t('mfaNotEnabled')}</span></div>
           {mfaEnabled ? <div>
             <p>{t('mfaActive')}</p>
             <label>{t('authenticatorOrRecovery')}<input value={mfaActionCode} onChange={e=>setMfaActionCode(e.target.value)} maxLength={64} placeholder={t('codePlaceholder')}/></label>
