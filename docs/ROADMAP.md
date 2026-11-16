@@ -27,8 +27,8 @@ A visão oficial, os limites de escopo e os princípios do produto estão em [PR
 - [x] Clear account-scoped workspace, report, MFA and upload state on logout, session expiry, account deletion and account changes.
 - [x] Remove the remaining legacy Pro label from the workspace footer and avoid implying the website scanner is ready.
 
-- [ ] Reorganize Workspace, Code Analyzer, Website Scanner and Audit History navigation.
-- [ ] Move account security, MFA and deletion into functional Settings sections.
+- [x] Reorganize workspace navigation with working Overview, Code Analyzer, Audit History and Settings destinations; keep the not-yet-enabled Website Scanner visibly disabled.
+- [x] Add dedicated Settings sections for account security (MFA and account deletion) and appearance/language preferences.
 - [x] Add an account profile menu with signed-in email, email-verification status, a security/settings shortcut and sign-out.
 - [ ] Complete localization of backend-generated notices and finding content.
 - [x] Add a persistent light/dark theme with a system-preference default and an in-app toggle.
