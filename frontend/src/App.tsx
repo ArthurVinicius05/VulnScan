@@ -239,7 +239,7 @@ export default function App() {
       setAnalysisStatus('cancelled')
       setError(message)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Não foi possível cancelar a análise.')
+      setError(e instanceof Error ? e.message : t('analysisCancelled'))
     }
   }
 
@@ -256,9 +256,9 @@ export default function App() {
       <div className="sidebar-bottom"><a href="#account-security"><Settings size={18}/> {t('settings')}</a><div className="profile"><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><div><b>{accountEmail || t('account')}</b><small>{emailVerified ? t('verifiedEmail') : t('unverifiedEmail')}</small></div></div></div>
     </aside>
     <main className="main">
-      <header className="topbar"><div className="crumb">Workspace <ChevronRight size={14}/> <b>Overview</b></div><div className="top-actions"><details className="profile-menu"><summary><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><span>{t('account')}</span></summary><div className="profile-menu-content"><b>{accountEmail || "Conta"}</b><small>{emailVerified ? "E-mail verificado" : "E-mail não verificado"}</small><a href="#account-security">{t('securitySettings')}</a><button type="button" onClick={()=>void endSession()}>{t('signOut')}</button></div></details></div></header>
+      <header className="topbar"><div className="crumb">{t('workspace')} <ChevronRight size={14}/> <b>{t('overview')}</b></div><div className="top-actions"><LanguageToggle language={language} onChange={setLanguage}/><details className="profile-menu"><summary><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><span>{t('account')}</span></summary><div className="profile-menu-content"><b>{accountEmail || t('account')}</b><small>{emailVerified ? t('verifiedEmail') : t('unverifiedEmail')}</small><a href="#account-security">{t('securitySettings')}</a><button type="button" onClick={()=>void endSession()}>{t('signOut')}</button></div></details></div></header>
       <section className="content">
-        <div className="welcome" id="overview"><div><div className="eyebrow"><span className="live-dot"/> SECURITY WORKSPACE</div><h1>{t('securityOverview')}</h1><p>{t('overviewDescription')}</p></div><div className="date-chip"><Activity size={15}/> {t('codeAnalyzerReady')}</div></div>
+        <div className="welcome" id="overview"><div><div className="eyebrow"><span className="live-dot"/> {t('securityWorkspace')}</div><h1>{t('securityOverview')}</h1><p>{t('overviewDescription')}</p></div><div className="date-chip"><Activity size={15}/> {t('codeAnalyzerReady')}</div></div>
         <div className="stats">
           <div className="stat-card"><div className="stat-top"><span>{t('auditsPerformed')}</span><ScanSearch size={18}/></div><strong>{history.length}</strong><small>{t('savedAudits')}</small></div>
           <div className="stat-card"><div className="stat-top"><span>{t('issuesDetected')}</span><LockKeyhole size={18}/></div><strong>{result?.finding_count ?? '—'}</strong><small>{result ? t('currentArchive') : t('runFirstAudit')}</small></div>
@@ -295,7 +295,7 @@ export default function App() {
         <div className="section-heading"><div><h2>{t('startAssessment')}</h2><p>{t('chooseTarget')}</p></div></div>
         <div className="scan-grid">
           <section className="panel" id="code-analyzer"><div className="panel-icon purple"><FolderCode size={21}/></div><div className="panel-title"><h3>{t('sourceAnalysis')}</h3><span className="available">{t('available')}</span></div><p>{t('sourceDescription')}</p>
-            <label className="dropzone"><UploadCloud size={26}/><b>{file ? file.name : t('dropZip')}</b><span>{file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : t('browseZip')}</span><input type="file" accept=".zip,application/zip" onChange={e => {const selected=e.target.files?.[0] ?? null;setResult(null);if(selected && selected.size > 50 * 1024 * 1024){setFile(null);setError(t('fileTooLarge));return}setFile(selected);setError('')}} /></label>
+            <label className="dropzone"><UploadCloud size={26}/><b>{file ? file.name : t('dropZip')}</b><span>{file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : t('browseZip')}</span><input type="file" accept=".zip,application/zip" onChange={e => {const selected=e.target.files?.[0] ?? null;setResult(null);if(selected && selected.size > 50 * 1024 * 1024){setFile(null);setError(t('fileTooLarge'));return}setFile(selected);setError('')}} /></label>
             <button className="primary-btn" disabled={!file || busy} onClick={runAnalysis}>{busy ? t('waitingAnalysis') : (language === 'pt-BR' ? 'Analisar arquivo-fonte' : 'Analyze source archive')} <ChevronRight size={17}/></button>
             {busy && <div className="analysis-progress"><span>{analysisStatus === 'queued' ? t('queuedStatus') : analysisStatus === 'running' ? t('runningStatus') : t('uploadingStatus')}</span>{analysisStatus === 'queued' && activeJobId && <button className="auth-switch" onClick={()=>void cancelQueuedJob()}>{t('cancelQueued')}</button>}</div>}
             {error && <div className="error">{error}</div>}
