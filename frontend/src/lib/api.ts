@@ -1,3 +1,19 @@
+export type SecurityScore = {
+  value: number
+  rating: string
+  model_version: string
+  raw_value: number
+  score_cap: number
+  is_capped: boolean
+  cap_reasons: string[]
+  confidence: string
+  finding_count: number
+  severity_counts: Record<string, number>
+  deductions: Record<string, number>
+  methodology: string
+  disclaimer: string
+}
+
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 export class ApiError extends Error {
@@ -125,6 +141,8 @@ export type AuditHistoryItem = {
 
 export type AuditDetail = AuditHistoryItem & {
   result: {
+    security_score?: SecurityScore
+
     findings?: { rule_id?: string; title?: string; severity?: string; confidence?: string; file?: string; url?: string; line?: number | null; evidence?: string; recommendation?: string; verified?: boolean; aliases?: string[]; references?: string[]; package?: { name: string; version: string; ecosystem: string } }[]
     [key: string]: unknown
   }
