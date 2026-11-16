@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import AccountRecovery from './AccountRecovery'
-import { ShieldCheck, LayoutDashboard, Globe, FolderCode, History, Settings, Bell, Search, UploadCloud, FileArchive, Activity, ChevronRight, LockKeyhole, ScanSearch, AlertTriangle } from 'lucide-react'
+import { ShieldCheck, LayoutDashboard, Globe, FolderCode, History, Settings, UploadCloud, FileArchive, Activity, ChevronRight, LockKeyhole, ScanSearch, AlertTriangle } from 'lucide-react'
 import { ApiError, authenticate, checkSession, completeMfaLogin, fetchMfaStatus, beginMfaSetup, confirmMfaSetup, disableMfa, fetchAuditDetail, fetchAuditHistory, cancelAnalysisJob, deleteAccount, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
 
 type Finding = {
@@ -200,17 +200,17 @@ export default function App() {
       <div className="brand"><div className="brand-mark"><ShieldCheck size={22}/></div><div><strong>VulnScan</strong><small>SECURITY INTELLIGENCE</small></div></div>
       <div className="nav-label">WORKSPACE</div>
       <nav>
-        <a className="active"><LayoutDashboard size={18}/> Overview</a>
+        <a className="active" href="#overview"><LayoutDashboard size={18}/> Overview</a>
         <a><Globe size={18}/> Website Scanner <span className="soon">SOON</span></a>
-        <a><FolderCode size={18}/> Code Analyzer</a>
+        <a href="#code-analyzer"><FolderCode size={18}/> Code Analyzer</a>
         <a href="#audit-history"><History size={18}/> Audit History</a>
       </nav>
-      <div className="sidebar-bottom"><a><Settings size={18}/> Settings</a><div className="profile"><div className="avatar">AV</div><div><b>Workspace</b><small>Local environment</small></div></div></div>
+      <div className="sidebar-bottom"><a href="#account-security"><Settings size={18}/> Settings</a><div className="profile"><div className="avatar">AV</div><div><b>Workspace</b><small>Local environment</small></div></div></div>
     </aside>
     <main className="main">
-      <header className="topbar"><div className="crumb">Workspace <ChevronRight size={14}/> <b>Overview</b></div><div className="top-actions"><button className="auth-logout" onClick={()=>void endSession()}>Sair</button><button className="icon-btn"><Search size={18}/></button><button className="icon-btn"><Bell size={18}/></button><div className="avatar">AV</div></div></header>
+      <header className="topbar"><div className="crumb">Workspace <ChevronRight size={14}/> <b>Overview</b></div><div className="top-actions"><button className="auth-logout" onClick={()=>void endSession()}>Sair</button><div className="avatar">AV</div></div></header>
       <section className="content">
-        <div className="welcome"><div><div className="eyebrow"><span className="live-dot"/> SECURITY WORKSPACE</div><h1>Security overview</h1><p>Find weaknesses before attackers do. Audit only codebases and websites you are authorized to test.</p></div><div className="date-chip"><Activity size={15}/> SYSTEM READY</div></div>
+        <div className="welcome" id="overview"><div><div className="eyebrow"><span className="live-dot"/> SECURITY WORKSPACE</div><h1>Security overview</h1><p>Find weaknesses before attackers do. Audit only codebases and websites you are authorized to test.</p></div><div className="date-chip"><Activity size={15}/> SYSTEM READY</div></div>
         <div className="stats">
           <div className="stat-card"><div className="stat-top"><span>Audits performed</span><ScanSearch size={18}/></div><strong>{history.length}</strong><small>Saved audits in this workspace</small></div>
           <div className="stat-card"><div className="stat-top"><span>Issues detected</span><LockKeyhole size={18}/></div><strong>{result?.finding_count ?? '—'}</strong><small>{result ? 'Current archive' : 'Run your first audit'}</small></div>
@@ -246,7 +246,7 @@ export default function App() {
         </section>
         <div className="section-heading"><div><h2>Start an assessment</h2><p>Choose a target type to begin your security review.</p></div></div>
         <div className="scan-grid">
-          <section className="panel"><div className="panel-icon purple"><FolderCode size={21}/></div><div className="panel-title"><h3>Source code analysis</h3><span className="available">AVAILABLE</span></div><p>Inspect project structure and run bounded static checks for common insecure coding patterns. Uploaded code is never executed.</p>
+          <section className="panel" id="code-analyzer"><div className="panel-icon purple"><FolderCode size={21}/></div><div className="panel-title"><h3>Source code analysis</h3><span className="available">AVAILABLE</span></div><p>Inspect project structure and run bounded static checks for common insecure coding patterns. Uploaded code is never executed.</p>
             <label className="dropzone"><UploadCloud size={26}/><b>{file ? file.name : 'Drop your ZIP file here'}</b><span>{file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : 'or click to browse · max 50 MB'}</span><input type="file" accept=".zip,application/zip" onChange={e => {const selected=e.target.files?.[0] ?? null;setResult(null);if(selected && selected.size > 50 * 1024 * 1024){setFile(null);setError('O arquivo excede o limite de 50 MB.');return}setFile(selected);setError('')}} /></label>
             <button className="primary-btn" disabled={!file || busy} onClick={runAnalysis}>{busy ? 'Waiting for analysis…' : 'Analyze source archive'} <ChevronRight size={17}/></button>
             {busy && <div className="analysis-progress"><span>{analysisStatus === 'queued' ? 'Na fila — aguardando um worker disponível…' : analysisStatus === 'running' ? 'Análise em execução…' : 'Enviando arquivo…'}</span>{analysisStatus === 'queued' && activeJobId && <button className="auth-switch" onClick={()=>void cancelQueuedJob()}>Cancelar na fila</button>}</div>}
