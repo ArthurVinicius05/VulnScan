@@ -161,7 +161,7 @@ export default function App() {
     <button type="button" className="auth-switch" onClick={()=>{setMfaChallenge('');setMfaLoginCode('');setAuthError('')}}>Voltar ao login</button>
   </form></div>
   if (!authenticated) return <div className="auth-screen"><form className="auth-card" onSubmit={submitAuth}>
-    <div className="brand-mark"><ShieldCheck size={24}/></div><h1>VulnScan Pro</h1>
+    <div className="brand-mark"><ShieldCheck size={24}/></div><h1>VulnScan</h1>
     <p>{authMode === 'login' ? 'Entre na sua conta para acessar suas auditorias.' : 'Crie sua conta para manter seu histórico privado.'}</p>
     <label>E-mail<input type="email" autoComplete="email" required maxLength={254} value={email} onChange={e=>setEmail(e.target.value)}/></label>
     <label>Senha<input type="password" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} required minLength={12} maxLength={128} value={password} onChange={e=>setPassword(e.target.value)}/></label>
@@ -194,7 +194,7 @@ export default function App() {
 
   return <div className="app-shell">
     <aside className="sidebar">
-      <div className="brand"><div className="brand-mark"><ShieldCheck size={22}/></div><div><strong>VulnScan<span> Pro</span></strong><small>SECURITY INTELLIGENCE</small></div></div>
+      <div className="brand"><div className="brand-mark"><ShieldCheck size={22}/></div><div><strong>VulnScan</strong><small>SECURITY INTELLIGENCE</small></div></div>
       <div className="nav-label">WORKSPACE</div>
       <nav>
         <a className="active"><LayoutDashboard size={18}/> Overview</a>
@@ -243,8 +243,8 @@ export default function App() {
         </section>
         <div className="section-heading"><div><h2>Start an assessment</h2><p>Choose a target type to begin your security review.</p></div></div>
         <div className="scan-grid">
-          <section className="panel"><div className="panel-icon purple"><FolderCode size={21}/></div><div className="panel-title"><h3>Source code analysis</h3><span className="available">AVAILABLE · PHASE 2</span></div><p>Inspect project structure and run bounded static checks for common insecure coding patterns. Uploaded code is never executed.</p>
-            <label className="dropzone"><UploadCloud size={26}/><b>{file ? file.name : 'Drop your ZIP file here'}</b><span>{file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : 'or click to browse · max 25 MB'}</span><input type="file" accept=".zip,application/zip" onChange={e => {setFile(e.target.files?.[0] ?? null);setResult(null);setError('')}} /></label>
+          <section className="panel"><div className="panel-icon purple"><FolderCode size={21}/></div><div className="panel-title"><h3>Source code analysis</h3><span className="available">AVAILABLE</span></div><p>Inspect project structure and run bounded static checks for common insecure coding patterns. Uploaded code is never executed.</p>
+            <label className="dropzone"><UploadCloud size={26}/><b>{file ? file.name : 'Drop your ZIP file here'}</b><span>{file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : 'or click to browse · max 50 MB'}</span><input type="file" accept=".zip,application/zip" onChange={e => {const selected=e.target.files?.[0] ?? null;setResult(null);if(selected && selected.size > 50 * 1024 * 1024){setFile(null);setError('O arquivo excede o limite de 50 MB.');return}setFile(selected);setError('')}} /></label>
             <button className="primary-btn" disabled={!file || busy} onClick={runAnalysis}>{busy ? 'Waiting for analysis…' : 'Analyze source archive'} <ChevronRight size={17}/></button>
             {busy && <div className="analysis-progress"><span>{analysisStatus === 'queued' ? 'Na fila — aguardando um worker disponível…' : analysisStatus === 'running' ? 'Análise em execução…' : 'Enviando arquivo…'}</span>{analysisStatus === 'queued' && activeJobId && <button className="auth-switch" onClick={()=>void cancelQueuedJob()}>Cancelar na fila</button>}</div>}
             {error && <div className="error">{error}</div>}
