@@ -39,7 +39,7 @@ function csrfHeaders(): Record<string, string> {
 }
 
 export async function checkSession(): Promise<boolean> {
-  try { return (await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' })).ok }
+  try { return (await fetch(`${API_URL}/api/auth/me`, { credentials: 'include', cache: 'no-store' })).ok }
   catch { return false }
 }
 
@@ -109,14 +109,14 @@ export type AuditDetail = AuditHistoryItem & {
 }
 
 export async function fetchAuditDetail(id: string): Promise<AuditDetail> {
-  const response = await fetch(`${API_URL}/api/history/${encodeURIComponent(id)}`, { credentials: 'include' })
+  const response = await fetch(`${API_URL}/api/history/${encodeURIComponent(id)}`, { credentials: 'include', cache: 'no-store' })
   const payload = await readPayload(response)
   ensureSuccess(response, payload, 'Falha ao carregar o relatório.')
   return payload as AuditDetail
 }
 
 export async function fetchAuditHistory(): Promise<AuditHistoryItem[]> {
-  const response = await fetch(`${API_URL}/api/history?limit=20&offset=0`, { credentials: 'include' })
+  const response = await fetch(`${API_URL}/api/history?limit=20&offset=0`, { credentials: 'include', cache: 'no-store' })
   const payload = await readPayload(response)
   ensureSuccess(response, payload, 'Falha ao carregar o histórico.')
   return Array.isArray(payload.items) ? payload.items : []
