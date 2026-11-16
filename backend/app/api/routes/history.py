@@ -69,6 +69,9 @@ def _finding_summary(finding: dict) -> dict:
         value = finding.get(key)
         if value is not None and str(value).strip():
             summary[key] = str(value)[:512]
+    line = finding.get("line")
+    if isinstance(line, int) and line > 0:
+        summary["line"] = line
     package = finding.get("package")
     if isinstance(package, dict) and package.get("name"):
         summary["package"] = {
