@@ -310,6 +310,11 @@ export default function App() {
             </div>}
           </div>
         </section>
+        <section className="panel settings-preferences" id="settings-preferences">
+          <div className="section-heading"><div><h3>{t('preferences')}</h3><p>{t('preferencesDescription')}</p></div></div>
+          <div className="settings-preference-row"><div><b>{t('appearance')}</b><small>{language === 'pt-BR' ? 'Claro ou escuro' : 'Light or dark'}</small></div><ThemeToggle theme={theme} onChange={setTheme} language={language}/></div>
+          <div className="settings-preference-row"><div><b>{t('interfaceLanguage')}</b><small>{language === 'pt-BR' ? 'Português ou inglês' : 'Portuguese or English'}</small></div><LanguageToggle language={language} onChange={setLanguage}/></div>
+        </section>
         <div className="section-heading"><div><h2>{t('startAssessment')}</h2><p>{t('chooseTarget')}</p></div></div>
         <div className="scan-grid">
           <section className="panel" id="code-analyzer"><div className="panel-icon purple"><FolderCode size={21}/></div><div className="panel-title"><h3>{t('sourceAnalysis')}</h3><span className="available">{t('available')}</span></div><p>{t('sourceDescription')}</p>
