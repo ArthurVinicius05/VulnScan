@@ -470,3 +470,23 @@ nav a.nav-disabled {
   nav a .soon { display: none; }
   .sidebar-bottom>a { display: flex; justify-content: center; padding: 0; font-size: 0; }
 }
+
+
+.settings-preferences { margin-top: 14px; }
+.settings-preference-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 0;
+  border-top: 1px solid #263753;
+}
+.settings-preference-row > div:first-child { display: grid; gap: 4px; }
+.settings-preference-row b { color: #dce6f7; font-size: 12px; }
+.settings-preference-row small { color: #8492aa; font-size: 10px; }
+:root[data-theme="light"] .settings-preference-row { border-top-color: #dce4ef; }
+:root[data-theme="light"] .settings-preference-row b { color: #263449; }
+:root[data-theme="light"] .settings-preference-row small { color: #52627a; }
+@media(max-width:420px) {
+  .settings-preference-row { align-items: flex-start; flex-direction: column; }
+}
