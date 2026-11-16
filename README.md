@@ -155,7 +155,8 @@ Consulte:
 - SECURITY.md — divulgação responsável.
 - PRIVACY.md — rascunho de privacidade e retenção.
 - TERMS.md — termos e escopo de uso.
-- docs/ARCHITECTURE.md — arquitetura.\n- docs/TESTING.md — inicialização local e roteiro de testes manuais.
+- docs/ARCHITECTURE.md — arquitetura.
+- docs/TESTING.md — inicialização local e roteiro de testes manuais.
 - docs/PRODUCTION_READINESS.md — gates de lançamento.
 - docs/OPERATIONS_RUNBOOK.md — procedimentos de implantação, egress, TLS, backups e resposta a incidentes.
 - docs/DEPENDENCY_MANAGEMENT.md — atualização e validação de dependências.
