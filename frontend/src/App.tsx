@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useState, type FormEvent } from 'react'
 import AccountRecovery from './AccountRecovery'
 import LanguageToggle from './LanguageToggle'
 import ThemeToggle, { type Theme } from './ThemeToggle'
@@ -116,7 +116,7 @@ export default function App() {
     finally { setDetailBusy(false) }
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.dataset.theme = theme
     document.documentElement.style.colorScheme = theme
     try { window.localStorage.setItem('vulnscan-theme', theme) } catch { /* Storage may be unavailable. */ }
