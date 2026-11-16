@@ -289,7 +289,10 @@ def get_current_user(request: Request,
 
 
 @router.get("/me")
-def me(user: User = Depends(get_current_user)):
+def me(response: Response, user: User = Depends(get_current_user)):
+    response.headers["Cache-Control"] = "private, no-store, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
     return {"id": user.id, "email": user.email,
         "email_verified": user.email_verified_at is not None, "mfa_enabled": user.mfa_enabled}
 
