@@ -10,6 +10,7 @@ SEVERITY_PENALTIES = {
     "medium": 7.0,
     "low": 2.5,
     "informational": 0.5,
+    "unknown": 2.0,
 }
 CONFIDENCE_FACTORS = {"high": 1.0, "medium": 0.75, "low": 0.5}
 
@@ -40,6 +41,9 @@ def calculate_security_score(
     coverage_data = coverage or {}
     heuristic_coverage = coverage_data.get("heuristics") or {}
 
+    if heuristic_coverage.get("candidate_files") == 0:
+        score_cap = min(score_cap, 70)
+        cap_reasons.append("no_eligible_source_files")
     if analysis_status != "completed":
         score_cap = min(score_cap, 85)
         cap_reasons.append("analysis_not_fully_completed")
