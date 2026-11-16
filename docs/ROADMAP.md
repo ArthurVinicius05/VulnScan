@@ -17,12 +17,15 @@ A visão oficial, os limites de escopo e os princípios do produto estão em [PR
 
 ## Priority 1 — trust, privacy and reliability
 
-- [ ] Reproduce and resolve the reported account deletion / old-history reappearance scenario.
+- [ ] Reproduce the reported account deletion / old-history reappearance scenario in the user's local environment and validate cache/session behavior end to end.
 - [x] Add regression tests proving that re-registering with the same email cannot access prior account data.
 - [x] Verify sensitive history responses use appropriate private no-store cache controls.
 - [ ] Validate deletion behavior across live records, logs and backup-retention disclosures.
 
 ## Priority 2 — existing web experience
+
+- [x] Clear account-scoped workspace, report, MFA and upload state on logout, session expiry, account deletion and account changes.
+- [x] Remove the remaining legacy Pro label from the workspace footer and avoid implying the website scanner is ready.
 
 - [ ] Reorganize Workspace, Code Analyzer, Website Scanner and Audit History navigation.
 - [ ] Move account security, MFA and deletion into functional Settings sections.

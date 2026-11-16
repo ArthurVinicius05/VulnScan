@@ -117,3 +117,71 @@ def test_deleted_account_can_register_again_without_old_history(tmp_path):
     finally:
         app.dependency_overrides.clear()
         engine.dispose()
+
+
+
+def test_authenticated_account_response_is_not_cacheable(client):
+    created = client.post("/api/auth/register", json={
+        "email": "cache@example.com",
+        "password": "correct horse battery staple",
+    })
+    assert created.status_code == 201
+
+    response = client.get("/api/auth/me")
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "private, no-store, max-age=0"
+    assert response.headers["pragma"] == "no-cache"
+    assert response.headers["expires"] == "0"
+
+
+def test_history_is_private_and_isolated_between_accounts(client):
+    first = client.post("/api/auth/register", json={
+        "email": "first@example.com",
+        "password": "correct horse battery staple",
+    })
+    assert first.status_code == 201
+    first_user_id = first.json()["user"]["id"]
+
+    db_generator = app.dependency_overrides[get_db]()
+    db = next(db_generator)
+    try:
+        record = AuditRecord(
+            user_id=first_user_id,
+            analysis_type="static_source_analysis",
+            target="first-account-private-project.zip",
+            status="completed",
+            finding_count=1,
+            result={"findings": [{"rule_id": "PRIVATE001"}]},
+        )
+        db.add(record)
+        db.commit()
+        record_id = record.id
+    finally:
+        db_generator.close()
+
+    own_history = client.get("/api/history")
+    assert own_history.status_code == 200
+    assert len(own_history.json()["items"]) == 1
+    assert own_history.headers["cache-control"] == "private, no-store, max-age=0"
+
+    own_detail = client.get(f"/api/history/{record_id}")
+    assert own_detail.status_code == 200
+    assert own_detail.headers["cache-control"] == "private, no-store, max-age=0"
+
+    csrf = client.cookies.get("vulnscan_csrf")
+    assert client.post("/api/auth/logout", headers={"X-CSRF-Token": csrf}).status_code == 204
+    second = client.post("/api/auth/register", json={
+        "email": "second@example.com",
+        "password": "correct horse battery staple",
+    })
+    assert second.status_code == 201
+    assert second.json()["user"]["id"] != first_user_id
+
+    other_history = client.get("/api/history")
+    assert other_history.status_code == 200
+    assert other_history.json()["items"] == []
+    assert other_history.headers["cache-control"] == "private, no-store, max-age=0"
+
+    other_detail = client.get(f"/api/history/{record_id}")
+    assert other_detail.status_code == 404
+    assert other_detail.headers["cache-control"] == "private, no-store, max-age=0"
