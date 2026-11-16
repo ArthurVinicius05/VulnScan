@@ -74,6 +74,31 @@ def test_queued_archive_storage_is_bounded_per_account(queue_db, monkeypatch):
             enqueue_analysis(db, user_id=user_id, filename="five.zip", archive_data=b"x" * (5 * 1024 * 1024))
 
 
+def test_worker_skips_queue_rows_whose_account_no_longer_exists(queue_db):
+    sessions, _ = queue_db
+    with sessions() as db:
+        orphan = AnalysisJob(
+            user_id="deleted-account-id",
+            filename="orphan.zip",
+            status="queued",
+            archive_data=b"private-upload",
+            attempts=0,
+            max_attempts=3,
+            created_at=datetime.now(timezone.utc),
+            available_at=datetime.now(timezone.utc),
+        )
+        db.add(orphan)
+        db.commit()
+        orphan_id = orphan.id
+
+    assert claim_next_job() is None
+    with sessions() as db:
+        orphan = db.get(AnalysisJob, orphan_id)
+        assert orphan is not None
+        assert orphan.status == "queued"
+        assert orphan.archive_data == b"private-upload"
+
+
 def test_claim_marks_job_running_and_retry_requeues(queue_db):
     sessions, user_id = queue_db
     with sessions() as db:
