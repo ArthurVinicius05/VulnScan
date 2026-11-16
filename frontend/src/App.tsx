@@ -286,7 +286,7 @@ export default function App() {
             {!deleteAccountOpen ? <button className="secondary-btn" onClick={()=>setDeleteAccountOpen(true)}>{t('deleteAccount')}</button> : <div>
               <p>{t('deleteAccountWarning')}</p>
               <label>{t('currentPassword')}<input type="password" autoComplete="current-password" value={deletePassword} onChange={e=>setDeletePassword(e.target.value)} maxLength={128}/></label>
-              {mfaEnabled && <label>Authenticator or recovery code<input value={deleteMfaCode} onChange={e=>setDeleteMfaCode(e.target.value)} maxLength={64}/></label>}
+              {mfaEnabled && <label>{t('authenticatorOrRecovery')}<input value={deleteMfaCode} onChange={e=>setDeleteMfaCode(e.target.value)} maxLength={64}/></label>}
               <button className="secondary-btn" disabled={deletePassword.length < 12 || (mfaEnabled && deleteMfaCode.length < 6)} onClick={()=>void removeAccount()}>{t('permanentlyDelete')}</button>
               <button className="auth-switch" onClick={()=>{setDeleteAccountOpen(false);setDeletePassword('');setDeleteMfaCode('')}}>{t('cancel')}</button>
             </div>}
@@ -301,8 +301,8 @@ export default function App() {
             {error && <div className="error">{error}</div>}
             {result && <div className="result"><b><FileArchive size={16}/> {result.status === 'partial' ? t('partialAnalysis') : result.status === 'failed' ? t('failedAnalysis') : t('completedAnalysis')}</b>{result.status === 'partial' && <div className="error">{t('partialCoverage')}</div>}<p>{result.file_count} {t('files')} · {result.detected_technologies.join(', ') || t('noStackMarkers')}</p><small>{result.notice}</small>
               <div className="findings-summary"><AlertTriangle size={16}/> {result.finding_count} {t('potentialFindings')}</div>
-              {result.scanner_tools && <div className="tool-status"><b>{t('staticTools')}</b>{result.scanner_tools.tools.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {tool.status}{tool.files_scanned !== undefined ? ' · ' + tool.files_scanned + '/' + (tool.files_available ?? tool.files_scanned) + ' files' : ''}</span>)}{result.scanner_tools.security_tools?.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {tool.status}{tool.coverage?.truncated ? ' · {t('limitedCoverage')}' : ''}{tool.reason ? ' · ' + tool.reason : ''}</span>)}</div>}
-              {result.coverage && <div className="dependency-inventory"><b>{t('coverage')}</b><span>{t('heuristics')}:  {result.coverage.heuristics?.candidate_files ?? 0} candidate files · {result.coverage.heuristics?.files_over_file_limit ?? 0} {t('overFileLimit')} · {result.coverage.heuristics?.files_over_total_limit ?? 0} {t('overTotalLimit')}</span>{result.coverage.python_tools && <span>{t('pythonScanners')}:  {result.coverage.python_tools.python_files_scanned ?? 0}/{result.coverage.python_tools.python_files_available ?? 0} files</span>}</div>}
+              {result.scanner_tools && <div className="tool-status"><b>{t('staticTools')}</b>{result.scanner_tools.tools.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {tool.status}{tool.files_scanned !== undefined ? ' · ' + tool.files_scanned + '/' + (tool.files_available ?? tool.files_scanned) + ' ' + t('files') : ''}</span>)}{result.scanner_tools.security_tools?.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {tool.status}{tool.coverage?.truncated ? ' · ' + t('limitedCoverage') : ''}{tool.reason ? ' · ' + tool.reason : ''}</span>)}</div>}
+              {result.coverage && <div className="dependency-inventory"><b>{t('coverage')}</b><span>{t('heuristics')}:  {result.coverage.heuristics?.candidate_files ?? 0} {t('files')} · {result.coverage.heuristics?.files_over_file_limit ?? 0} {t('overFileLimit')} · {result.coverage.heuristics?.files_over_total_limit ?? 0} {t('overTotalLimit')}</span>{result.coverage.python_tools && <span>{t('pythonScanners')}:  {result.coverage.python_tools.python_files_scanned ?? 0}/{result.coverage.python_tools.python_files_available ?? 0} {t('files')}</span>}</div>}
               {result.dependencies && <div className="dependency-inventory">
                 <b>{t('dependencyManifests')} · {result.dependencies.manifest_count}</b>
                 <small>{result.dependencies.notice}</small>
@@ -312,7 +312,7 @@ export default function App() {
                 <div className="finding-heading"><b>{finding.title}</b><span className={'severity ' + finding.severity}>{finding.severity.toUpperCase()}</span></div>
                 <small>{finding.rule_id} · {finding.file}:{finding.line ?? '—'} · {t('confidence')}: {finding.confidence} · {t('notVerified')}</small>
                 {finding.package && <small>{finding.package.ecosystem}:{finding.package.name}@{finding.package.version}</small>}
-                {finding.aliases?.length ? <small>Aliases: {finding.aliases.join(', ')}</small> : null}
+                {finding.aliases?.length ? <small>{language === 'pt-BR' ? 'Apelidos' : 'Aliases'}: {finding.aliases.join(', ')}</small> : null}
                 {finding.references?.map(url => <small key={url}><a href={url} target="_blank" rel="noreferrer">{t('advisoryReference')}</a></small>)}
                 <pre>{finding.evidence}</pre><p>{finding.recommendation}</p>
               </article>)}
