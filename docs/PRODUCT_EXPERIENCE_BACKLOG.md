@@ -14,7 +14,7 @@ This backlog records the product feedback collected during the first hands-on re
 - [x] Explain required server-side configuration when MFA cannot be initialized; never ask users to invent or paste arbitrary secrets.
 - [ ] Keep MFA setup guided: show authenticator enrollment, verification, recovery-code handling, and clear failure/retry states.
 - [ ] Make audit details a distinct report view, not a duplicate copy of the current scan result.
-- [ ] Add a report export action (JSON first; evaluate PDF/HTML after format and privacy review).
+- [x] Add a report export action (JSON first; evaluate PDF/HTML after format and privacy review).
 - [ ] Improve empty, loading, partial-coverage, failed, and success states throughout the application.
 
 ## P0 — Website Scanner
