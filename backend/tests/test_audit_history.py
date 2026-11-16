@@ -112,14 +112,14 @@ def test_audit_comparison_reports_added_resolved_and_score_delta(audit_client):
     baseline_id = audit_history.save_audit(
         user_id=user_id, analysis_type="static_source_analysis", target="project.zip",
         result={"findings": [
-            {"rule_id": "A", "file": "app.py", "title": "Issue A", "severity": "high"},
+            {"rule_id": "A", "file": "app.py", "line": 20, "title": "Issue A", "severity": "high"},
             {"rule_id": "B", "file": "db.py", "title": "Issue B", "severity": "medium"},
         ], "security_score": {"value": 70, "model_version": "1.0"}},
     )
     candidate_id = audit_history.save_audit(
         user_id=user_id, analysis_type="static_source_analysis", target="project.zip",
         result={"findings": [
-            {"rule_id": "A", "file": "app.py", "title": "Issue A", "severity": "high"},
+            {"rule_id": "A", "file": "app.py", "line": 45, "title": "Issue A", "severity": "high"},
             {"rule_id": "C", "file": "web.py", "title": "Issue C", "severity": "low"},
         ], "security_score": {"value": 82, "model_version": "1.0"}},
     )
@@ -200,3 +200,16 @@ def test_audit_comparison_only_compares_matching_score_model_versions(audit_clie
     assert response.status_code == 200
     assert response.json()["score"]["comparable"] is False
     assert response.json()["score"]["delta"] is None
+
+
+
+def test_audit_comparison_requires_authentication(audit_client):
+    client, _, user_id = audit_client
+    baseline_id = audit_history.save_audit(
+        user_id=user_id, analysis_type="static_source_analysis", target="project.zip", result={"findings": []}
+    )
+    candidate_id = audit_history.save_audit(
+        user_id=user_id, analysis_type="static_source_analysis", target="project.zip", result={"findings": []}
+    )
+    client.cookies.delete("vulnscan_session")
+    assert client.get(f"/api/history/compare/{baseline_id}/{candidate_id}").status_code == 401
