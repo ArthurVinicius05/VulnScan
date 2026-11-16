@@ -490,3 +490,6 @@ nav a.nav-disabled {
 @media(max-width:420px) {
   .settings-preference-row { align-items: flex-start; flex-direction: column; }
 }
+
+.sidebar-bottom>a.active { background:#172747; color:#7bc9ff; border:1px solid #25416b; }
+:root[data-theme="light"] .sidebar-bottom>a.active { background:#e7f0fb; color:#175b91; border-color:#c5d9ef; }
