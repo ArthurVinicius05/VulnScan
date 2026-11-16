@@ -134,7 +134,7 @@ O script valida o checksum, descriptografa e executa pg_restore. Faça exercíci
 ## CI e testes
 
 O workflow CI:
-- Verifica que os lockfiles Python com hashes e npm lockfile estão versionados e sincronizados com os manifests; no push à branch de trabalho, atualiza lockfiles quando necessário.
+- Verifica que os lockfiles Python com hashes e npm lockfile estão versionados e sincronizados com os manifests; se houver drift, o job falha e publica os lockfiles gerados como artefato para revisão.
 - Instala dependências com --require-hashes e npm ci.
 - Executa testes backend, testes de integração PostgreSQL e smoke test de backup/restauração criptografados.
 - Faz build das imagens backend, frontend, SMTP proxy, website worker e OSV worker.
@@ -155,7 +155,7 @@ Consulte:
 - SECURITY.md — divulgação responsável.
 - PRIVACY.md — rascunho de privacidade e retenção.
 - TERMS.md — termos e escopo de uso.
-- docs/ARCHITECTURE.md — arquitetura.
+- docs/ARCHITECTURE.md — arquitetura.\n- docs/TESTING.md — inicialização local e roteiro de testes manuais.
 - docs/PRODUCTION_READINESS.md — gates de lançamento.
 - docs/OPERATIONS_RUNBOOK.md — procedimentos de implantação, egress, TLS, backups e resposta a incidentes.
 - docs/DEPENDENCY_MANAGEMENT.md — atualização e validação de dependências.
