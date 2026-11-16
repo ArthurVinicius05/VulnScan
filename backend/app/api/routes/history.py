@@ -41,7 +41,8 @@ def get_audit(audit_id: str, response: Response, db: Session = Depends(get_db), 
     _set_private_no_store(response)
     record = db.scalar(select(AuditRecord).where(AuditRecord.id == audit_id, AuditRecord.user_id == user.id))
     if record is None:
-        raise HTTPException(status_code=404, detail="Análise não encontrada.")
+        response.status_code = 404
+        return {"detail": "Análise não encontrada."}
     return {"id": record.id, "analysis_type": record.analysis_type, "target": record.target,
         "status": record.status, "finding_count": record.finding_count,
         "created_at": record.created_at.isoformat(), "result": record.result}
