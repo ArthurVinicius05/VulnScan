@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { requestPasswordReset, resetPassword, verifyEmail, resendVerification } from './lib/api'
 import LanguageToggle from './LanguageToggle'
+import ThemeToggle, { type Theme } from './ThemeToggle'
 import type { Language } from './i18n'
 
-type Props = { onBack: () => void; language: Language; onLanguageChange: (language: Language) => void }
+type Props = { onBack: () => void; language: Language; onLanguageChange: (language: Language) => void; theme: Theme; onThemeChange: (theme: Theme) => void }
 
-export default function AccountRecovery({ onBack, language, onLanguageChange }: Props) {
+export default function AccountRecovery({ onBack, language, onLanguageChange, theme, onThemeChange }: Props) {
   const params = new URLSearchParams(window.location.hash.replace(/^#/, ''))
   const verifyToken = params.get('verify') ?? ''
   const resetToken = params.get('reset') ?? ''
@@ -36,7 +37,7 @@ export default function AccountRecovery({ onBack, language, onLanguageChange }: 
   }
 
   return <div className="auth-screen">
-    <div className="auth-language"><LanguageToggle language={language} onChange={onLanguageChange}/></div>
+    <div className="auth-language auth-controls"><ThemeToggle theme={theme} onChange={onThemeChange} language={language}/><LanguageToggle language={language} onChange={onLanguageChange}/></div>
     <form className="auth-card" onSubmit={run}>
       <div className="brand-mark">V</div>
       <h1>{verifyToken ? (pt ? 'Confirmar e-mail' : 'Confirm email') : resetToken ? (pt ? 'Nova senha' : 'New password') : (pt ? 'Recuperar acesso' : 'Recover access')}</h1>
