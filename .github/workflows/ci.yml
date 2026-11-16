@@ -34,7 +34,7 @@ jobs:
         run: |
           git ls-files --error-unmatch backend/requirements.lock frontend/package-lock.json
           git diff --exit-code -- backend/requirements.lock frontend/package-lock.json
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vulnscan-dependency-lockfiles
           path: |
@@ -52,7 +52,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y skopeo
       - name: Verify pinned image digests against registry
         run: python scripts/check_image_digests.py --verify-registry
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vulnscan-image-digests
           path: images.lock
