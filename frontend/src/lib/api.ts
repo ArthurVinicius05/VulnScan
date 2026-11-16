@@ -265,7 +265,7 @@ export type AuditComparison = {
   baseline: { id: string; target: string; created_at: string }
   candidate: { id: string; target: string; created_at: string }
   findings: { details_available: boolean; added: number; resolved: number; unchanged: number; baseline_total: number; candidate_total: number }
-  finding_diffs: { added: { rule_id?: string; title?: string; severity?: string; confidence?: string; file?: string; url?: string; package?: { name: string; version: string; ecosystem: string }; aliases?: string[] }[]; resolved: { rule_id?: string; title?: string; severity?: string; confidence?: string; file?: string; url?: string; package?: { name: string; version: string; ecosystem: string }; aliases?: string[] }[]; added_omitted: number; resolved_omitted: number }
+  finding_diffs: { added: { rule_id?: string; title?: string; severity?: string; confidence?: string; file?: string; url?: string; line?: number; package?: { name: string; version: string; ecosystem: string }; aliases?: string[] }[]; resolved: { rule_id?: string; title?: string; severity?: string; confidence?: string; file?: string; url?: string; package?: { name: string; version: string; ecosystem: string }; aliases?: string[] }[]; added_omitted: number; resolved_omitted: number }
   severity_delta: Record<string, { baseline: number; candidate: number; delta: number }>
   score: { comparable: boolean; baseline: number | null; candidate: number | null; delta: number | null; model_version: string | null }
 }
