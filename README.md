@@ -155,7 +155,8 @@ Consulte:
 - SECURITY.md — divulgação responsável.
 - PRIVACY.md — rascunho de privacidade e retenção.
 - TERMS.md — termos e escopo de uso.
-- docs/PRODUCT_VISION.md — visão oficial do produto, plataformas e roadmap funcional.\n- docs/ARCHITECTURE.md — arquitetura.
+- docs/PRODUCT_VISION.md — visão oficial do produto, plataformas e roadmap funcional.
+- docs/ARCHITECTURE.md — arquitetura.
 - docs/TESTING.md — inicialização local e roteiro de testes manuais.
 - docs/PRODUCTION_READINESS.md — gates de lançamento.
 - docs/OPERATIONS_RUNBOOK.md — procedimentos de implantação, egress, TLS, backups e resposta a incidentes.
