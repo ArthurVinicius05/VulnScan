@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import AccountRecovery from './AccountRecovery'
 import { ShieldCheck, LayoutDashboard, Globe, FolderCode, History, Settings, UploadCloud, FileArchive, Activity, ChevronRight, LockKeyhole, ScanSearch, AlertTriangle } from 'lucide-react'
-import { ApiError, authenticate, checkSession, completeMfaLogin, fetchMfaStatus, beginMfaSetup, confirmMfaSetup, disableMfa, fetchAuditDetail, fetchAuditHistory, cancelAnalysisJob, deleteAccount, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
+import { ApiError, authenticate, checkSession, completeMfaLogin, fetchAccountInfo, beginMfaSetup, confirmMfaSetup, disableMfa, fetchAuditDetail, fetchAuditHistory, cancelAnalysisJob, deleteAccount, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
 
 type Finding = {
   rule_id: string
@@ -58,6 +58,8 @@ export default function App() {
   const [mfaChallenge, setMfaChallenge] = useState('')
   const [mfaLoginCode, setMfaLoginCode] = useState('')
   const [mfaEnabled, setMfaEnabled] = useState(false)
+  const [accountEmail, setAccountEmail] = useState('')
+  const [emailVerified, setEmailVerified] = useState(false)
   const [mfaSetup, setMfaSetup] = useState<{ secret: string; otpauth_url: string } | null>(null)
   const [mfaRecoveryCodes, setMfaRecoveryCodes] = useState<string[]>([])
   const [mfaActionCode, setMfaActionCode] = useState('')
@@ -78,6 +80,8 @@ export default function App() {
     setBusy(false)
     setAnalysisStatus('')
     setMfaEnabled(false)
+    setAccountEmail('')
+    setEmailVerified(false)
     setMfaSetup(null)
     setMfaRecoveryCodes([])
     setMfaActionCode('')
@@ -103,7 +107,22 @@ export default function App() {
   useEffect(() => {
     void checkSession().then(setAuthenticated).catch(() => setAuthenticated(false)).finally(() => setAuthChecking(false))
   }, [])
-  useEffect(() => { if (authenticated) { void refreshHistory(); void fetchMfaStatus().then(setMfaEnabled).catch(() => setMfaError('Não foi possível consultar o status de MFA.')) } }, [authenticated])
+  useEffect(() => {
+    if (!authenticated) return
+    void refreshHistory()
+    void fetchAccountInfo().then(account => {
+      setAccountEmail(account.email)
+      setEmailVerified(account.email_verified)
+      setMfaEnabled(account.mfa_enabled)
+    }).catch(e => {
+      if (e instanceof ApiError && e.status === 401) {
+        clearWorkspaceState()
+        setAuthenticated(false)
+      } else {
+        setMfaError(e instanceof Error ? e.message : 'Não foi possível consultar os dados da conta.')
+      }
+    })
+  }, [authenticated])
 
   async function submitAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setAuthBusy(true); setAuthError('')
@@ -225,10 +244,10 @@ export default function App() {
         <a href="#code-analyzer"><FolderCode size={18}/> Code Analyzer</a>
         <a href="#audit-history"><History size={18}/> Audit History</a>
       </nav>
-      <div className="sidebar-bottom"><a href="#account-security"><Settings size={18}/> Settings</a><div className="profile"><div className="avatar">AV</div><div><b>Workspace</b><small>Local environment</small></div></div></div>
+      <div className="sidebar-bottom"><a href="#account-security"><Settings size={18}/> Settings</a><div className="profile"><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><div><b>{accountEmail || "Conta"}</b><small>{emailVerified ? "E-mail verificado" : "E-mail não verificado"}</small></div></div></div>
     </aside>
     <main className="main">
-      <header className="topbar"><div className="crumb">Workspace <ChevronRight size={14}/> <b>Overview</b></div><div className="top-actions"><button className="auth-logout" onClick={()=>void endSession()}>Sair</button><div className="avatar">AV</div></div></header>
+      <header className="topbar"><div className="crumb">Workspace <ChevronRight size={14}/> <b>Overview</b></div><div className="top-actions"><details className="profile-menu"><summary><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><span>Conta</span></summary><div className="profile-menu-content"><b>{accountEmail || "Conta"}</b><small>{emailVerified ? "E-mail verificado" : "E-mail não verificado"}</small><a href="#account-security">Segurança e configurações</a><button type="button" onClick={()=>void endSession()}>Sair da conta</button></div></details></div></header>
       <section className="content">
         <div className="welcome" id="overview"><div><div className="eyebrow"><span className="live-dot"/> SECURITY WORKSPACE</div><h1>Security overview</h1><p>Find weaknesses before attackers do. Audit only codebases and websites you are authorized to test.</p></div><div className="date-chip"><Activity size={15}/> CODE ANALYZER READY</div></div>
         <div className="stats">
