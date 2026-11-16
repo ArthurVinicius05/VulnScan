@@ -271,7 +271,7 @@ export type AuditComparison = {
 
 export async function compareAudits(baselineId: string, candidateId: string): Promise<AuditComparison> {
   const response = await fetch(
-    \`\${API_URL}/api/history/compare/\${encodeURIComponent(baselineId)}/\${encodeURIComponent(candidateId)}\`,
+    API_URL + '/api/history/compare/' + encodeURIComponent(baselineId) + '/' + encodeURIComponent(candidateId),
     { credentials: 'include', cache: 'no-store' },
   )
   const payload = await readPayload(response)
