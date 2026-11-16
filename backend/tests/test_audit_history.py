@@ -132,6 +132,9 @@ def test_audit_comparison_reports_added_resolved_and_score_delta(audit_client):
     assert payload["score"] == {
         "comparable": True, "baseline": 70, "candidate": 82, "delta": 12, "model_version": "1.0"
     }
+    assert payload["finding_diffs"]["added"][0]["rule_id"] == "C"
+    assert payload["finding_diffs"]["resolved"][0]["rule_id"] == "B"
+    assert "evidence" not in payload["finding_diffs"]["added"][0]
     assert response.headers["cache-control"] == "private, no-store, max-age=0"
 
 
@@ -213,3 +216,27 @@ def test_audit_comparison_requires_authentication(audit_client):
     )
     client.cookies.delete("vulnscan_session")
     assert client.get(f"/api/history/compare/{baseline_id}/{candidate_id}").status_code == 401
+
+
+
+def test_audit_comparison_bounds_finding_detail_payload(audit_client):
+    client, _, user_id = audit_client
+    baseline_id = audit_history.save_audit(
+        user_id=user_id, analysis_type="static_source_analysis", target="project.zip", result={"findings": []}
+    )
+    candidate_findings = [
+        {"rule_id": f"RULE-{index}", "file": f"file-{index}.py", "title": f"Issue {index}", "severity": "low",
+         "evidence": "must not be copied into the comparison response"}
+        for index in range(55)
+    ]
+    candidate_id = audit_history.save_audit(
+        user_id=user_id, analysis_type="static_source_analysis", target="project.zip",
+        result={"findings": candidate_findings},
+    )
+    response = client.get(f"/api/history/compare/{baseline_id}/{candidate_id}")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["findings"]["added"] == 55
+    assert len(payload["finding_diffs"]["added"]) == 50
+    assert payload["finding_diffs"]["added_omitted"] == 5
+    assert all("evidence" not in item for item in payload["finding_diffs"]["added"])
