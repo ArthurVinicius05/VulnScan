@@ -48,7 +48,7 @@ export default function FindingCard({ finding, language }: Props) {
     <div className="finding-meta">
       {finding.rule_id && <span>{finding.rule_id}</span>}
       {location && <span>{location}{finding.line ? ':' + finding.line : ''}</span>}
-      {finding.confidence && <span>{t('confidence')}: {finding.confidence}</span>}
+      {finding.confidence && <span>{t('confidence')}: {translateSeverity(language, finding.confidence)}</span>}
       {finding.verified !== undefined && <span>{finding.verified ? t('verified') : t('notVerified')}</span>}
     </div>
     {finding.package && <small>{finding.package.ecosystem}:{finding.package.name}@{finding.package.version}</small>}
