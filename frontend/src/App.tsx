@@ -171,7 +171,7 @@ export default function App() {
     } catch (e) { setMfaError(e instanceof Error ? e.message : 'Não foi possível excluir a conta.') }
   }
 
-  async function endSession() { try { await logout() } finally { clearWorkspaceState(); setAuthenticated(false) } }
+  async function endSession() { let logoutFailed = false; try { await logout() } catch { logoutFailed = true } finally { clearWorkspaceState(); setAuthenticated(false) } if (logoutFailed) setAuthNotice('A interface foi limpa, mas não foi possível confirmar a revogação da sessão no servidor. Verifique sua conexão e tente entrar novamente.') }
 
   if (authChecking) return <div className="auth-screen"><p>Verificando sessão…</p></div>
   if (!authenticated && (showRecovery || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('verify') || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('reset'))) return <AccountRecovery onBack={() => { setShowRecovery(false); window.history.replaceState({}, '', window.location.pathname) }} />
