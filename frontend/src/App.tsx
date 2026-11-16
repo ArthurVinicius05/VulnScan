@@ -240,7 +240,10 @@ export default function App() {
   async function startMfaSetup() {
     setMfaError(''); setMfaMessage(''); setMfaRecoveryCodes([])
     try { setMfaSetup(await beginMfaSetup()) }
-    catch (e) { setMfaError(e instanceof Error ? e.message : t('mfaSetupFailed')) }
+    catch (e) {
+      const message = e instanceof Error ? e.message : t('mfaSetupFailed')
+      setMfaError(message.includes('MFA_ENCRYPTION_KEY') ? t('mfaKeyMissing') : message)
+    }
   }
 
   async function activateMfa() {
@@ -390,6 +393,7 @@ export default function App() {
         <div className="scan-grid">
           <section className="panel" id="code-analyzer"><div className="panel-icon purple"><FolderCode size={21}/></div><div className="panel-title"><h3>{t('sourceAnalysis')}</h3><span className="available">{t('available')}</span></div><p>{t('sourceDescription')}</p>
             <label className="dropzone"><UploadCloud size={26}/><b>{file ? file.name : t('dropZip')}</b><span>{file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : t('browseZip')}</span><input type="file" accept=".zip,application/zip" onChange={e => {const selected=e.target.files?.[0] ?? null;setResult(null);if(selected && selected.size > 100 * 1024 * 1024){setFile(null);setError(t('fileTooLarge'));return}setFile(selected);setError('')}} /></label>
+            <small className="source-archive-notice">{t('sourceArchiveNotice')}</small>
             <button className="primary-btn" disabled={!file || busy} onClick={runAnalysis}>{busy ? t('waitingAnalysis') : (language === 'pt-BR' ? 'Analisar arquivo-fonte' : 'Analyze source archive')} <ChevronRight size={17}/></button>
             {busy && <div className="analysis-progress"><span>{analysisStatus === 'queued' ? t('queuedStatus') : analysisStatus === 'running' ? t('runningStatus') : t('uploadingStatus')}</span>{analysisStatus === 'queued' && activeJobId && <button className="auth-switch" onClick={()=>void cancelQueuedJob()}>{t('cancelQueued')}</button>}</div>}
             {error && <div className="error">{error}</div>}
@@ -418,6 +422,7 @@ export default function App() {
             <button className="primary-btn" disabled={websiteBusy || !websiteAuthorized || !websiteUrl.trim()}>{websiteBusy ? t('websiteScanning') : t('websiteScanButton')} <ChevronRight size={17}/></button>
           </form>
           <div className="safety-note"><LockKeyhole size={15}/> {t('websiteResultNotice')}</div>
+          <div className="website-local-help">{t('websiteDisabledHelp')}</div>
           <div className="website-local-help">{t('websiteDisabledHelp')}</div>
           {websiteError && <div className="error">{websiteError}</div>}
           {websiteResult && <div className="website-result"><h2>{t('websiteScanResult')}</h2><p><b>{websiteResult.target ?? websiteUrl}</b></p><div className="website-result-meta"><span>{t('websiteHttpStatus')}: {websiteResult.http_status ?? '—'}</span>{websiteResult.tls?.version && <span>{t('websiteTls')}: {websiteResult.tls.version}</span>}</div>{websiteResult.redirect_chain?.length ? <div><b>{t('websiteRedirects')}</b><ol>{websiteResult.redirect_chain.map((url,index)=><li key={url+index}>{url}</li>)}</ol></div> : null}<p>{websiteResult.finding_count ?? 0} {t('potentialFindings')}</p>{websiteResult.findings?.length ? websiteResult.findings.map((finding,index)=><article className="website-finding" key={finding.rule_id+index}><div className="finding-heading"><b>{finding.title}</b><span className={'severity '+finding.severity}>{translateSeverity(language,finding.severity)}</span></div><p>{finding.evidence}</p><small>{finding.remediation}</small></article>) : <p>{t('websiteNoFindings')}</p>}{websiteResult.notice && <small>{websiteResult.notice}</small>}</div>}
