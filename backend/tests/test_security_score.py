@@ -42,3 +42,22 @@ def test_findings_cannot_reduce_score_below_zero():
     score = calculate_security_score(findings, analysis_status="completed")
     assert score["value"] == 0
     assert score["raw_value"] == 0
+
+
+def test_no_eligible_source_files_prevents_perfect_score():
+    score = calculate_security_score(
+        [],
+        analysis_status="completed",
+        coverage={"heuristics": {"candidate_files": 0}},
+    )
+    assert score["value"] == 70
+    assert "no_eligible_source_files" in score["cap_reasons"]
+
+
+def test_unknown_severity_is_not_silently_ignored():
+    score = calculate_security_score(
+        [{"severity": "unknown", "confidence": "low"}],
+        analysis_status="completed",
+    )
+    assert score["value"] == 99
+    assert score["severity_counts"] == {"unknown": 1}
