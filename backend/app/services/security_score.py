@@ -44,6 +44,9 @@ def calculate_security_score(
     if heuristic_coverage.get("candidate_files") == 0:
         score_cap = min(score_cap, 70)
         cap_reasons.append("no_eligible_source_files")
+    elif heuristic_coverage.get("files_scanned") == 0:
+        score_cap = min(score_cap, 70)
+        cap_reasons.append("no_decodable_source_files")
     if analysis_status != "completed":
         score_cap = min(score_cap, 85)
         cap_reasons.append("analysis_not_fully_completed")
