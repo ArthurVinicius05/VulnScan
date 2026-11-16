@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import AccountRecovery from './AccountRecovery'
 import LanguageToggle from './LanguageToggle'
+import ThemeToggle, { type Theme } from './ThemeToggle'
 import { getInitialLanguage, translate, type Language, type TranslationKey } from './i18n'
 import { ShieldCheck, LayoutDashboard, Globe, FolderCode, History, Settings, UploadCloud, FileArchive, Activity, ChevronRight, LockKeyhole, ScanSearch, AlertTriangle } from 'lucide-react'
 import { ApiError, authenticate, checkSession, completeMfaLogin, fetchAccountInfo, beginMfaSetup, confirmMfaSetup, disableMfa, fetchAuditDetail, fetchAuditHistory, cancelAnalysisJob, deleteAccount, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
@@ -39,6 +40,13 @@ type Result = {
 
 export default function App() {
   const [language, setLanguage] = useState<Language>(getInitialLanguage)
+  const [theme, setTheme] = useState<Theme>(() => {
+    try {
+      const saved = window.localStorage.getItem('vulnscan-theme')
+      if (saved === 'light' || saved === 'dark') return saved
+    } catch { /* Storage may be unavailable. */ }
+    return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+  })
   const t = (key: TranslationKey) => translate(language, key)
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
@@ -107,6 +115,14 @@ export default function App() {
     catch (e) { if (e instanceof ApiError && e.status === 401) { clearWorkspaceState(); setAuthenticated(false); return } setHistoryError(e instanceof Error ? e.message : t('reportLoadFailed')) }
     finally { setDetailBusy(false) }
   }
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    document.documentElement.style.colorScheme = theme
+    try { window.localStorage.setItem('vulnscan-theme', theme) } catch { /* Storage may be unavailable. */ }
+    const themeColor = document.querySelector('meta[name="theme-color"]')
+    themeColor?.setAttribute('content', theme === 'light' ? '#f4f7fb' : '#090d18')
+  }, [theme])
 
   useEffect(() => {
     document.documentElement.lang = language
@@ -201,8 +217,8 @@ export default function App() {
 
   async function endSession() { let logoutFailed = false; try { await logout() } catch { logoutFailed = true } finally { clearWorkspaceState(); setAuthenticated(false) } if (logoutFailed) setAuthNotice(t('logoutUnconfirmed')) }
 
-  if (authChecking) return <div className="auth-screen"><div className="auth-language"><LanguageToggle language={language} onChange={setLanguage}/></div><p>{t('checkingSession')}</p></div>
-  if (!authenticated && (showRecovery || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('verify') || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('reset'))) return <AccountRecovery language={language} onLanguageChange={setLanguage} onBack={() => { setShowRecovery(false); window.history.replaceState({}, '', window.location.pathname) }} />
+  if (authChecking) return <div className="auth-screen"><div className="auth-language auth-controls"><ThemeToggle theme={theme} onChange={setTheme} language={language}/><LanguageToggle language={language} onChange={setLanguage}/></div><p>{t('checkingSession')}</p></div>
+  if (!authenticated && (showRecovery || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('verify') || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('reset'))) return <AccountRecovery language={language} onLanguageChange={setLanguage} theme={theme} onThemeChange={setTheme} onBack={() => { setShowRecovery(false); window.history.replaceState({}, '', window.location.pathname) }} />
   if (!authenticated && mfaChallenge) return <div className="auth-screen"><div className="auth-language"><LanguageToggle language={language} onChange={setLanguage}/></div><form className="auth-card" onSubmit={submitMfaLogin}>
     <div className="brand-mark"><ShieldCheck size={24}/></div><h1>{t('mfaLoginTitle')}</h1>
     <p>{t('mfaLoginDescription')}</p>
@@ -256,7 +272,7 @@ export default function App() {
       <div className="sidebar-bottom"><a href="#account-security"><Settings size={18}/> {t('settings')}</a><div className="profile"><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><div><b>{accountEmail || t('account')}</b><small>{emailVerified ? t('verifiedEmail') : t('unverifiedEmail')}</small></div></div></div>
     </aside>
     <main className="main">
-      <header className="topbar"><div className="crumb">{t('workspace')} <ChevronRight size={14}/> <b>{t('overview')}</b></div><div className="top-actions"><LanguageToggle language={language} onChange={setLanguage}/><details className="profile-menu"><summary><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><span>{t('account')}</span></summary><div className="profile-menu-content"><b>{accountEmail || t('account')}</b><small>{emailVerified ? t('verifiedEmail') : t('unverifiedEmail')}</small><a href="#account-security">{t('securitySettings')}</a><button type="button" onClick={()=>void endSession()}>{t('signOut')}</button></div></details></div></header>
+      <header className="topbar"><div className="crumb">{t('workspace')} <ChevronRight size={14}/> <b>{t('overview')}</b></div><div className="top-actions"><ThemeToggle theme={theme} onChange={setTheme} language={language}/><LanguageToggle language={language} onChange={setLanguage}/><details className="profile-menu"><summary><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><span>{t('account')}</span></summary><div className="profile-menu-content"><b>{accountEmail || t('account')}</b><small>{emailVerified ? t('verifiedEmail') : t('unverifiedEmail')}</small><a href="#account-security">{t('securitySettings')}</a><button type="button" onClick={()=>void endSession()}>{t('signOut')}</button></div></details></div></header>
       <section className="content">
         <div className="welcome" id="overview"><div><div className="eyebrow"><span className="live-dot"/> {t('securityWorkspace')}</div><h1>{t('securityOverview')}</h1><p>{t('overviewDescription')}</p></div><div className="date-chip"><Activity size={15}/> {t('codeAnalyzerReady')}</div></div>
         <div className="stats">
