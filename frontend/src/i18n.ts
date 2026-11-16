@@ -177,3 +177,164 @@ export function getInitialLanguage(): Language {
     return 'pt-BR'
   }
 }
+
+
+type FindingTextField = 'title' | 'evidence' | 'recommendation'
+
+const findingTranslations: Record<string, Record<Language, Partial<Record<FindingTextField, string>>>> = {
+  SECRET001: {
+    en: { title: 'Possible hardcoded credential', recommendation: 'Move the value to a secret manager or environment variable, rotate it if real, and ensure it is not committed.' },
+    'pt-BR': { title: 'Possível credencial fixa no código', recommendation: 'Mova o valor para um gerenciador de segredos ou variável de ambiente, faça a rotação se for real e garanta que ele não seja versionado.' },
+  },
+  PY001: {
+    en: { title: 'Dynamic code execution', recommendation: 'Avoid evaluating dynamic input. Replace it with explicit parsing or a strict allowlist of permitted operations.' },
+    'pt-BR': { title: 'Execução dinâmica de código', recommendation: 'Evite avaliar entradas dinâmicas. Substitua isso por análise explícita dos dados ou uma lista estrita de operações permitidas.' },
+  },
+  PY002: {
+    en: { title: 'Subprocess with shell enabled', recommendation: 'Prefer argument arrays with shell=False. Validate arguments and never concatenate untrusted input into a command.' },
+    'pt-BR': { title: 'Subprocess com execução de shell habilitada', recommendation: 'Prefira listas de argumentos com shell=False. Valide os argumentos e nunca concatene entradas não confiáveis em um comando.' },
+  },
+  PY003: {
+    en: { title: 'Unsafe pickle deserialization', recommendation: 'Do not deserialize pickle data from untrusted sources. Use a non-executable data format such as JSON.' },
+    'pt-BR': { title: 'Desserialização insegura de pickle', recommendation: 'Não desserialize dados pickle de fontes não confiáveis. Use um formato de dados não executável, como JSON.' },
+  },
+  PY004: {
+    en: { title: 'Potentially unsafe YAML loading', recommendation: 'Use yaml.safe_load for untrusted YAML, and validate the resulting data against an expected schema.' },
+    'pt-BR': { title: 'Carregamento potencialmente inseguro de YAML', recommendation: 'Use yaml.safe_load para YAML não confiável e valide os dados resultantes com um esquema esperado.' },
+  },
+  WEB001: {
+    en: { title: 'Direct HTML injection sink', recommendation: 'Avoid assigning untrusted strings to HTML injection sinks. Prefer textContent or framework-safe rendering; sanitize only when HTML is required.' },
+    'pt-BR': { title: 'Ponto de injeção direta de HTML', recommendation: 'Evite atribuir textos não confiáveis a pontos de injeção HTML. Prefira textContent ou a renderização segura do framework; sanitize somente quando HTML for necessário.' },
+  },
+  SQL001: {
+    en: { title: 'Possible SQL built through string formatting', recommendation: 'Use parameterized queries or prepared statements. This pattern is heuristic and requires manual verification.' },
+    'pt-BR': { title: 'Possível SQL construído por formatação de texto', recommendation: 'Use consultas parametrizadas ou instruções preparadas. Este padrão é heurístico e exige validação manual.' },
+  },
+  'WEB-HDR-001': {
+    en: { title: 'HSTS header missing', evidence: 'The HTTPS response did not include Strict-Transport-Security.', recommendation: 'Configure the Strict-Transport-Security header on HTTPS responses after confirming all relevant subdomains support HTTPS.' },
+    'pt-BR': { title: 'Cabeçalho HSTS ausente', evidence: 'A resposta HTTPS não incluiu Strict-Transport-Security.', recommendation: 'Configure o cabeçalho Strict-Transport-Security nas respostas HTTPS após confirmar que todos os subdomínios relevantes oferecem suporte a HTTPS.' },
+  },
+  'WEB-HDR-CONTENTSECURITYPOLICY': {
+    en: { title: 'Content-Security-Policy header missing', evidence: 'The response did not include the content-security-policy header.', recommendation: 'A Content-Security-Policy header helps mitigate content injection.' },
+    'pt-BR': { title: 'Cabeçalho Content-Security-Policy ausente', evidence: 'A resposta não incluiu o cabeçalho content-security-policy.', recommendation: 'O cabeçalho Content-Security-Policy ajuda a reduzir o risco de injeção de conteúdo.' },
+  },
+  'WEB-HDR-XCONTENTTYPEOPTIONS': {
+    en: { title: 'X-Content-Type-Options header missing', evidence: 'The response did not include the x-content-type-options header.', recommendation: 'Set X-Content-Type-Options: nosniff.' },
+    'pt-BR': { title: 'Cabeçalho X-Content-Type-Options ausente', evidence: 'A resposta não incluiu o cabeçalho x-content-type-options.', recommendation: 'Configure X-Content-Type-Options: nosniff.' },
+  },
+  'WEB-HDR-REFERRERPOLICY': {
+    en: { title: 'Referrer-Policy header missing', evidence: 'The response did not include the referrer-policy header.', recommendation: 'Set an explicit Referrer-Policy.' },
+    'pt-BR': { title: 'Cabeçalho Referrer-Policy ausente', evidence: 'A resposta não incluiu o cabeçalho referrer-policy.', recommendation: 'Defina uma política Referrer-Policy explícita.' },
+  },
+  'WEB-HDR-PERMISSIONSPOLICY': {
+    en: { title: 'Permissions-Policy header missing', evidence: 'The response did not include the permissions-policy header.', recommendation: 'Consider restricting browser features with Permissions-Policy.' },
+    'pt-BR': { title: 'Cabeçalho Permissions-Policy ausente', evidence: 'A resposta não incluiu o cabeçalho permissions-policy.', recommendation: 'Considere restringir recursos do navegador com Permissions-Policy.' },
+  },
+  'WEB-COOKIE-SECURE': {
+    en: { title: 'Cookie missing Secure attribute', evidence: 'A response cookie does not declare the Secure attribute.', recommendation: 'Review whether this cookie should include the Secure attribute.' },
+    'pt-BR': { title: 'Cookie sem o atributo Secure', evidence: 'Um cookie da resposta não declara o atributo Secure.', recommendation: 'Verifique se este cookie deve incluir o atributo Secure.' },
+  },
+  'WEB-COOKIE-HTTPONLY': {
+    en: { title: 'Cookie missing HttpOnly attribute', evidence: 'A response cookie does not declare the HttpOnly attribute.', recommendation: 'Review whether this cookie should include the HttpOnly attribute.' },
+    'pt-BR': { title: 'Cookie sem o atributo HttpOnly', evidence: 'Um cookie da resposta não declara o atributo HttpOnly.', recommendation: 'Verifique se este cookie deve incluir o atributo HttpOnly.' },
+  },
+  'WEB-COOKIE-SAMESITE': {
+    en: { title: 'Cookie missing SameSite attribute', evidence: 'A response cookie does not declare the SameSite attribute.', recommendation: 'Review whether this cookie should include the SameSite attribute.' },
+    'pt-BR': { title: 'Cookie sem o atributo SameSite', evidence: 'Um cookie da resposta não declara o atributo SameSite.', recommendation: 'Verifique se este cookie deve incluir o atributo SameSite.' },
+  },
+}
+
+const backendTextTranslations: Record<string, Record<Language, string>> = {
+  'Análise parcial: alguns scanners, arquivos ou achados foram limitados ou ficaram indisponíveis. Consulte coverage e scanner_tools antes de interpretar a ausência de achados. Os resultados não comprovam explorabilidade e exigem validação manual.': {
+    en: 'Partial analysis: some scanners, files or findings were limited or unavailable. Review coverage and scanner_tools before interpreting the absence of findings. Results do not prove exploitability and require manual validation.',
+    'pt-BR': 'Análise parcial: alguns scanners, arquivos ou achados foram limitados ou ficaram indisponíveis. Consulte a cobertura e os scanners antes de interpretar a ausência de achados. Os resultados não comprovam explorabilidade e exigem validação manual.',
+  },
+  'Achados heurísticos e resultados de ferramentas estáticas. Eles não comprovam explorabilidade e exigem validação manual.': {
+    en: 'Heuristic findings and static-tool results. They do not prove exploitability and require manual validation.',
+    'pt-BR': 'Achados heurísticos e resultados de ferramentas estáticas. Eles não comprovam explorabilidade e exigem validação manual.',
+  },
+  'Manifest inventory only; dependencies were not installed or checked against vulnerability databases.': {
+    en: 'Manifest inventory only; dependencies were not installed or checked against vulnerability databases.',
+    'pt-BR': 'Apenas inventário de manifestos; as dependências não foram instaladas nem verificadas em bases de dados de vulnerabilidades.',
+  },
+  'Dependency vulnerability matching is disabled by default; no outbound network access is granted to the scanner worker.': {
+    en: 'Dependency vulnerability matching is disabled by default; the scanner worker has no outbound network access.',
+    'pt-BR': 'A correlação de vulnerabilidades de dependências vem desativada por padrão; o worker do scanner não possui acesso à rede externa.',
+  },
+  'No eligible Python files found.': {
+    en: 'No eligible Python files found.',
+    'pt-BR': 'Nenhum arquivo Python elegível foi encontrado.',
+  },
+  'No safe Python files to scan.': {
+    en: 'No safe Python files to scan.',
+    'pt-BR': 'Nenhum arquivo Python seguro para análise foi encontrado.',
+  },
+  'Ative ENABLE_WEBSITE_SCAN e o perfil website-scan.': {
+    en: 'Enable ENABLE_WEBSITE_SCAN and the website-scan profile.',
+    'pt-BR': 'Ative ENABLE_WEBSITE_SCAN e o perfil website-scan.',
+  },
+}
+
+const statusTranslations: Record<string, Record<Language, string>> = {
+  completed: { en: 'completed', 'pt-BR': 'concluído' },
+  skipped: { en: 'skipped', 'pt-BR': 'ignorado' },
+  partial: { en: 'partial', 'pt-BR': 'parcial' },
+  unavailable: { en: 'unavailable', 'pt-BR': 'indisponível' },
+  disabled: { en: 'disabled', 'pt-BR': 'desativado' },
+  timeout: { en: 'timed out', 'pt-BR': 'tempo esgotado' },
+  error: { en: 'error', 'pt-BR': 'erro' },
+  invalid_output: { en: 'invalid output', 'pt-BR': 'saída inválida' },
+  output_limit: { en: 'output limit reached', 'pt-BR': 'limite de saída atingido' },
+  inventoried: { en: 'inventoried', 'pt-BR': 'inventariado' },
+  skipped_too_large: { en: 'skipped: file too large', 'pt-BR': 'ignorado: arquivo muito grande' },
+  unreadable: { en: 'unreadable', 'pt-BR': 'não foi possível ler' },
+  invalid_manifest: { en: 'invalid manifest', 'pt-BR': 'manifesto inválido' },
+}
+
+export function translateFindingText(language: Language, ruleId: string | undefined, field: FindingTextField, fallback: string | undefined): string {
+  if (!fallback) return ''
+  const translations = ruleId ? findingTranslations[ruleId] : undefined
+  return translations?.[language]?.[field] ?? (ruleId?.startsWith('GITLEAKS_') ? {
+    en: {
+      title: 'Potential exposed secret',
+      evidence: 'Secret value withheld and redacted from the report.',
+      recommendation: 'Revoke or rotate the exposed credential and remove it from source history.',
+    },
+    'pt-BR': {
+      title: 'Possível segredo exposto',
+      evidence: 'O valor do segredo foi ocultado e removido do relatório.',
+      recommendation: 'Revogue ou substitua a credencial exposta e remova-a do histórico do código.',
+    },
+  }[language][field] : fallback)
+}
+
+export function translateBackendText(language: Language, value: string | undefined): string {
+  if (!value) return ''
+  return backendTextTranslations[value]?.[language] ?? value
+}
+
+export function translateStatus(language: Language, value: string | undefined): string {
+  if (!value) return ''
+  return statusTranslations[value]?.[language] ?? value
+}
+
+export function translateSeverity(language: Language, value: string | undefined): string {
+  if (!value) return ''
+  const labels: Record<string, Record<Language, string>> = {
+    critical: { en: 'critical', 'pt-BR': 'crítica' },
+    high: { en: 'high', 'pt-BR': 'alta' },
+    medium: { en: 'medium', 'pt-BR': 'média' },
+    low: { en: 'low', 'pt-BR': 'baixa' },
+    informational: { en: 'informational', 'pt-BR': 'informativa' },
+    unknown: { en: 'unknown', 'pt-BR': 'desconhecida' },
+  }
+  return labels[value.toLowerCase()]?.[language] ?? value
+}
+
+export function translateAnalysisType(language: Language, value: string): string {
+  const labels: Record<string, Record<Language, string>> = {
+    static_source_analysis: { en: 'Source code analysis', 'pt-BR': 'Análise de código-fonte' },
+    website_security_audit: { en: 'Website security audit', 'pt-BR': 'Auditoria de segurança de site' },
+  }
+  return labels[value]?.[language] ?? value.replaceAll('_', ' ')
+}

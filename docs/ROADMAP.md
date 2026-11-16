@@ -30,7 +30,7 @@ A visão oficial, os limites de escopo e os princípios do produto estão em [PR
 - [x] Reorganize workspace navigation with working Overview, Code Analyzer, Audit History and Settings destinations; keep the not-yet-enabled Website Scanner visibly disabled.
 - [x] Add dedicated Settings sections for account security (MFA and account deletion) and appearance/language preferences.
 - [x] Add an account profile menu with signed-in email, email-verification status, a security/settings shortcut and sign-out.
-- [ ] Complete localization of backend-generated notices and finding content.
+- [x] Localize built-in Code Analyzer notices, scanner statuses/reasons, dependency manifest states and first-party finding content in PT-BR/English; third-party tool output remains in its source language when no safe mapping exists.
 - [x] Add a persistent light/dark theme with a system-preference default and an in-app toggle.
 - [x] Add a persistent PT-BR/English selector for the core workspace, login, MFA and account-recovery flows; the default follows the browser language.
 - [x] Remove the repeated finding-count summary from expanded history reports and unify live/history finding cards with labeled evidence and remediation.

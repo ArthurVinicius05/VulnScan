@@ -1,5 +1,5 @@
 import type { Language } from './i18n'
-import { translate } from './i18n'
+import { translate, translateFindingText, translateSeverity } from './i18n'
 
 export type FindingCardData = {
   rule_id?: string
@@ -34,18 +34,21 @@ function safeReferenceUrl(value: string): string | null {
 export default function FindingCard({ finding, language }: Props) {
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key)
   const severity = finding.severity || 'unknown'
+  const severityLabel = translateSeverity(language, severity)
   const location = finding.file || finding.url
-  const title = finding.title || finding.rule_id || (language === 'pt-BR' ? 'Achado de segurança' : 'Security finding')
+  const title = translateFindingText(language, finding.rule_id, 'title', finding.title) || finding.rule_id || (language === 'pt-BR' ? 'Achado de segurança' : 'Security finding')
+  const evidence = translateFindingText(language, finding.rule_id, 'evidence', finding.evidence)
+  const recommendation = translateFindingText(language, finding.rule_id, 'recommendation', finding.recommendation)
 
   return <article className="finding">
     <div className="finding-heading">
       <b>{title}</b>
-      <span className={'severity ' + severity}>{severity.toUpperCase()}</span>
+      <span className={'severity ' + severity}>{severityLabel.toUpperCase()}</span>
     </div>
     <div className="finding-meta">
       {finding.rule_id && <span>{finding.rule_id}</span>}
       {location && <span>{location}{finding.line ? ':' + finding.line : ''}</span>}
-      {finding.confidence && <span>{t('confidence')}: {finding.confidence}</span>}
+      {finding.confidence && <span>{t('confidence')}: {translateSeverity(language, finding.confidence)}</span>}
       {finding.verified !== undefined && <span>{finding.verified ? t('verified') : t('notVerified')}</span>}
     </div>
     {finding.package && <small>{finding.package.ecosystem}:{finding.package.name}@{finding.package.version}</small>}
@@ -54,13 +57,13 @@ export default function FindingCard({ finding, language }: Props) {
       const href = safeReferenceUrl(reference)
       return href ? <small key={reference}><a href={href} target="_blank" rel="noopener noreferrer">{t('advisoryReference')}</a></small> : null
     })}
-    {finding.evidence && <section className="finding-section">
+    {evidence && <section className="finding-section">
       <h4>{t('evidenceLabel')}</h4>
-      <pre>{finding.evidence}</pre>
+      <pre>{evidence}</pre>
     </section>}
-    {finding.recommendation && <section className="finding-section">
+    {recommendation && <section className="finding-section">
       <h4>{t('remediationLabel')}</h4>
-      <p>{finding.recommendation}</p>
+      <p>{recommendation}</p>
     </section>}
   </article>
 }
