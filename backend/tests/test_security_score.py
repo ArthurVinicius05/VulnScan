@@ -16,7 +16,7 @@ def test_severity_and_confidence_change_score_deterministically():
     score = calculate_security_score(findings, analysis_status="completed")
     assert score["value"] == 82
     assert score["deductions"] == {"high": 15.0, "medium": 3.5}
-    assert score["model_version"] == "1.0"
+    assert score["model_version"] == "1.1"
 
 
 def test_partial_analysis_caps_score_below_perfect():
@@ -61,3 +61,14 @@ def test_unknown_severity_is_not_silently_ignored():
     )
     assert score["value"] == 99
     assert score["severity_counts"] == {"unknown": 1}
+
+
+
+def test_no_decodable_source_files_caps_score():
+    score = calculate_security_score(
+        [],
+        analysis_status="partial",
+        coverage={"heuristics": {"candidate_files": 1, "files_scanned": 0, "unreadable_files": 1}},
+    )
+    assert score["value"] == 70
+    assert "no_decodable_source_files" in score["cap_reasons"]

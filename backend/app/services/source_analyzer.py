@@ -131,10 +131,14 @@ def source_analysis_coverage(data: bytes) -> dict:
     }
 
 
-def analyze_source_zip(data: bytes) -> list[dict]:
-    """Run bounded, read-only heuristic checks on text files in a ZIP archive."""
+def analyze_source_zip(data: bytes, *, coverage: dict | None = None) -> list[dict]:
+    """Run bounded, read-only heuristic checks and optionally report actual scan coverage."""
     findings: list[dict] = []
     scanned_bytes = 0
+    files_scanned = 0
+    unreadable_files = 0
+    binary_files = 0
+    stopped_at_finding_limit = False
 
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
         for info in archive.infolist():
@@ -151,12 +155,16 @@ def analyze_source_zip(data: bytes) -> list[dict]:
             raw = archive.read(info)
             scanned_bytes += len(raw)
             if b"\x00" in raw:
+                binary_files += 1
+                unreadable_files += 1
                 continue
             try:
                 source = raw.decode("utf-8-sig")
             except UnicodeDecodeError:
+                unreadable_files += 1
                 continue
 
+            files_scanned += 1
             for line_number, line in enumerate(source.splitlines(), start=1):
                 # Avoid pathological regex work on attacker-controlled giant lines.
                 if len(line) > MAX_LINE_CHARS:
@@ -187,6 +195,19 @@ def analyze_source_zip(data: bytes) -> list[dict]:
                         "verified": False,
                     })
                     if len(findings) >= MAX_FINDINGS:
-                        return findings
+                        stopped_at_finding_limit = True
+                        break
+                if stopped_at_finding_limit:
+                    break
+            if stopped_at_finding_limit:
+                break
 
+    if coverage is not None:
+        coverage.update({
+            "files_scanned": files_scanned,
+            "unreadable_files": unreadable_files,
+            "binary_files": binary_files,
+            "scanned_bytes": scanned_bytes,
+            "stopped_at_finding_limit": stopped_at_finding_limit,
+        })
     return findings

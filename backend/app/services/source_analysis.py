@@ -10,7 +10,8 @@ async def analyze_source_archive(content: bytes, filename: str) -> dict:
     metadata = inspect_zip(content, max_files=settings.max_archive_files,
         max_uncompressed_bytes=settings.max_extracted_mb * 1024 * 1024)
     heuristic_coverage = source_analysis_coverage(content)
-    heuristic_findings = analyze_source_zip(content)
+    heuristic_scan_coverage = {}
+    heuristic_findings = analyze_source_zip(content, coverage=heuristic_scan_coverage)
     tool_result = await scan_python_archive(content)
     dependency_result = inventory_dependency_manifests(content)
     osv_result = await scan_dependencies(content)
@@ -19,12 +20,14 @@ async def analyze_source_archive(content: bytes, filename: str) -> dict:
     security_statuses = [item.get("status", "unknown") for item in tool_result.get("security_tools", [])] + [osv_result.get("status", "unknown")]
     heuristic_partial = (heuristic_coverage["files_over_file_limit"] > 0
         or heuristic_coverage["files_over_total_limit"] > 0
-        or len(heuristic_findings) >= heuristic_coverage["max_findings"])
+        or heuristic_scan_coverage["unreadable_files"] > 0
+        or heuristic_scan_coverage["files_scanned"] == 0
+        or heuristic_scan_coverage["stopped_at_finding_limit"])
     scanner_partial = (any(value not in {"completed", "skipped"} for value in tool_statuses + security_statuses)
         or dependency_result.get("status") != "completed")
     analysis_status = "partial" if heuristic_partial or scanner_partial or tool_result.get("status") in {"partial", "unavailable"} else "completed"
-    coverage = {"heuristics": {**heuristic_coverage, "findings_returned": len(heuristic_findings),
-        "possibly_truncated_by_finding_limit": len(heuristic_findings) >= heuristic_coverage["max_findings"]},
+    coverage = {"heuristics": {**heuristic_coverage, **heuristic_scan_coverage, "findings_returned": len(heuristic_findings),
+        "possibly_truncated_by_finding_limit": heuristic_scan_coverage["stopped_at_finding_limit"]},
         "python_tools": tool_result.get("coverage", {}), "overall": analysis_status}
     security_score = calculate_security_score(findings, analysis_status=analysis_status, coverage=coverage)
     return {
