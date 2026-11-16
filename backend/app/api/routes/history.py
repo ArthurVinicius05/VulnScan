@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, Query, Response
+from collections import Counter
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
@@ -34,6 +36,105 @@ def list_audits(
     return {"items": [{"id": item.id, "analysis_type": item.analysis_type, "target": item.target,
         "status": item.status, "finding_count": item.finding_count, "created_at": item.created_at.isoformat()}
         for item in records], "limit": limit, "offset": offset}
+
+
+def _finding_fingerprint(finding: dict) -> str | None:
+    rule_id = str(finding.get("rule_id") or finding.get("id") or "").strip().lower()
+    package = finding.get("package") if isinstance(finding.get("package"), dict) else {}
+    aliases = finding.get("aliases") if isinstance(finding.get("aliases"), list) else []
+    stable_aliases = sorted(str(alias).strip().lower() for alias in aliases if alias)
+    if stable_aliases:
+        identity = "|".join(stable_aliases)
+    elif package.get("name"):
+        identity = "|".join((rule_id, str(package.get("ecosystem", "")).lower(),
+                             str(package.get("name", "")).lower()))
+    else:
+        location = str(finding.get("file") or finding.get("url") or "").strip().lower()
+        title = str(finding.get("title") or "").strip().lower()
+        if not rule_id and not location and not title:
+            return None
+        identity = "|".join((rule_id, location, title))
+    return identity
+
+
+def _finding_counts(result: dict) -> tuple[Counter, Counter]:
+    fingerprints: Counter = Counter()
+    severities: Counter = Counter()
+    findings = result.get("findings")
+    if not isinstance(findings, list):
+        return fingerprints, severities
+    for finding in findings:
+        if not isinstance(finding, dict):
+            continue
+        fingerprint = _finding_fingerprint(finding)
+        if fingerprint:
+            fingerprints[fingerprint] += 1
+            severities[str(finding.get("severity") or "unknown").lower()] += 1
+    return fingerprints, severities
+
+
+@router.get("/compare/{baseline_id}/{candidate_id}")
+def compare_audits(
+    baseline_id: str,
+    candidate_id: str,
+    response: Response,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    _set_private_no_store(response)
+    if baseline_id == candidate_id:
+        raise HTTPException(status_code=422, detail="Selecione duas auditorias diferentes.")
+    records = db.scalars(select(AuditRecord).where(
+        AuditRecord.id.in_([baseline_id, candidate_id]), AuditRecord.user_id == user.id
+    )).all()
+    by_id = {record.id: record for record in records}
+    baseline = by_id.get(baseline_id)
+    candidate = by_id.get(candidate_id)
+    if baseline is None or candidate is None:
+        raise HTTPException(status_code=404, detail="Auditoria não encontrada.")
+    if baseline.analysis_type != candidate.analysis_type:
+        raise HTTPException(status_code=422, detail="Só é possível comparar auditorias do mesmo tipo.")
+
+    baseline_findings, baseline_severities = _finding_counts(baseline.result or {})
+    candidate_findings, candidate_severities = _finding_counts(candidate.result or {})
+    added = candidate_findings - baseline_findings
+    resolved = baseline_findings - candidate_findings
+    unchanged = sum((baseline_findings & candidate_findings).values())
+    severity_names = sorted(set(baseline_severities) | set(candidate_severities))
+    severity_delta = {
+        severity: {
+            "baseline": baseline_severities.get(severity, 0),
+            "candidate": candidate_severities.get(severity, 0),
+            "delta": candidate_severities.get(severity, 0) - baseline_severities.get(severity, 0),
+        }
+        for severity in severity_names
+    }
+    baseline_score = (baseline.result or {}).get("security_score")
+    candidate_score = (candidate.result or {}).get("security_score")
+    score_comparable = (
+        isinstance(baseline_score, dict) and isinstance(candidate_score, dict)
+        and baseline_score.get("model_version") == candidate_score.get("model_version")
+        and isinstance(baseline_score.get("value"), (int, float))
+        and isinstance(candidate_score.get("value"), (int, float))
+    )
+    return {
+        "baseline": {"id": baseline.id, "target": baseline.target, "created_at": baseline.created_at.isoformat()},
+        "candidate": {"id": candidate.id, "target": candidate.target, "created_at": candidate.created_at.isoformat()},
+        "findings": {
+            "details_available": isinstance((baseline.result or {}).get("findings"), list) and isinstance((candidate.result or {}).get("findings"), list),
+            "added": sum(added.values()), "resolved": sum(resolved.values()),
+            "unchanged": unchanged, "baseline_total": sum(baseline_findings.values()),
+            "candidate_total": sum(candidate_findings.values()),
+        },
+        "severity_delta": severity_delta,
+        "score": {
+            "comparable": score_comparable,
+            "baseline": baseline_score.get("value") if score_comparable else None,
+            "candidate": candidate_score.get("value") if score_comparable else None,
+            "delta": candidate_score.get("value") - baseline_score.get("value") if score_comparable else None,
+            "model_version": baseline_score.get("model_version") if score_comparable else None,
+        },
+    }
 
 
 @router.get("/{audit_id}")

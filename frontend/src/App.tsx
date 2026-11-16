@@ -3,9 +3,9 @@ import AccountRecovery from './AccountRecovery'
 import LanguageToggle from './LanguageToggle'
 import ThemeToggle, { type Theme } from './ThemeToggle'
 import FindingCard from './FindingCard'
-import { getInitialLanguage, translate, translateAnalysisType, translateBackendText, translateStatus, type Language, type TranslationKey } from './i18n'
+import { getInitialLanguage, translate, translateAnalysisType, translateBackendText, translateStatus, translateSeverity, type Language, type TranslationKey } from './i18n'
 import { ShieldCheck, LayoutDashboard, Globe, FolderCode, History, Settings, UploadCloud, FileArchive, Activity, ChevronRight, LockKeyhole, ScanSearch, AlertTriangle } from 'lucide-react'
-import { ApiError, authenticate, checkSession, completeMfaLogin, fetchAccountInfo, beginMfaSetup, confirmMfaSetup, disableMfa, fetchAuditDetail, fetchAuditHistory, cancelAnalysisJob, deleteAccount, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
+import { ApiError, authenticate, checkSession, completeMfaLogin, fetchAccountInfo, beginMfaSetup, confirmMfaSetup, disableMfa, fetchAuditDetail, fetchAuditHistory, cancelAnalysisJob, deleteAccount, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail, compareAudits, type AuditComparison } from './lib/api'
 
 type Finding = {
   rule_id: string
@@ -61,6 +61,9 @@ export default function App() {
   const [historyError, setHistoryError] = useState('')
   const [selectedAudit, setSelectedAudit] = useState<AuditDetail | null>(null)
   const [detailBusy, setDetailBusy] = useState(false)
+  const [comparisonBaseline, setComparisonBaseline] = useState<string | null>(null)
+  const [comparison, setComparison] = useState<AuditComparison | null>(null)
+  const [comparisonBusy, setComparisonBusy] = useState(false)
   const [authenticated, setAuthenticated] = useState(false)
   const [authChecking, setAuthChecking] = useState(true)
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
@@ -89,6 +92,9 @@ export default function App() {
     setHistoryError('')
     setSelectedAudit(null)
     setDetailBusy(false)
+    setComparisonBaseline(null)
+    setComparison(null)
+    setComparisonBusy(false)
     setResult(null)
     setFile(null)
     setActiveJobId(null)
@@ -117,6 +123,30 @@ export default function App() {
     try { setSelectedAudit(await fetchAuditDetail(id)) }
     catch (e) { if (e instanceof ApiError && e.status === 401) { clearWorkspaceState(); setAuthenticated(false); return } setHistoryError(e instanceof Error ? e.message : t('reportLoadFailed')) }
     finally { setDetailBusy(false) }
+  }
+
+
+  async function chooseComparison(item: AuditHistoryItem) {
+    if (!comparisonBaseline || comparisonBaseline === item.id) {
+      setComparisonBaseline(comparisonBaseline === item.id ? null : item.id)
+      setComparison(null)
+      return
+    }
+    setComparison(null)
+    setComparisonBusy(true)
+    setHistoryError('')
+    try {
+      setComparison(await compareAudits(comparisonBaseline, item.id))
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        clearWorkspaceState()
+        setAuthenticated(false)
+      } else {
+        setHistoryError(e instanceof Error ? e.message : t('comparisonFailed'))
+      }
+    } finally {
+      setComparisonBusy(false)
+    }
   }
 
   useLayoutEffect(() => {
@@ -340,7 +370,7 @@ export default function App() {
           </section>
           <section className="panel"><div className="panel-icon cyan"><Globe size={21}/></div><div className="panel-title"><h3>{t('websiteScanner')}</h3><span className="coming">{t('soon')}</span></div><p>{t('websiteDescription')}</p><div className="disabled-input"><Globe size={17}/><span>https://your-authorized-domain.com</span><LockKeyhole size={15}/></div><button className="secondary-btn" disabled>{t('websiteNotEnabled')}</button><div className="safety-note"><LockKeyhole size={15}/> {t('websiteSafety')}</div></section>
         </div>
-        <section className="panel audit-history" id="audit-history"><div className="section-heading"><div><h2>{t('auditHistoryTitle')}</h2><p>{t('latestAssessments')}</p></div><button className="secondary-btn" onClick={() => void refreshHistory()}>{t('refresh')}</button></div>{historyError && <div className="error">{historyError}</div>}{history.length === 0 && !historyError ? <p>{t('noAudits')}</p> : <div className="history-list">{history.map(item => <article className="history-item" key={item.id}><div><b>{item.target}</b><small>{translateAnalysisType(language, item.analysis_type)} · {new Date(item.created_at).toLocaleString()}</small></div><span className="findings-summary">{item.finding_count} {t('findingsRecorded')}</span><button className="history-view" onClick={() => void openAudit(item.id)}>{t('viewReport')}</button></article>)}</div>}{detailBusy && <p>{t('loadingReport')}</p>}{selectedAudit && <div className="audit-detail"><div className="audit-detail-heading"><div><h3>{selectedAudit.target}</h3><small>{translateAnalysisType(language, selectedAudit.analysis_type)} · {new Date(selectedAudit.created_at).toLocaleString()}</small></div><button className="history-view" onClick={() => setSelectedAudit(null)}>{t('close')}</button></div>{selectedAudit.result.security_score && <div className="dependency-inventory"><b>{t('securityScore')}: {selectedAudit.result.security_score.value}/100</b><span>{t('scoreModel')}: {selectedAudit.result.security_score.model_version} · {t('scoreConfidence')}: {t(selectedAudit.result.security_score.confidence === 'limited' ? 'scoreLimited' : 'scoreStandard')}</span>{selectedAudit.result.security_score.is_capped && <span>{t('scoreCoverageCap')}</span>}<small>{t('scoreDisclaimer')}</small></div>}<h4 className="audit-findings-heading">{t('findingsHeading')}</h4>{selectedAudit.result.findings?.length ? selectedAudit.result.findings.map((finding, index) => <FindingCard key={(finding.rule_id ?? 'finding') + index} finding={finding} language={language}/>) : <p>{t('noFindingDetails')}</p>}</div>}</section>
+        <section className="panel audit-history" id="audit-history"><div className="section-heading"><div><h2>{t('auditHistoryTitle')}</h2><p>{t('latestAssessments')}</p></div><button className="secondary-btn" onClick={() => void refreshHistory()}>{t('refresh')}</button></div>{historyError && <div className="error">{historyError}</div>}{history.length === 0 && !historyError ? <p>{t('noAudits')}</p> : <div className="history-list">{history.map(item => <article className="history-item" key={item.id}><div><b>{item.target}</b><small>{translateAnalysisType(language, item.analysis_type)} · {new Date(item.created_at).toLocaleString()}</small></div><span className="findings-summary">{item.finding_count} {t('findingsRecorded')}</span><button className="history-view" onClick={() => void openAudit(item.id)}>{t('viewReport')}</button><button className={comparisonBaseline === item.id ? "history-compare selected" : "history-compare"} disabled={comparisonBusy} onClick={() => void chooseComparison(item)}>{comparisonBaseline === item.id ? t('baselineSelected') : comparisonBaseline ? t('compareWithBaseline') : t('selectBaseline')}</button></article>)}</div>}{comparisonBaseline && <div className="comparison-hint">{t('baselineSelectedHint')} <button className="history-compare" onClick={() => { setComparisonBaseline(null); setComparison(null) }}>{t('clearBaseline')}</button></div>}{comparisonBusy && <p>{t('comparingAudits')}</p>}{comparison && <div className="audit-comparison"><h3>{t('comparisonTitle')}</h3><p>{comparison.baseline.target} → {comparison.candidate.target}</p>{comparison.findings.details_available ? <div className="comparison-stats"><div><b>{comparison.findings.added}</b><small>{t('findingsAdded')}</small></div><div><b>{comparison.findings.resolved}</b><small>{t('findingsResolved')}</small></div><div><b>{comparison.findings.unchanged}</b><small>{t('findingsUnchanged')}</small></div></div> : <p>{t('findingDetailsUnavailable')}</p>}{comparison.score.comparable ? <p>{t('scoreChange')}: {comparison.score.baseline} → {comparison.score.candidate} ({comparison.score.delta !== null && comparison.score.delta > 0 ? '+' : ''}{comparison.score.delta})</p> : <small>{t('scoreNotComparable')}</small>}{comparison.findings.details_available && <details><summary>{t('severityBreakdown')}</summary>{Object.entries(comparison.severity_delta).map(([severity, values]) => <p key={severity}>{translateSeverity(language, severity)}: {values.baseline} → {values.candidate} ({values.delta > 0 ? '+' : ''}{values.delta})</p>)}</details>}</div>}{detailBusy && <p>{t('loadingReport')}</p>}{selectedAudit && <div className="audit-detail"><div className="audit-detail-heading"><div><h3>{selectedAudit.target}</h3><small>{translateAnalysisType(language, selectedAudit.analysis_type)} · {new Date(selectedAudit.created_at).toLocaleString()}</small></div><button className="history-view" onClick={() => setSelectedAudit(null)}>{t('close')}</button></div>{selectedAudit.result.security_score && <div className="dependency-inventory"><b>{t('securityScore')}: {selectedAudit.result.security_score.value}/100</b><span>{t('scoreModel')}: {selectedAudit.result.security_score.model_version} · {t('scoreConfidence')}: {t(selectedAudit.result.security_score.confidence === 'limited' ? 'scoreLimited' : 'scoreStandard')}</span>{selectedAudit.result.security_score.is_capped && <span>{t('scoreCoverageCap')}</span>}<small>{t('scoreDisclaimer')}</small></div>}<h4 className="audit-findings-heading">{t('findingsHeading')}</h4>{selectedAudit.result.findings?.length ? selectedAudit.result.findings.map((finding, index) => <FindingCard key={(finding.rule_id ?? 'finding') + index} finding={finding} language={language}/>) : <p>{t('noFindingDetails')}</p>}</div>}</section>
         <div className="bottom-note"><ShieldCheck size={17}/><span><b>{t('builtSecurely')}</b> {t('uploadedCodeNotice')}</span></div>
         <footer>VULNSCAN · SECURITY INTELLIGENCE · {t('authorizedTesting')}</footer>
       </section>
