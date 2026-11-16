@@ -41,6 +41,7 @@ type Result = {
 
 export default function App() {
   const [language, setLanguage] = useState<Language>(getInitialLanguage)
+  const [activeSection, setActiveSection] = useState('overview')
   const [theme, setTheme] = useState<Theme>(() => {
     try {
       const saved = window.localStorage.getItem('vulnscan-theme')
@@ -265,12 +266,12 @@ export default function App() {
       <div className="brand"><div className="brand-mark"><ShieldCheck size={22}/></div><div><strong>VulnScan</strong><small>SECURITY INTELLIGENCE</small></div></div>
       <div className="nav-label">{t('workspace').toUpperCase()}</div>
       <nav>
-        <a className="active" href="#overview"><LayoutDashboard size={18}/> {t('overview')}</a>
+        <a className={activeSection === "overview" ? "active" : ""} href="#overview" onClick={()=>setActiveSection("overview")}><LayoutDashboard size={18}/> {t('overview')}</a>
         <a className="nav-disabled" aria-disabled="true" title={t('websiteNotEnabled')}><Globe size={18}/> {t('websiteScanner')} <span className="soon">{t('soon')}</span></a>
-        <a href="#code-analyzer"><FolderCode size={18}/> {t('codeAnalyzer')}</a>
-        <a href="#audit-history"><History size={18}/> {t('auditHistory')}</a>
+        <a className={activeSection === "code-analyzer" ? "active" : ""} href="#code-analyzer" onClick={()=>setActiveSection("code-analyzer")}><FolderCode size={18}/> {t('codeAnalyzer')}</a>
+        <a className={activeSection === "audit-history" ? "active" : ""} href="#audit-history" onClick={()=>setActiveSection("audit-history")}><History size={18}/> {t('auditHistory')}</a>
       </nav>
-      <div className="sidebar-bottom"><a href="#settings"><Settings size={18}/> {t('settings')}</a><div className="profile"><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><div><b>{accountEmail || t('account')}</b><small>{emailVerified ? t('verifiedEmail') : t('unverifiedEmail')}</small></div></div></div>
+      <div className="sidebar-bottom"><a className={activeSection === "settings" ? "active" : ""} href="#settings" onClick={()=>setActiveSection("settings")}><Settings size={18}/> {t('settings')}</a><div className="profile"><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><div><b>{accountEmail || t('account')}</b><small>{emailVerified ? t('verifiedEmail') : t('unverifiedEmail')}</small></div></div></div>
     </aside>
     <main className="main">
       <header className="topbar"><div className="crumb">{t('workspace')} <ChevronRight size={14}/> <b>{t('overview')}</b></div><div className="top-actions"><ThemeToggle theme={theme} onChange={setTheme} language={language}/><LanguageToggle language={language} onChange={setLanguage}/><details className="profile-menu"><summary><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><span>{t('account')}</span></summary><div className="profile-menu-content"><b>{accountEmail || t('account')}</b><small>{emailVerified ? t('verifiedEmail') : t('unverifiedEmail')}</small><a href="#settings">{t('securitySettings')}</a><button type="button" onClick={()=>void endSession()}>{t('signOut')}</button></div></details></div></header>
