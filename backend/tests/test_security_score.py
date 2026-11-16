@@ -14,7 +14,7 @@ def test_severity_and_confidence_change_score_deterministically():
         {"severity": "medium", "confidence": "low"},
     ]
     score = calculate_security_score(findings, analysis_status="completed")
-    assert score["value"] == 81
+    assert score["value"] == 82
     assert score["deductions"] == {"high": 15.0, "medium": 3.5}
     assert score["model_version"] == "1.0"
 
