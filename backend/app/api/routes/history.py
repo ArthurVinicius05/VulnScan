@@ -57,20 +57,45 @@ def _finding_fingerprint(finding: dict) -> str | None:
     return identity
 
 
-def _finding_counts(result: dict) -> tuple[Counter, Counter]:
-    fingerprints: Counter = Counter()
+
+
+MAX_FINDING_DIFF_ITEMS = 50
+
+
+def _finding_summary(finding: dict) -> dict:
+    """Return a bounded display summary; never include evidence or source snippets."""
+    summary = {}
+    for key in ("rule_id", "title", "severity", "confidence", "file", "url"):
+        value = finding.get(key)
+        if value is not None and str(value).strip():
+            summary[key] = str(value)[:512]
+    package = finding.get("package")
+    if isinstance(package, dict) and package.get("name"):
+        summary["package"] = {
+            "name": str(package.get("name", ""))[:256],
+            "version": str(package.get("version", ""))[:128],
+            "ecosystem": str(package.get("ecosystem", ""))[:128],
+        }
+    aliases = finding.get("aliases")
+    if isinstance(aliases, list):
+        summary["aliases"] = [str(alias)[:128] for alias in aliases[:10] if alias]
+    return summary
+
+
+def _finding_index(result: dict) -> tuple[dict[str, list[dict]], Counter]:
+    indexed: dict[str, list[dict]] = {}
     severities: Counter = Counter()
     findings = result.get("findings")
     if not isinstance(findings, list):
-        return fingerprints, severities
+        return indexed, severities
     for finding in findings:
         if not isinstance(finding, dict):
             continue
         fingerprint = _finding_fingerprint(finding)
         if fingerprint:
-            fingerprints[fingerprint] += 1
+            indexed.setdefault(fingerprint, []).append(_finding_summary(finding))
             severities[str(finding.get("severity") or "unknown").lower()] += 1
-    return fingerprints, severities
+    return indexed, severities
 
 
 @router.get("/compare/{baseline_id}/{candidate_id}")
@@ -95,11 +120,19 @@ def compare_audits(
     if baseline.analysis_type != candidate.analysis_type:
         raise HTTPException(status_code=422, detail="Só é possível comparar auditorias do mesmo tipo.")
 
-    baseline_findings, baseline_severities = _finding_counts(baseline.result or {})
-    candidate_findings, candidate_severities = _finding_counts(candidate.result or {})
-    added = candidate_findings - baseline_findings
-    resolved = baseline_findings - candidate_findings
-    unchanged = sum((baseline_findings & candidate_findings).values())
+    baseline_findings, baseline_severities = _finding_index(baseline.result or {})
+    candidate_findings, candidate_severities = _finding_index(candidate.result or {})
+    added_findings = []
+    resolved_findings = []
+    unchanged = 0
+    for fingerprint in sorted(set(baseline_findings) | set(candidate_findings)):
+        before = baseline_findings.get(fingerprint, [])
+        after = candidate_findings.get(fingerprint, [])
+        unchanged += min(len(before), len(after))
+        if len(after) > len(before):
+            added_findings.extend(after[len(before):])
+        elif len(before) > len(after):
+            resolved_findings.extend(before[len(after):])
     severity_names = sorted(set(baseline_severities) | set(candidate_severities))
     severity_delta = {
         severity: {
@@ -123,8 +156,14 @@ def compare_audits(
         "findings": {
             "details_available": isinstance((baseline.result or {}).get("findings"), list) and isinstance((candidate.result or {}).get("findings"), list),
             "added": sum(added.values()), "resolved": sum(resolved.values()),
-            "unchanged": unchanged, "baseline_total": sum(baseline_findings.values()),
-            "candidate_total": sum(candidate_findings.values()),
+            "unchanged": unchanged, "baseline_total": sum(len(items) for items in baseline_findings.values()),
+            "candidate_total": sum(len(items) for items in candidate_findings.values()),
+        },
+        "finding_diffs": {
+            "added": added_findings[:MAX_FINDING_DIFF_ITEMS],
+            "resolved": resolved_findings[:MAX_FINDING_DIFF_ITEMS],
+            "added_omitted": max(0, len(added_findings) - MAX_FINDING_DIFF_ITEMS),
+            "resolved_omitted": max(0, len(resolved_findings) - MAX_FINDING_DIFF_ITEMS),
         },
         "severity_delta": severity_delta,
         "score": {
