@@ -102,7 +102,7 @@ The interface should provide:
 
 ## Current implementation boundaries
 
-The current branch contains an initial web application, ZIP-based static source analysis, account/session controls, audit history, isolated scanner integrations, and an optional passive website assessment worker. The website scanner and OSV integration remain disabled in the production profile until their network egress and security controls are validated.
+The current main branch contains an initial web application, ZIP-based static source analysis, account/session controls, audit history, isolated scanner integrations, and an optional passive website assessment worker. The initial Security Intelligence hardening and product documentation were integrated through PR #1. The website scanner and OSV integration remain disabled in the production profile until their network egress and security controls are validated.
 
 Local-directory import, GitHub repository import, desktop packaging, a complete score model, full settings/navigation, localization, and the complete Website Scanner experience are roadmap work. Documentation of these goals does not mean they are already implemented.
 
