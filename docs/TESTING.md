@@ -1,6 +1,6 @@
-# Guia de testes do VulnScan Pro
+# Guia de testes do VulnScan
 
-Este guia é para validar a aplicação localmente antes de qualquer merge ou implantação pública. Use a branch de hardening e mantenha o serviço acessível apenas na sua máquina.
+Este guia ajuda a validar o estado integrado do VulnScan localmente. Use a branch `main` para testar a versão integrada mais recente ou uma branch de tarefa específica quando precisar validar uma mudança ainda não promovida. Mantenha o serviço acessível apenas na sua máquina.
 
 ## 1. Pré-requisitos
 
@@ -17,23 +17,32 @@ docker --version
 docker compose version
 ```
 
-## 2. Baixar a branch que está na PR
+## 2. Baixar a versão que será testada
+
+Para testar a versão integrada mais recente:
 
 ```bash
 git clone https://github.com/ArthurVinicius05/VulnScan.git
 cd VulnScan
-git fetch origin
-git switch fix/relatorio-auditoria-0.4.0
-git pull --ff-only origin fix/relatorio-auditoria-0.4.0
+git switch main
+git pull --ff-only origin main
 ```
 
-Confirme que está testando o commit esperado da PR:
+Para testar uma alteração ainda não integrada, troque para a branch indicada na respectiva PR:
+
+```bash
+git fetch origin
+git switch nome-da-branch
+git pull --ff-only origin nome-da-branch
+```
+
+Confirme o commit exato que está testando:
 
 ```bash
 git rev-parse HEAD
 ```
 
-O SHA muda quando houver novas correções; compare com o commit mais recente exibido no topo da PR #1.
+Compare o SHA com o commit exibido na branch ou na PR correspondente. A branch `main` representa o estado integrado; `develop` recebe o trabalho preparado para a próxima integração.
 
 ## 3. Iniciar a aplicação
 
@@ -80,7 +89,8 @@ Use um e-mail de teste e um projeto ZIP pequeno, sem credenciais, tokens, dados 
 - [ ] Ative MFA/TOTP, valide um código, saia e entre novamente; teste também um código de recuperação e confirme que ele não pode ser reutilizado.
 - [ ] Envie um ZIP pequeno com código-fonte de teste autorizado.
 - [ ] A API aceita o envio e cria um job; acompanhe o estado até concluir.
-- [ ] O resultado e a contagem de achados aparecem no painel/histórico da conta correta.
+- [ ] O resultado, a cobertura da análise e a contagem de achados aparecem no painel/histórico da conta correta.
+- [ ] O menu de perfil mostra o e-mail da conta e o status de verificação corretos; o atalho de segurança leva à seção de MFA e exclusão.
 - [ ] Um usuário não consegue consultar o histórico ou os jobs de outra conta.
 - [ ] Teste um ZIP inválido, corrompido ou acima do limite e confirme que a aplicação rejeita o envio sem travar.
 - [ ] Cancele um job ainda na fila, se conseguir fazê-lo antes de o worker iniciá-lo.
@@ -121,14 +131,14 @@ Os workflows da PR também executam testes de backend, integração PostgreSQL, 
 - SMTP real, HTTPS de domínio, firewall/egress do host, backups externos, alertas externos, logs centralizados e revisão LGPD dependem de infraestrutura e não são simulados por este roteiro.
 - Website scanning e consultas online OSV permanecem desativados no perfil de produção até a política de saída de rede ser validada.
 - Não habilite esses recursos em produção para “testar” sem uma autorização e uma política de egress revisadas.
-- A PR não deve ser mesclada até o mantenedor concluir os testes e autorizar explicitamente.
+- A integração automatizada não substitui o teste manual. Não faça uma implantação pública até o mantenedor concluir os testes locais, revisar os gates de produção e autorizar o lançamento.
 
 ## 7. Se encontrar um problema
 
-Abra uma issue ou comente na PR #1 com:
+Abra uma issue ou comente na PR relacionada à mudança que apresentou o problema, informando:
 
 1. Sistema operacional e versão do Docker.
-2. SHA retornado por `git rev-parse HEAD`.
+2. SHA retornado por `git rev-parse HEAD` e nome da branch testada.
 3. Passos exatos para reproduzir.
 4. Resultado esperado e resultado observado.
 5. Logs relevantes de `docker compose logs`, removendo e mascarando tokens, cookies, e-mails reais, senhas e outros segredos.
