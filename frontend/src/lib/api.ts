@@ -43,6 +43,28 @@ export async function checkSession(): Promise<boolean> {
   catch { return false }
 }
 
+export type AccountInfo = {
+  id: string
+  email: string
+  email_verified: boolean
+  mfa_enabled: boolean
+}
+
+export async function fetchAccountInfo(): Promise<AccountInfo> {
+  const response = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include', cache: 'no-store' })
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Não foi possível consultar os dados da conta.')
+  if (typeof payload.id !== 'string' || typeof payload.email !== 'string') {
+    throw new ApiError('A API retornou dados de conta inválidos.', 502)
+  }
+  return {
+    id: payload.id,
+    email: payload.email,
+    email_verified: payload.email_verified === true,
+    mfa_enabled: payload.mfa_enabled === true,
+  }
+}
+
 export async function authenticate(email: string, password: string, mode: 'login' | 'register') {
   const response = await fetch(`${API_URL}/api/auth/${mode}`, {
     method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
@@ -166,13 +188,6 @@ export async function completeMfaLogin(challengeToken: string, code: string) {
   const payload = await readPayload(response)
   ensureSuccess(response, payload, 'Não foi possível validar o segundo fator.')
   return payload.user
-}
-
-export async function fetchMfaStatus(): Promise<boolean> {
-  const response = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include', cache: 'no-store' })
-  const payload = await readPayload(response)
-  ensureSuccess(response, payload, 'Não foi possível consultar a segurança da conta.')
-  return payload.mfa_enabled === true
 }
 
 export async function beginMfaSetup(): Promise<{ secret: string; otpauth_url: string }> {
