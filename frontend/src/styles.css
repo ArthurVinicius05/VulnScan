@@ -433,3 +433,40 @@
   background: #edf2f8;
   color: #263449;
 }
+
+
+/* Dedicated settings destination and honest disabled navigation */
+.settings-page-heading {
+  padding-bottom: 17px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #263753;
+}
+.settings-page-heading h2 {
+  margin: 0 0 5px;
+  font: 600 20px 'Space Grotesk';
+}
+.settings-page-heading p {
+  margin: 0;
+  color: #8492aa;
+  font-size: 12px;
+}
+.account-security .section-heading h3 {
+  margin: 0 0 5px;
+  font: 600 15px 'Space Grotesk';
+}
+nav a.nav-disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+:root[data-theme="light"] .settings-page-heading {
+  border-bottom-color: #dce4ef;
+}
+:root[data-theme="light"] .settings-page-heading p {
+  color: #52627a;
+}
+@media(max-width:680px) {
+  nav a:not(.active) { display: flex; }
+  nav a { justify-content: center; padding: 0; font-size: 0; }
+  nav a .soon { display: none; }
+  .sidebar-bottom>a { display: flex; justify-content: center; padding: 0; font-size: 0; }
+}
