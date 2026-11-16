@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Response, UploadFile, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -43,7 +43,10 @@ async def enqueue_source_zip_endpoint(
 
 
 @router.get("/jobs/{job_id}")
-def get_analysis_job(job_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def get_analysis_job(job_id: str, response: Response, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    response.headers["Cache-Control"] = "private, no-store, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
     job = db.scalar(select(AnalysisJob).where(AnalysisJob.id == job_id, AnalysisJob.user_id == user.id))
     if job is None:
         raise HTTPException(status_code=404, detail="Análise não encontrada.")
