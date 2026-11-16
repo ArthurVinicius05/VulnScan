@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     smtp_tls_server_name: str | None = None
     smtp_upstream_host: str | None = None
     mail_from: str | None = None
-    max_upload_mb: int = 50
+    max_upload_mb: int = 100
     max_archive_files: int = 3000
     max_extracted_mb: int = 100
     scanner_worker_url: str = "http://scanner-worker:8001"
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     mfa_encryption_key: str | None = None
     monthly_analysis_limit: int = 30
     max_concurrent_analyses: int = 2
-    max_queued_storage_mb: int = 100
+    max_queued_storage_mb: int = 250
     analysis_job_retention_days: int = 30
     audit_retention_days: int = 180
     enable_osv_scan: bool = False
