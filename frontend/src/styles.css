@@ -615,3 +615,7 @@ nav a.nav-disabled {
   .website-scanner-page .settings-page-heading { align-items: flex-start; }
   .website-scan-form .primary-btn { width: 100%; justify-content: center; }
 }
+
+.analyzer-page .scan-grid { grid-template-columns: minmax(0, 1fr); }
+.source-archive-notice { display: block; margin: 10px 0 14px; color: #91a5c1; font-size: 11px; line-height: 1.6; }
+:root[data-theme="light"] .source-archive-notice { color: #52627a; }
