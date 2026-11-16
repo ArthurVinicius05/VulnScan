@@ -16,7 +16,7 @@ def test_severity_and_confidence_change_score_deterministically():
     score = calculate_security_score(findings, analysis_status="completed")
     assert score["value"] == 82
     assert score["deductions"] == {"high": 15.0, "medium": 3.5}
-    assert score["model_version"] == "1.0"
+    assert score["model_version"] == "1.1"
 
 
 def test_partial_analysis_caps_score_below_perfect():
