@@ -8,9 +8,13 @@ from app.api.dependencies import get_db
 from app.core.passwords import hash_password
 from app.db.database import Base
 from app.main import app
+from app.models.account_token import AccountToken
 from app.models.analysis_job import AnalysisJob
 from app.models.audit import AuditRecord
+from app.models.mfa_challenge import MFAChallenge
+from app.models.mfa_recovery_code import MFARecoveryCode
 from app.models.user import User
+from app.models.user_session import UserSession
 
 
 def test_account_deletion_requires_running_jobs_to_finish_and_removes_live_data(tmp_path):
@@ -29,6 +33,14 @@ def test_account_deletion_requires_running_jobs_to_finish_and_removes_live_data(
             archive_data=b"zip", attempts=1, max_attempts=3))
         db.add(AuditRecord(user_id=user_id, analysis_type="static_source_analysis", target="old.zip",
             status="completed", finding_count=0, result={}))
+        db.add(UserSession(user_id=user_id, token_hash="a" * 64,
+            created_at=datetime.now(timezone.utc), expires_at=datetime.now(timezone.utc)))
+        db.add(AccountToken(user_id=user_id, token_hash="b" * 64, purpose="verify_email",
+            created_at=datetime.now(timezone.utc), expires_at=datetime.now(timezone.utc)))
+        db.add(MFAChallenge(user_id=user_id, token_hash="c" * 64, attempts=0,
+            created_at=datetime.now(timezone.utc), expires_at=datetime.now(timezone.utc)))
+        db.add(MFARecoveryCode(user_id=user_id, code_hash="d" * 64,
+            created_at=datetime.now(timezone.utc)))
         db.commit()
 
     def override_db():
@@ -63,6 +75,10 @@ def test_account_deletion_requires_running_jobs_to_finish_and_removes_live_data(
                 assert db.get(User, user_id) is None
                 assert db.query(AnalysisJob).filter_by(user_id=user_id).count() == 0
                 assert db.query(AuditRecord).filter_by(user_id=user_id).count() == 0
+                assert db.query(UserSession).filter_by(user_id=user_id).count() == 0
+                assert db.query(AccountToken).filter_by(user_id=user_id).count() == 0
+                assert db.query(MFAChallenge).filter_by(user_id=user_id).count() == 0
+                assert db.query(MFARecoveryCode).filter_by(user_id=user_id).count() == 0
     finally:
         app.dependency_overrides.clear()
         engine.dispose()

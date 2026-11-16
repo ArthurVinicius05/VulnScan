@@ -12,6 +12,7 @@ from app.models.account_token import AccountToken
 from app.models.analysis_job import AnalysisJob
 from app.models.audit import AuditRecord
 from app.models.mfa_challenge import MFAChallenge
+from app.models.user import User
 from app.models.user_session import UserSession
 from app.services.source_analysis import analyze_source_archive
 
@@ -59,8 +60,12 @@ def claim_next_job() -> tuple[str, str, str, bytes, int] | None:
             exhausted.error = "O job esgotou o limite de tentativas automáticas."
             exhausted.completed_at = now
 
-        job = db.scalar(
-            select(AnalysisJob)
+        # Lease recovery above locks job rows. Commit before taking the owner lock so
+        # account deletion and worker claiming always acquire locks in the same order.
+        db.commit()
+
+        candidate = db.execute(
+            select(AnalysisJob.id, AnalysisJob.user_id)
             .where(
                 AnalysisJob.status == "queued",
                 AnalysisJob.available_at <= now,
@@ -68,8 +73,39 @@ def claim_next_job() -> tuple[str, str, str, bytes, int] | None:
                 AnalysisJob.attempts < AnalysisJob.max_attempts,
             )
             .order_by(AnalysisJob.created_at, AnalysisJob.id)
-            .with_for_update(skip_locked=True)
             .limit(1)
+        ).first()
+        if candidate is None:
+            return None
+
+        job_id, user_id = candidate
+        owner = db.scalar(select(User).where(User.id == user_id).with_for_update())
+        if owner is None:
+            # A stale/orphaned queue row must never be processed for a deleted account.
+            # Remove its retained upload and linked result so deleted-account data
+            # cannot remain in the queue or block later jobs.
+            db.query(AuditRecord).filter(AuditRecord.job_id == job_id).delete(
+                synchronize_session=False
+            )
+            orphan = db.get(AnalysisJob, job_id)
+            if orphan is not None:
+                db.delete(orphan)
+            db.commit()
+            return None
+
+        # Account deletion locks the user before inspecting/deleting jobs. Locking
+        # the owner first here prevents a queued job becoming running mid-deletion.
+        job = db.scalar(
+            select(AnalysisJob)
+            .where(
+                AnalysisJob.id == job_id,
+                AnalysisJob.user_id == user_id,
+                AnalysisJob.status == "queued",
+                AnalysisJob.available_at <= now,
+                AnalysisJob.archive_data.is_not(None),
+                AnalysisJob.attempts < AnalysisJob.max_attempts,
+            )
+            .with_for_update(skip_locked=True)
         )
         if job is None:
             db.commit()
