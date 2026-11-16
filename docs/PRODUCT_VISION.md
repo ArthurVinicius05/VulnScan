@@ -36,7 +36,7 @@ The analysis should cover, within documented and measurable limits:
 
 Uploaded or imported project code must remain untrusted data. The platform must not execute submitted project code as part of ordinary static analysis. Scanner tools must run in isolated, resource-limited workers.
 
-A larger upload limit must not be presented as proof that every byte or every file is analyzed. Upload size, expanded archive size, file count, per-file scan size, total source bytes scanned, tool timeouts, and findings limits are separate controls. Reports must disclose partial coverage and truncation.
+A larger upload limit must not be presented as proof that every byte or every file is analyzed. Upload size, expanded archive size, file count, per-file scan size, total source bytes scanned, tool timeouts, and findings limits are separate controls. The current heuristic analyzer has a 512 KiB per-file ceiling and a 5 MiB total source-byte ceiling; integrated tools have their own coverage and timeout limits. These ceilings must be reviewed and raised only with resource profiling and regression tests. Reports must disclose partial coverage and truncation.
 
 ### Website Scanner
 
