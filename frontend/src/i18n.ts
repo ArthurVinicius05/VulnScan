@@ -183,32 +183,32 @@ type FindingTextField = 'title' | 'evidence' | 'recommendation'
 
 const findingTranslations: Record<string, Record<Language, Partial<Record<FindingTextField, string>>>> = {
   SECRET001: {
-    en: { title: 'Possible hardcoded credential', evidence: 'Credential-like value detected in source code; the value has been redacted.', recommendation: 'Move the value to a secret manager or environment variable, rotate it if real, and ensure it is not committed.' },
-    'pt-BR': { title: 'Possível credencial fixa no código', evidence: 'Valor semelhante a uma credencial detectado no código-fonte; o valor foi ocultado.', recommendation: 'Mova o valor para um gerenciador de segredos ou variável de ambiente, faça a rotação se for real e garanta que ele não seja versionado.' },
+    en: { title: 'Possible hardcoded credential', recommendation: 'Move the value to a secret manager or environment variable, rotate it if real, and ensure it is not committed.' },
+    'pt-BR': { title: 'Possível credencial fixa no código', recommendation: 'Mova o valor para um gerenciador de segredos ou variável de ambiente, faça a rotação se for real e garanta que ele não seja versionado.' },
   },
   PY001: {
-    en: { title: 'Dynamic code execution', evidence: 'A call to eval or exec was detected.', recommendation: 'Avoid evaluating dynamic input. Replace it with explicit parsing or a strict allowlist of permitted operations.' },
-    'pt-BR': { title: 'Execução dinâmica de código', evidence: 'Foi detectada uma chamada a eval ou exec.', recommendation: 'Evite avaliar entradas dinâmicas. Substitua isso por análise explícita dos dados ou uma lista estrita de operações permitidas.' },
+    en: { title: 'Dynamic code execution', recommendation: 'Avoid evaluating dynamic input. Replace it with explicit parsing or a strict allowlist of permitted operations.' },
+    'pt-BR': { title: 'Execução dinâmica de código', recommendation: 'Evite avaliar entradas dinâmicas. Substitua isso por análise explícita dos dados ou uma lista estrita de operações permitidas.' },
   },
   PY002: {
-    en: { title: 'Subprocess with shell enabled', evidence: 'A subprocess call appears to enable shell execution.', recommendation: 'Prefer argument arrays with shell=False. Validate arguments and never concatenate untrusted input into a command.' },
-    'pt-BR': { title: 'Subprocess com execução de shell habilitada', evidence: 'Uma chamada de subprocess parece habilitar a execução pelo shell.', recommendation: 'Prefira listas de argumentos com shell=False. Valide os argumentos e nunca concatene entradas não confiáveis em um comando.' },
+    en: { title: 'Subprocess with shell enabled', recommendation: 'Prefer argument arrays with shell=False. Validate arguments and never concatenate untrusted input into a command.' },
+    'pt-BR': { title: 'Subprocess com execução de shell habilitada', recommendation: 'Prefira listas de argumentos com shell=False. Valide os argumentos e nunca concatene entradas não confiáveis em um comando.' },
   },
   PY003: {
-    en: { title: 'Unsafe pickle deserialization', evidence: 'A pickle deserialization operation was detected.', recommendation: 'Do not deserialize pickle data from untrusted sources. Use a non-executable data format such as JSON.' },
-    'pt-BR': { title: 'Desserialização insegura de pickle', evidence: 'Foi detectada uma operação de desserialização com pickle.', recommendation: 'Não desserialize dados pickle de fontes não confiáveis. Use um formato de dados não executável, como JSON.' },
+    en: { title: 'Unsafe pickle deserialization', recommendation: 'Do not deserialize pickle data from untrusted sources. Use a non-executable data format such as JSON.' },
+    'pt-BR': { title: 'Desserialização insegura de pickle', recommendation: 'Não desserialize dados pickle de fontes não confiáveis. Use um formato de dados não executável, como JSON.' },
   },
   PY004: {
-    en: { title: 'Potentially unsafe YAML loading', evidence: 'A yaml.load call was detected.', recommendation: 'Use yaml.safe_load for untrusted YAML, and validate the resulting data against an expected schema.' },
-    'pt-BR': { title: 'Carregamento potencialmente inseguro de YAML', evidence: 'Foi detectada uma chamada a yaml.load.', recommendation: 'Use yaml.safe_load para YAML não confiável e valide os dados resultantes com um esquema esperado.' },
+    en: { title: 'Potentially unsafe YAML loading', recommendation: 'Use yaml.safe_load for untrusted YAML, and validate the resulting data against an expected schema.' },
+    'pt-BR': { title: 'Carregamento potencialmente inseguro de YAML', recommendation: 'Use yaml.safe_load para YAML não confiável e valide os dados resultantes com um esquema esperado.' },
   },
   WEB001: {
-    en: { title: 'Direct HTML injection sink', evidence: 'An assignment to innerHTML or outerHTML was detected.', recommendation: 'Avoid assigning untrusted strings to HTML injection sinks. Prefer textContent or framework-safe rendering; sanitize only when HTML is required.' },
-    'pt-BR': { title: 'Ponto de injeção direta de HTML', evidence: 'Foi detectada uma atribuição a innerHTML ou outerHTML.', recommendation: 'Evite atribuir textos não confiáveis a pontos de injeção HTML. Prefira textContent ou a renderização segura do framework; sanitize somente quando HTML for necessário.' },
+    en: { title: 'Direct HTML injection sink', recommendation: 'Avoid assigning untrusted strings to HTML injection sinks. Prefer textContent or framework-safe rendering; sanitize only when HTML is required.' },
+    'pt-BR': { title: 'Ponto de injeção direta de HTML', recommendation: 'Evite atribuir textos não confiáveis a pontos de injeção HTML. Prefira textContent ou a renderização segura do framework; sanitize somente quando HTML for necessário.' },
   },
   SQL001: {
-    en: { title: 'Possible SQL built through string formatting', evidence: 'A query may be assembled through string formatting or concatenation. Manual verification is required.', recommendation: 'Use parameterized queries or prepared statements. This pattern is heuristic and requires manual verification.' },
-    'pt-BR': { title: 'Possível SQL construído por formatação de texto', evidence: 'Uma consulta pode estar sendo montada por formatação ou concatenação de strings. É necessária validação manual.', recommendation: 'Use consultas parametrizadas ou instruções preparadas. Este padrão é heurístico e exige validação manual.' },
+    en: { title: 'Possible SQL built through string formatting', recommendation: 'Use parameterized queries or prepared statements. This pattern is heuristic and requires manual verification.' },
+    'pt-BR': { title: 'Possível SQL construído por formatação de texto', recommendation: 'Use consultas parametrizadas ou instruções preparadas. Este padrão é heurístico e exige validação manual.' },
   },
   'WEB-HDR-001': {
     en: { title: 'HSTS header missing', evidence: 'The HTTPS response did not include Strict-Transport-Security.', recommendation: 'Configure the Strict-Transport-Security header on HTTPS responses after confirming all relevant subdomains support HTTPS.' },
