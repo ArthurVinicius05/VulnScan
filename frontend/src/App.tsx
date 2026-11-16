@@ -67,15 +67,36 @@ export default function App() {
   const [deletePassword, setDeletePassword] = useState('')
   const [deleteMfaCode, setDeleteMfaCode] = useState('')
 
+  function clearWorkspaceState() {
+    setHistory([])
+    setHistoryError('')
+    setSelectedAudit(null)
+    setDetailBusy(false)
+    setResult(null)
+    setFile(null)
+    setActiveJobId(null)
+    setBusy(false)
+    setAnalysisStatus('')
+    setMfaEnabled(false)
+    setMfaSetup(null)
+    setMfaRecoveryCodes([])
+    setMfaActionCode('')
+    setMfaMessage('')
+    setMfaError('')
+    setDeleteAccountOpen(false)
+    setDeletePassword('')
+    setDeleteMfaCode('')
+  }
+
   async function refreshHistory() {
     try { setHistory(await fetchAuditHistory()); setHistoryError('') }
-    catch (e) { if (e instanceof ApiError && e.status === 401) { setAuthenticated(false); setHistory([]); return } setHistoryError(e instanceof Error ? e.message : 'Falha ao carregar histórico.') }
+    catch (e) { if (e instanceof ApiError && e.status === 401) { clearWorkspaceState(); setAuthenticated(false); return } setHistoryError(e instanceof Error ? e.message : 'Falha ao carregar histórico.') }
   }
 
   async function openAudit(id: string) {
     setDetailBusy(true); setHistoryError('')
     try { setSelectedAudit(await fetchAuditDetail(id)) }
-    catch (e) { if (e instanceof ApiError && e.status === 401) { setAuthenticated(false); setSelectedAudit(null); return } setHistoryError(e instanceof Error ? e.message : 'Falha ao carregar relatório.') }
+    catch (e) { if (e instanceof ApiError && e.status === 401) { clearWorkspaceState(); setAuthenticated(false); return } setHistoryError(e instanceof Error ? e.message : 'Falha ao carregar relatório.') }
     finally { setDetailBusy(false) }
   }
 
@@ -93,7 +114,7 @@ export default function App() {
         setMfaChallenge(authResult.challenge_token)
         setAuthNotice('')
       } else if (authResult?.user) {
-        setHistory([]); setSelectedAudit(null); setResult(null); setFile(null); setActiveJobId(null)
+        clearWorkspaceState()
         setAuthenticated(true)
         setAuthNotice('')
       } else {
@@ -110,7 +131,7 @@ export default function App() {
     try {
       await completeMfaLogin(mfaChallenge, mfaLoginCode)
       setMfaChallenge(''); setMfaLoginCode('')
-      setHistory([]); setSelectedAudit(null); setResult(null); setFile(null); setActiveJobId(null)
+      clearWorkspaceState()
       setAuthenticated(true)
     } catch (e) { setAuthError(e instanceof Error ? e.message : 'Não foi possível validar MFA.') }
     finally { setAuthBusy(false) }
@@ -136,8 +157,8 @@ export default function App() {
     setMfaError(''); setMfaMessage('')
     try {
       const message = await disableMfa(mfaActionCode)
-      setMfaEnabled(false); setAuthenticated(false); setHistory([]); setResult(null)
-      setMfaActionCode(''); setMfaRecoveryCodes([]); setMfaMessage(message)
+      clearWorkspaceState(); setAuthenticated(false)
+      setMfaMessage(message)
     } catch (e) { setMfaError(e instanceof Error ? e.message : 'Não foi possível desativar MFA.') }
   }
 
@@ -145,13 +166,12 @@ export default function App() {
     setMfaError(''); setMfaMessage('')
     try {
       const message = await deleteAccount(deletePassword, deleteMfaCode)
-      setAuthenticated(false); setHistory([]); setSelectedAudit(null); setResult(null); setFile(null); setActiveJobId(null); setMfaEnabled(false)
-      setDeleteAccountOpen(false); setDeletePassword(''); setDeleteMfaCode('')
+      clearWorkspaceState(); setAuthenticated(false)
       setAuthNotice(message)
     } catch (e) { setMfaError(e instanceof Error ? e.message : 'Não foi possível excluir a conta.') }
   }
 
-  async function endSession() { await logout(); setAuthenticated(false); setHistory([]); setSelectedAudit(null); setResult(null); setFile(null); setActiveJobId(null) }
+  async function endSession() { try { await logout() } finally { clearWorkspaceState(); setAuthenticated(false) } }
 
   if (authChecking) return <div className="auth-screen"><p>Verificando sessão…</p></div>
   if (!authenticated && (showRecovery || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('verify') || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('reset'))) return <AccountRecovery onBack={() => { setShowRecovery(false); window.history.replaceState({}, '', window.location.pathname) }} />
@@ -180,7 +200,7 @@ export default function App() {
     if (!file) return
     setBusy(true); setError(''); setResult(null); setActiveJobId(null); setAnalysisStatus('uploading')
     try { setResult(await uploadSourceZip(file, setActiveJobId, setAnalysisStatus) as Result); await refreshHistory() }
-    catch (e) { if (e instanceof ApiError && e.status === 401) { setAuthenticated(false); setResult(null); setError('Sua sessão expirou. Entre novamente para continuar.') } else setError(e instanceof Error ? e.message : 'Erro inesperado.') }
+    catch (e) { if (e instanceof ApiError && e.status === 401) { clearWorkspaceState(); setAuthenticated(false); setError('Sua sessão expirou. Entre novamente para continuar.') } else setError(e instanceof Error ? e.message : 'Erro inesperado.') }
     finally { setBusy(false); setActiveJobId(null); setAnalysisStatus('') }
   }
 
@@ -210,7 +230,7 @@ export default function App() {
     <main className="main">
       <header className="topbar"><div className="crumb">Workspace <ChevronRight size={14}/> <b>Overview</b></div><div className="top-actions"><button className="auth-logout" onClick={()=>void endSession()}>Sair</button><div className="avatar">AV</div></div></header>
       <section className="content">
-        <div className="welcome" id="overview"><div><div className="eyebrow"><span className="live-dot"/> SECURITY WORKSPACE</div><h1>Security overview</h1><p>Find weaknesses before attackers do. Audit only codebases and websites you are authorized to test.</p></div><div className="date-chip"><Activity size={15}/> SYSTEM READY</div></div>
+        <div className="welcome" id="overview"><div><div className="eyebrow"><span className="live-dot"/> SECURITY WORKSPACE</div><h1>Security overview</h1><p>Find weaknesses before attackers do. Audit only codebases and websites you are authorized to test.</p></div><div className="date-chip"><Activity size={15}/> CODE ANALYZER READY</div></div>
         <div className="stats">
           <div className="stat-card"><div className="stat-top"><span>Audits performed</span><ScanSearch size={18}/></div><strong>{history.length}</strong><small>Saved audits in this workspace</small></div>
           <div className="stat-card"><div className="stat-top"><span>Issues detected</span><LockKeyhole size={18}/></div><strong>{result?.finding_count ?? '—'}</strong><small>{result ? 'Current archive' : 'Run your first audit'}</small></div>
@@ -275,7 +295,7 @@ export default function App() {
         </div>
         <section className="panel audit-history" id="audit-history"><div className="section-heading"><div><h2>Audit history</h2><p>Latest completed assessments saved in this workspace.</p></div><button className="secondary-btn" onClick={() => void refreshHistory()}>Refresh</button></div>{historyError && <div className="error">{historyError}</div>}{history.length === 0 && !historyError ? <p>No saved audits yet.</p> : <div className="history-list">{history.map(item => <article className="history-item" key={item.id}><div><b>{item.target}</b><small>{item.analysis_type.replaceAll("_", " ")} · {new Date(item.created_at).toLocaleString()}</small></div><span className="findings-summary">{item.finding_count} finding(s)</span><button className="history-view" onClick={() => void openAudit(item.id)}>Ver relatório</button></article>)}</div>}{detailBusy && <p>Carregando relatório…</p>}{selectedAudit && <div className="audit-detail"><div className="audit-detail-heading"><div><h3>{selectedAudit.target}</h3><small>{selectedAudit.analysis_type.replaceAll('_', ' ')} · {new Date(selectedAudit.created_at).toLocaleString()}</small></div><button className="history-view" onClick={() => setSelectedAudit(null)}>Fechar</button></div><p>{selectedAudit.finding_count} achado(s) registrado(s)</p>{selectedAudit.result.findings?.length ? selectedAudit.result.findings.map((finding, index) => <article className="finding" key={(finding.rule_id ?? 'finding') + index}><div className="finding-heading"><b>{finding.title ?? finding.rule_id ?? 'Achado de segurança'}</b><span className={'severity ' + (finding.severity ?? 'unknown')}>{(finding.severity ?? 'unknown').toUpperCase()}</span></div><small>{finding.rule_id ?? '—'} · {finding.file ?? finding.url ?? '—'}{finding.line ? ':' + finding.line : ''}</small>{finding.evidence && <pre>{finding.evidence}</pre>}{finding.recommendation && <p>{finding.recommendation}</p>}</article>) : <p>Nenhum detalhe de achado foi armazenado neste registro.</p>}</div>}</section>
         <div className="bottom-note"><ShieldCheck size={17}/><span><b>Built with security in mind.</b> Uploaded code is treated as untrusted input and is never executed by this service.</span></div>
-        <footer>VULNSCAN PRO · STATIC ANALYSIS BUILD 0.2.0 · FOR AUTHORIZED SECURITY TESTING</footer>
+        <footer>VULNSCAN · SECURITY INTELLIGENCE · FOR AUTHORIZED SECURITY TESTING</footer>
       </section>
     </main>
   </div>
