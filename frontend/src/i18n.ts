@@ -2,6 +2,7 @@ export type Language = 'pt-BR' | 'en'
 
 const messages = {
   en: {
+    selectBaseline: 'Use as baseline', baselineSelected: 'Baseline selected', compareWithBaseline: 'Compare', baselineSelectedHint: 'Choose another audit to compare against this baseline.', clearBaseline: 'Clear baseline', comparingAudits: 'Comparing audits…', comparisonTitle: 'Audit comparison', findingsAdded: 'New findings', findingsResolved: 'Resolved findings', findingsUnchanged: 'Unchanged findings', findingDetailsUnavailable: 'Finding-level details are unavailable for one or both audits.', scoreChange: 'Security score', scoreNotComparable: 'Security scores cannot be compared because one is missing or uses a different model version.', severityBreakdown: 'Severity breakdown', comparisonFailed: 'Could not compare audits.',
     unreadable: 'unreadable', language: 'Language', workspace: 'Workspace', overview: 'Overview', websiteScanner: 'Website Scanner',
     soon: 'SOON', settingsDescription: 'Manage account protection and workspace preferences.', preferences: 'Appearance and language', preferencesDescription: 'Choose how VulnScan looks and which language the interface uses.', appearance: 'Color theme', interfaceLanguage: 'Interface language', codeAnalyzer: 'Code Analyzer', auditHistory: 'Audit History', settings: 'Settings',
     account: 'Account', verifiedEmail: 'Verified email', unverifiedEmail: 'Email not verified',
@@ -77,6 +78,7 @@ const messages = {
     back: 'Back',
   },
   'pt-BR': {
+    selectBaseline: 'Usar como base', baselineSelected: 'Base selecionada', compareWithBaseline: 'Comparar', baselineSelectedHint: 'Escolha outra auditoria para comparar com esta base.', clearBaseline: 'Limpar base', comparingAudits: 'Comparando auditorias…', comparisonTitle: 'Comparação de auditorias', findingsAdded: 'Novos achados', findingsResolved: 'Achados resolvidos', findingsUnchanged: 'Achados sem alteração', findingDetailsUnavailable: 'Os detalhes dos achados não estão disponíveis em uma ou nas duas auditorias.', scoreChange: 'Pontuação de segurança', scoreNotComparable: 'As pontuações não podem ser comparadas porque falta uma delas ou usam versões diferentes do modelo.', severityBreakdown: 'Detalhamento por severidade', comparisonFailed: 'Não foi possível comparar as auditorias.',
     unreadable: 'ilegíveis', language: 'Idioma', workspace: 'Área de trabalho', overview: 'Visão geral', websiteScanner: 'Scanner de sites',
     soon: 'EM BREVE', settingsDescription: 'Gerencie a proteção da conta e as preferências do ambiente.', preferences: 'Aparência e idioma', preferencesDescription: 'Escolha a aparência do VulnScan e o idioma da interface.', appearance: 'Tema de cores', interfaceLanguage: 'Idioma da interface', codeAnalyzer: 'Analisador de código', auditHistory: 'Histórico de auditorias',
     settings: 'Configurações', account: 'Conta', verifiedEmail: 'E-mail verificado',
