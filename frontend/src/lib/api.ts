@@ -278,3 +278,26 @@ export async function compareAudits(baselineId: string, candidateId: string): Pr
   ensureSuccess(response, payload, 'Não foi possível comparar as auditorias.')
   return payload as AuditComparison
 }
+
+export type WebsiteScanResult = {
+  status: string
+  target?: string
+  http_status?: number
+  redirect_chain?: string[]
+  tls?: { version?: string | null; certificate_expiry?: string | null } | null
+  finding_count?: number
+  findings?: { rule_id: string; title: string; severity: string; evidence: string; remediation: string }[]
+  notice?: string
+}
+
+export async function scanWebsite(url: string): Promise<WebsiteScanResult> {
+  const response = await fetch(`${API_URL}/api/analysis/website`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { ...csrfHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, authorized: true }),
+  })
+  const payload = await readPayload(response)
+  ensureSuccess(response, payload, 'Não foi possível verificar o site.')
+  return payload as WebsiteScanResult
+}
