@@ -24,6 +24,7 @@ type Finding = {
 }
 type Result = {
   status: 'completed' | 'partial' | 'failed'
+  security_score?: { value: number; rating: string; model_version: string; raw_value: number; score_cap: number; is_capped: boolean; cap_reasons: string[]; confidence: string; finding_count: number; severity_counts: Record<string, number>; deductions: Record<string, number>; methodology: string; disclaimer: string }
   coverage?: {
     overall: string
     heuristics?: { candidate_files: number; files_over_file_limit: number; files_over_total_limit: number; findings_returned: number; possibly_truncated_by_finding_limit: boolean }
@@ -280,7 +281,7 @@ export default function App() {
         <div className="stats">
           <div className="stat-card"><div className="stat-top"><span>{t('auditsPerformed')}</span><ScanSearch size={18}/></div><strong>{history.length}</strong><small>{t('savedAudits')}</small></div>
           <div className="stat-card"><div className="stat-top"><span>{t('issuesDetected')}</span><LockKeyhole size={18}/></div><strong>{result?.finding_count ?? '—'}</strong><small>{result ? t('currentArchive') : t('runFirstAudit')}</small></div>
-          <div className="stat-card"><div className="stat-top"><span>{t('securityScore')}</span><ShieldCheck size={18}/></div><strong>—</strong><small>{t('scoringNotImplemented')}</small></div>
+          <div className="stat-card"><div className="stat-top"><span>{t('securityScore')}</span><ShieldCheck size={18}/></div><strong>{result?.security_score ? result.security_score.value + '/100' : '—'}</strong><small>{result?.security_score ? t('scoreFromCurrentAnalysis') : t('scoreNeedsAnalysis')}</small></div>
         </div>
         <section className="panel account-security" id="settings">
           <div className="settings-page-heading"><div><h2>{t('settings')}</h2><p>{t('settingsDescription')}</p></div></div>
@@ -325,6 +326,7 @@ export default function App() {
             {error && <div className="error">{error}</div>}
             {result && <div className="result"><b><FileArchive size={16}/> {result.status === 'partial' ? t('partialAnalysis') : result.status === 'failed' ? t('failedAnalysis') : t('completedAnalysis')}</b>{result.status === 'partial' && <div className="error">{t('partialCoverage')}</div>}<p>{result.file_count} {t('files')} · {result.detected_technologies.join(', ') || t('noStackMarkers')}</p><small>{translateBackendText(language, result.notice)}</small>
               <div className="findings-summary"><AlertTriangle size={16}/> {result.finding_count} {t('potentialFindings')}</div>
+              {result.security_score && <div className="dependency-inventory"><b>{t('securityScore')}: {result.security_score.value}/100</b><span>{t('scoreRating')}: {t(result.security_score.rating === 'strong' ? 'scoreStrong' : result.security_score.rating === 'good' ? 'scoreGood' : result.security_score.rating === 'needs_attention' ? 'scoreNeedsAttention' : 'scoreHighRisk')}</span><span>{t('scoreModel')}: {result.security_score.model_version} · {t('scoreConfidence')}: {t(result.security_score.confidence === 'limited' ? 'scoreLimited' : 'scoreStandard')}</span>{result.security_score.is_capped && <span>{t('scoreCoverageCap')}</span>}<small>{t('scoreDisclaimer')}</small></div>}
               {result.scanner_tools && <div className="tool-status"><b>{t('staticTools')}</b>{result.scanner_tools.tools.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {translateStatus(language, tool.status)}{tool.files_scanned !== undefined ? ' · ' + tool.files_scanned + '/' + (tool.files_available ?? tool.files_scanned) + ' ' + t('files') : ''}</span>)}{result.scanner_tools.security_tools?.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {translateStatus(language, tool.status)}{tool.coverage?.truncated ? ' · ' + t('limitedCoverage') : ''}{tool.reason ? ' · ' + translateBackendText(language, tool.reason) : ''}</span>)}</div>}
               {result.coverage && <div className="dependency-inventory"><b>{t('coverage')}</b><span>{t('heuristics')}:  {result.coverage.heuristics?.candidate_files ?? 0} {t('files')} · {result.coverage.heuristics?.files_over_file_limit ?? 0} {t('overFileLimit')} · {result.coverage.heuristics?.files_over_total_limit ?? 0} {t('overTotalLimit')}</span>{result.coverage.python_tools && <span>{t('pythonScanners')}:  {result.coverage.python_tools.python_files_scanned ?? 0}/{result.coverage.python_tools.python_files_available ?? 0} {t('files')}</span>}</div>}
               {result.dependencies && <div className="dependency-inventory">
