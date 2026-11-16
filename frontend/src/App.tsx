@@ -146,7 +146,7 @@ export default function App() {
         setAuthenticated(true)
         setAuthNotice('')
       } else {
-        setAuthNotice(typeof authResult?.message === 'string' ? authResult.message : 'Conta criada. Verifique seu e-mail para ativá-la antes de entrar.')
+        setAuthNotice(typeof authResult?.message === 'string' ? authResult.message : t('accountCreatedNotice'))
       }
     } catch (e) { setAuthError(e instanceof Error ? e.message : t('authFailed')) }
     finally { setAuthBusy(false) }
@@ -177,25 +177,25 @@ export default function App() {
       const codes = await confirmMfaSetup(mfaActionCode)
       setMfaEnabled(true); setMfaSetup(null); setMfaActionCode('')
       setMfaRecoveryCodes(codes)
-      setMfaMessage('MFA ativado. Salve os códigos de recuperação em local seguro.')
+      setMfaMessage(t('mfaActivatedNotice'))
     } catch (e) { setMfaError(e instanceof Error ? e.message : t('mfaEnableFailed')) }
   }
 
   async function deactivateMfa() {
     setMfaError(''); setMfaMessage('')
     try {
-      const message = await disableMfa(mfaActionCode)
+      await disableMfa(mfaActionCode)
       clearWorkspaceState(); setAuthenticated(false)
-      setMfaMessage(message)
+      setMfaMessage(t('mfaDisabledNotice'))
     } catch (e) { setMfaError(e instanceof Error ? e.message : t('mfaDisableFailed')) }
   }
 
   async function removeAccount() {
     setMfaError(''); setMfaMessage('')
     try {
-      const message = await deleteAccount(deletePassword, deleteMfaCode)
+      await deleteAccount(deletePassword, deleteMfaCode)
       clearWorkspaceState(); setAuthenticated(false)
-      setAuthNotice(message)
+      setAuthNotice(t('accountDeletedNotice'))
     } catch (e) { setMfaError(e instanceof Error ? e.message : t('accountDeleteFailed')) }
   }
 
@@ -235,11 +235,11 @@ export default function App() {
   async function cancelQueuedJob() {
     if (!activeJobId) return
     try {
-      const message = await cancelAnalysisJob(activeJobId)
+      await cancelAnalysisJob(activeJobId)
       setAnalysisStatus('cancelled')
-      setError(message)
+      setError(t('queuedCancelled'))
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('analysisCancelled'))
+      setError(e instanceof Error ? e.message : t('cancelAnalysisFailed'))
     }
   }
 
