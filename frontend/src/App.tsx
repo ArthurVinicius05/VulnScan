@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import AccountRecovery from './AccountRecovery'
+import LanguageToggle from './LanguageToggle'
+import { getInitialLanguage, translate, type Language, type TranslationKey } from './i18n'
 import { ShieldCheck, LayoutDashboard, Globe, FolderCode, History, Settings, UploadCloud, FileArchive, Activity, ChevronRight, LockKeyhole, ScanSearch, AlertTriangle } from 'lucide-react'
 import { ApiError, authenticate, checkSession, completeMfaLogin, fetchAccountInfo, beginMfaSetup, confirmMfaSetup, disableMfa, fetchAuditDetail, fetchAuditHistory, cancelAnalysisJob, deleteAccount, logout, uploadSourceZip, type AuditHistoryItem, type AuditDetail } from './lib/api'
 
@@ -36,6 +38,8 @@ type Result = {
 }
 
 export default function App() {
+  const [language, setLanguage] = useState<Language>(getInitialLanguage)
+  const t = (key: TranslationKey) => translate(language, key)
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
   const [activeJobId, setActiveJobId] = useState<string | null>(null)
@@ -94,15 +98,20 @@ export default function App() {
 
   async function refreshHistory() {
     try { setHistory(await fetchAuditHistory()); setHistoryError('') }
-    catch (e) { if (e instanceof ApiError && e.status === 401) { clearWorkspaceState(); setAuthenticated(false); return } setHistoryError(e instanceof Error ? e.message : 'Falha ao carregar histórico.') }
+    catch (e) { if (e instanceof ApiError && e.status === 401) { clearWorkspaceState(); setAuthenticated(false); return } setHistoryError(e instanceof Error ? e.message : t('historyLoadFailed')) }
   }
 
   async function openAudit(id: string) {
     setDetailBusy(true); setHistoryError('')
     try { setSelectedAudit(await fetchAuditDetail(id)) }
-    catch (e) { if (e instanceof ApiError && e.status === 401) { clearWorkspaceState(); setAuthenticated(false); return } setHistoryError(e instanceof Error ? e.message : 'Falha ao carregar relatório.') }
+    catch (e) { if (e instanceof ApiError && e.status === 401) { clearWorkspaceState(); setAuthenticated(false); return } setHistoryError(e instanceof Error ? e.message : t('reportLoadFailed')) }
     finally { setDetailBusy(false) }
   }
+
+  useEffect(() => {
+    document.documentElement.lang = language
+    try { window.localStorage.setItem('vulnscan-language', language) } catch { /* Storage may be unavailable. */ }
+  }, [language])
 
   useEffect(() => {
     void checkSession().then(setAuthenticated).catch(() => setAuthenticated(false)).finally(() => setAuthChecking(false))
@@ -119,7 +128,7 @@ export default function App() {
         clearWorkspaceState()
         setAuthenticated(false)
       } else {
-        setMfaError(e instanceof Error ? e.message : 'Não foi possível consultar os dados da conta.')
+        setMfaError(e instanceof Error ? e.message : t('accountLoadFailed'))
       }
     })
   }, [authenticated])
@@ -139,7 +148,7 @@ export default function App() {
       } else {
         setAuthNotice(typeof authResult?.message === 'string' ? authResult.message : 'Conta criada. Verifique seu e-mail para ativá-la antes de entrar.')
       }
-    } catch (e) { setAuthError(e instanceof Error ? e.message : 'Falha na autenticação.') }
+    } catch (e) { setAuthError(e instanceof Error ? e.message : t('authFailed')) }
     finally { setAuthBusy(false) }
   }
 
@@ -152,14 +161,14 @@ export default function App() {
       setMfaChallenge(''); setMfaLoginCode('')
       clearWorkspaceState()
       setAuthenticated(true)
-    } catch (e) { setAuthError(e instanceof Error ? e.message : 'Não foi possível validar MFA.') }
+    } catch (e) { setAuthError(e instanceof Error ? e.message : t('mfaFailed')) }
     finally { setAuthBusy(false) }
   }
 
   async function startMfaSetup() {
     setMfaError(''); setMfaMessage(''); setMfaRecoveryCodes([])
     try { setMfaSetup(await beginMfaSetup()) }
-    catch (e) { setMfaError(e instanceof Error ? e.message : 'Não foi possível iniciar MFA.') }
+    catch (e) { setMfaError(e instanceof Error ? e.message : t('mfaSetupFailed')) }
   }
 
   async function activateMfa() {
@@ -169,7 +178,7 @@ export default function App() {
       setMfaEnabled(true); setMfaSetup(null); setMfaActionCode('')
       setMfaRecoveryCodes(codes)
       setMfaMessage('MFA ativado. Salve os códigos de recuperação em local seguro.')
-    } catch (e) { setMfaError(e instanceof Error ? e.message : 'Não foi possível ativar MFA.') }
+    } catch (e) { setMfaError(e instanceof Error ? e.message : t('mfaEnableFailed')) }
   }
 
   async function deactivateMfa() {
@@ -178,7 +187,7 @@ export default function App() {
       const message = await disableMfa(mfaActionCode)
       clearWorkspaceState(); setAuthenticated(false)
       setMfaMessage(message)
-    } catch (e) { setMfaError(e instanceof Error ? e.message : 'Não foi possível desativar MFA.') }
+    } catch (e) { setMfaError(e instanceof Error ? e.message : t('mfaDisableFailed')) }
   }
 
   async function removeAccount() {
@@ -187,39 +196,39 @@ export default function App() {
       const message = await deleteAccount(deletePassword, deleteMfaCode)
       clearWorkspaceState(); setAuthenticated(false)
       setAuthNotice(message)
-    } catch (e) { setMfaError(e instanceof Error ? e.message : 'Não foi possível excluir a conta.') }
+    } catch (e) { setMfaError(e instanceof Error ? e.message : t('accountDeleteFailed')) }
   }
 
-  async function endSession() { let logoutFailed = false; try { await logout() } catch { logoutFailed = true } finally { clearWorkspaceState(); setAuthenticated(false) } if (logoutFailed) setAuthNotice('A interface foi limpa, mas não foi possível confirmar a revogação da sessão no servidor. Verifique sua conexão e tente entrar novamente.') }
+  async function endSession() { let logoutFailed = false; try { await logout() } catch { logoutFailed = true } finally { clearWorkspaceState(); setAuthenticated(false) } if (logoutFailed) setAuthNotice(t('logoutUnconfirmed')) }
 
-  if (authChecking) return <div className="auth-screen"><p>Verificando sessão…</p></div>
-  if (!authenticated && (showRecovery || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('verify') || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('reset'))) return <AccountRecovery onBack={() => { setShowRecovery(false); window.history.replaceState({}, '', window.location.pathname) }} />
-  if (!authenticated && mfaChallenge) return <div className="auth-screen"><form className="auth-card" onSubmit={submitMfaLogin}>
-    <div className="brand-mark"><ShieldCheck size={24}/></div><h1>Verificação em duas etapas</h1>
-    <p>Digite o código do seu aplicativo autenticador ou um código de recuperação.</p>
-    <label>Código MFA<input inputMode="text" autoComplete="one-time-code" required minLength={6} maxLength={64} value={mfaLoginCode} onChange={e=>setMfaLoginCode(e.target.value)}/></label>
+  if (authChecking) return <div className="auth-screen"><div className="auth-language"><LanguageToggle language={language} onChange={setLanguage}/></div><p>{t('checkingSession')}</p></div>
+  if (!authenticated && (showRecovery || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('verify') || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('reset'))) return <AccountRecovery language={language} onLanguageChange={setLanguage} onBack={() => { setShowRecovery(false); window.history.replaceState({}, '', window.location.pathname) }} />
+  if (!authenticated && mfaChallenge) return <div className="auth-screen"><div className="auth-language"><LanguageToggle language={language} onChange={setLanguage}/></div><form className="auth-card" onSubmit={submitMfaLogin}>
+    <div className="brand-mark"><ShieldCheck size={24}/></div><h1>{t('mfaLoginTitle')}</h1>
+    <p>{t('mfaLoginDescription')}</p>
+    <label>{t('mfaCode')}<input inputMode="text" autoComplete="one-time-code" required minLength={6} maxLength={64} value={mfaLoginCode} onChange={e=>setMfaLoginCode(e.target.value)}/></label>
     {authError && <div className="error">{authError}</div>}
-    <button className="primary-btn" disabled={authBusy}>{authBusy ? 'Validando…' : 'Confirmar código'}</button>
-    <button type="button" className="auth-switch" onClick={()=>{setMfaChallenge('');setMfaLoginCode('');setAuthError('')}}>Voltar ao login</button>
+    <button className="primary-btn" disabled={authBusy}>{authBusy ? t('validating') : t('confirmCode')}</button>
+    <button type="button" className="auth-switch" onClick={()=>{setMfaChallenge('');setMfaLoginCode('');setAuthError('')}}>{t('backToLogin')}</button>
   </form></div>
-  if (!authenticated) return <div className="auth-screen"><form className="auth-card" onSubmit={submitAuth}>
+  if (!authenticated) return <div className="auth-screen"><div className="auth-language"><LanguageToggle language={language} onChange={setLanguage}/></div><form className="auth-card" onSubmit={submitAuth}>
     <div className="brand-mark"><ShieldCheck size={24}/></div><h1>VulnScan</h1>
-    <p>{authMode === 'login' ? 'Entre na sua conta para acessar suas auditorias.' : 'Crie sua conta para manter seu histórico privado.'}</p>
-    <label>E-mail<input type="email" autoComplete="email" required maxLength={254} value={email} onChange={e=>setEmail(e.target.value)}/></label>
-    <label>Senha<input type="password" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} required minLength={12} maxLength={128} value={password} onChange={e=>setPassword(e.target.value)}/></label>
-    {authMode === 'register' && <small>A senha deve ter pelo menos 12 caracteres.</small>}
+    <p>{authMode === 'login' ? t('loginDescription') : t('registerDescription')}</p>
+    <label>{t('email')}<input type="email" autoComplete="email" required maxLength={254} value={email} onChange={e=>setEmail(e.target.value)}/></label>
+    <label>{t('password')}<input type="password" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} required minLength={12} maxLength={128} value={password} onChange={e=>setPassword(e.target.value)}/></label>
+    {authMode === 'register' && <small>{t('passwordMin')}</small>}
     {authError && <div className="error">{authError}</div>}
     {authNotice && <div className="success">{authNotice}</div>}
-    {authMode === 'login' && <button type="button" className="auth-switch" onClick={() => setShowRecovery(true)}>Esqueci minha senha / confirmar e-mail</button>}
-    <button className="primary-btn" disabled={authBusy}>{authBusy ? 'Aguarde…' : authMode === 'login' ? 'Entrar' : 'Criar conta'}</button>
-    <button type="button" className="auth-switch" onClick={()=>{setAuthMode(authMode === 'login' ? 'register' : 'login');setAuthError('')}}>{authMode === 'login' ? 'Ainda não tem conta? Cadastre-se' : 'Já tem conta? Entrar'}</button>
+    {authMode === 'login' && <button type="button" className="auth-switch" onClick={() => setShowRecovery(true)}>{t('forgotPassword')}</button>}
+    <button className="primary-btn" disabled={authBusy}>{authBusy ? t('pleaseWait') : authMode === 'login' ? t('signIn') : t('createAccount')}</button>
+    <button type="button" className="auth-switch" onClick={()=>{setAuthMode(authMode === 'login' ? 'register' : 'login');setAuthError('')}}>{authMode === 'login' ? t('noAccount') : t('haveAccount')}</button>
   </form></div>
 
   async function runAnalysis() {
     if (!file) return
     setBusy(true); setError(''); setResult(null); setActiveJobId(null); setAnalysisStatus('uploading')
     try { setResult(await uploadSourceZip(file, setActiveJobId, setAnalysisStatus) as Result); await refreshHistory() }
-    catch (e) { if (e instanceof ApiError && e.status === 401) { clearWorkspaceState(); setAuthenticated(false); setError('Sua sessão expirou. Entre novamente para continuar.') } else setError(e instanceof Error ? e.message : 'Erro inesperado.') }
+    catch (e) { if (e instanceof ApiError && e.status === 401) { clearWorkspaceState(); setAuthenticated(false); setError(t('sessionExpired')) } else setError(e instanceof Error ? e.message : t('unexpectedError')) }
     finally { setBusy(false); setActiveJobId(null); setAnalysisStatus('') }
   }
 
@@ -237,84 +246,84 @@ export default function App() {
   return <div className="app-shell">
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark"><ShieldCheck size={22}/></div><div><strong>VulnScan</strong><small>SECURITY INTELLIGENCE</small></div></div>
-      <div className="nav-label">WORKSPACE</div>
+      <div className="nav-label">{t('workspace').toUpperCase()}</div>
       <nav>
-        <a className="active" href="#overview"><LayoutDashboard size={18}/> Overview</a>
-        <a><Globe size={18}/> Website Scanner <span className="soon">SOON</span></a>
-        <a href="#code-analyzer"><FolderCode size={18}/> Code Analyzer</a>
-        <a href="#audit-history"><History size={18}/> Audit History</a>
+        <a className="active" href="#overview"><LayoutDashboard size={18}/> {t('overview')}</a>
+        <a><Globe size={18}/> {t('websiteScanner')} <span className="soon">{t('soon')}</span></a>
+        <a href="#code-analyzer"><FolderCode size={18}/> {t('codeAnalyzer')}</a>
+        <a href="#audit-history"><History size={18}/> {t('auditHistory')}</a>
       </nav>
-      <div className="sidebar-bottom"><a href="#account-security"><Settings size={18}/> Settings</a><div className="profile"><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><div><b>{accountEmail || "Conta"}</b><small>{emailVerified ? "E-mail verificado" : "E-mail não verificado"}</small></div></div></div>
+      <div className="sidebar-bottom"><a href="#account-security"><Settings size={18}/> {t('settings')}</a><div className="profile"><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><div><b>{accountEmail || t('account')}</b><small>{emailVerified ? t('verifiedEmail') : t('unverifiedEmail')}</small></div></div></div>
     </aside>
     <main className="main">
-      <header className="topbar"><div className="crumb">Workspace <ChevronRight size={14}/> <b>Overview</b></div><div className="top-actions"><details className="profile-menu"><summary><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><span>Conta</span></summary><div className="profile-menu-content"><b>{accountEmail || "Conta"}</b><small>{emailVerified ? "E-mail verificado" : "E-mail não verificado"}</small><a href="#account-security">Segurança e configurações</a><button type="button" onClick={()=>void endSession()}>Sair da conta</button></div></details></div></header>
+      <header className="topbar"><div className="crumb">Workspace <ChevronRight size={14}/> <b>Overview</b></div><div className="top-actions"><details className="profile-menu"><summary><div className="avatar">{accountEmail ? accountEmail.slice(0, 2).toUpperCase() : "AV"}</div><span>{t('account')}</span></summary><div className="profile-menu-content"><b>{accountEmail || "Conta"}</b><small>{emailVerified ? "E-mail verificado" : "E-mail não verificado"}</small><a href="#account-security">{t('securitySettings')}</a><button type="button" onClick={()=>void endSession()}>{t('signOut')}</button></div></details></div></header>
       <section className="content">
-        <div className="welcome" id="overview"><div><div className="eyebrow"><span className="live-dot"/> SECURITY WORKSPACE</div><h1>Security overview</h1><p>Find weaknesses before attackers do. Audit only codebases and websites you are authorized to test.</p></div><div className="date-chip"><Activity size={15}/> CODE ANALYZER READY</div></div>
+        <div className="welcome" id="overview"><div><div className="eyebrow"><span className="live-dot"/> SECURITY WORKSPACE</div><h1>{t('securityOverview')}</h1><p>{t('overviewDescription')}</p></div><div className="date-chip"><Activity size={15}/> {t('codeAnalyzerReady')}</div></div>
         <div className="stats">
-          <div className="stat-card"><div className="stat-top"><span>Audits performed</span><ScanSearch size={18}/></div><strong>{history.length}</strong><small>Saved audits in this workspace</small></div>
-          <div className="stat-card"><div className="stat-top"><span>Issues detected</span><LockKeyhole size={18}/></div><strong>{result?.finding_count ?? '—'}</strong><small>{result ? 'Current archive' : 'Run your first audit'}</small></div>
-          <div className="stat-card"><div className="stat-top"><span>Security score</span><ShieldCheck size={18}/></div><strong>—</strong><small>Scoring not implemented</small></div>
+          <div className="stat-card"><div className="stat-top"><span>{t('auditsPerformed')}</span><ScanSearch size={18}/></div><strong>{history.length}</strong><small>{t('savedAudits')}</small></div>
+          <div className="stat-card"><div className="stat-top"><span>{t('issuesDetected')}</span><LockKeyhole size={18}/></div><strong>{result?.finding_count ?? '—'}</strong><small>{result ? t('currentArchive') : t('runFirstAudit')}</small></div>
+          <div className="stat-card"><div className="stat-top"><span>{t('securityScore')}</span><ShieldCheck size={18}/></div><strong>—</strong><small>{t('scoringNotImplemented')}</small></div>
         </div>
         <section className="panel account-security" id="account-security">
-          <div className="section-heading"><div><h2>Account security</h2><p>Protect your account with an authenticator app and one-time recovery codes.</p></div><span className={mfaEnabled ? 'available' : 'coming'}>{mfaEnabled ? 'MFA ENABLED' : 'MFA NOT ENABLED'}</span></div>
+          <div className="section-heading"><div><h2>{t('accountSecurity')}</h2><p>{t('accountSecurityDescription')}</p></div><span className={mfaEnabled ? 'available' : 'coming'}>{mfaEnabled ? t('mfaEnabled') : t('mfaNotEnabled')}</span></div>
           {mfaEnabled ? <div>
-            <p>Multi-factor authentication is active for this account.</p>
-            <label>Authenticator code or recovery code<input value={mfaActionCode} onChange={e=>setMfaActionCode(e.target.value)} maxLength={64} placeholder="6-digit code or recovery code"/></label>
-            <button className="secondary-btn" disabled={!mfaActionCode} onClick={()=>void deactivateMfa()}>Disable MFA and sign out all sessions</button>
+            <p>{t('mfaActive')}</p>
+            <label>{t('authenticatorOrRecovery')}<input value={mfaActionCode} onChange={e=>setMfaActionCode(e.target.value)} maxLength={64} placeholder={t('codePlaceholder')}/></label>
+            <button className="secondary-btn" disabled={!mfaActionCode} onClick={()=>void deactivateMfa()}>{t('disableMfa')}</button>
           </div> : <div>
-            {!mfaSetup ? <button className="primary-btn" onClick={()=>void startMfaSetup()}>Set up MFA</button> : <div>
-              <p>In your authenticator app, add an account manually with this secret:</p>
+            {!mfaSetup ? <button className="primary-btn" onClick={()=>void startMfaSetup()}>{t('setupMfa')}</button> : <div>
+              <p>{t('addSecretManually')}</p>
               <pre>{mfaSetup.secret}</pre>
-              <small>Provisioning URI: {mfaSetup.otpauth_url}</small>
-              <label>Enter the current 6-digit code<input inputMode="numeric" autoComplete="one-time-code" value={mfaActionCode} onChange={e=>setMfaActionCode(e.target.value)} maxLength={6} placeholder="123456"/></label>
-              <button className="primary-btn" disabled={mfaActionCode.length !== 6} onClick={()=>void activateMfa()}>Confirm and enable MFA</button>
+              <small>{t('provisioningUri')}: {mfaSetup.otpauth_url}</small>
+              <label>{t('currentSixDigitCode')}<input inputMode="numeric" autoComplete="one-time-code" value={mfaActionCode} onChange={e=>setMfaActionCode(e.target.value)} maxLength={6} placeholder="123456"/></label>
+              <button className="primary-btn" disabled={mfaActionCode.length !== 6} onClick={()=>void activateMfa()}>{t('confirmEnableMfa')}</button>
             </div>}
           </div>}
           {mfaError && <div className="error">{mfaError}</div>}
           {mfaMessage && <div className="success">{mfaMessage}</div>}
-          {mfaRecoveryCodes.length > 0 && <details open><summary>Recovery codes — save them now</summary><ul>{mfaRecoveryCodes.map(code=><li key={code}><code>{code}</code></li>)}</ul><small>Each code can be used once. They will not be shown again.</small></details>}
+          {mfaRecoveryCodes.length > 0 && <details open><summary>{t('recoveryCodesSave')}</summary><ul>{mfaRecoveryCodes.map(code=><li key={code}><code>{code}</code></li>)}</ul><small>{t('recoveryCodesOneTime')}</small></details>}
           <div className="account-danger-zone">
-            {!deleteAccountOpen ? <button className="secondary-btn" onClick={()=>setDeleteAccountOpen(true)}>Delete account and audit data</button> : <div>
-              <p>This permanently removes your account, queued jobs and saved audit reports. Running analyses must finish first. Encrypted backups may retain copies until their configured retention period expires.</p>
-              <label>Current password<input type="password" autoComplete="current-password" value={deletePassword} onChange={e=>setDeletePassword(e.target.value)} maxLength={128}/></label>
+            {!deleteAccountOpen ? <button className="secondary-btn" onClick={()=>setDeleteAccountOpen(true)}>{t('deleteAccount')}</button> : <div>
+              <p>{t('deleteAccountWarning')}</p>
+              <label>{t('currentPassword')}<input type="password" autoComplete="current-password" value={deletePassword} onChange={e=>setDeletePassword(e.target.value)} maxLength={128}/></label>
               {mfaEnabled && <label>Authenticator or recovery code<input value={deleteMfaCode} onChange={e=>setDeleteMfaCode(e.target.value)} maxLength={64}/></label>}
-              <button className="secondary-btn" disabled={deletePassword.length < 12 || (mfaEnabled && deleteMfaCode.length < 6)} onClick={()=>void removeAccount()}>Permanently delete account</button>
-              <button className="auth-switch" onClick={()=>{setDeleteAccountOpen(false);setDeletePassword('');setDeleteMfaCode('')}}>Cancel</button>
+              <button className="secondary-btn" disabled={deletePassword.length < 12 || (mfaEnabled && deleteMfaCode.length < 6)} onClick={()=>void removeAccount()}>{t('permanentlyDelete')}</button>
+              <button className="auth-switch" onClick={()=>{setDeleteAccountOpen(false);setDeletePassword('');setDeleteMfaCode('')}}>{t('cancel')}</button>
             </div>}
           </div>
         </section>
-        <div className="section-heading"><div><h2>Start an assessment</h2><p>Choose a target type to begin your security review.</p></div></div>
+        <div className="section-heading"><div><h2>{t('startAssessment')}</h2><p>{t('chooseTarget')}</p></div></div>
         <div className="scan-grid">
-          <section className="panel" id="code-analyzer"><div className="panel-icon purple"><FolderCode size={21}/></div><div className="panel-title"><h3>Source code analysis</h3><span className="available">AVAILABLE</span></div><p>Inspect project structure and run bounded static checks for common insecure coding patterns. Uploaded code is never executed.</p>
-            <label className="dropzone"><UploadCloud size={26}/><b>{file ? file.name : 'Drop your ZIP file here'}</b><span>{file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : 'or click to browse · max 50 MB'}</span><input type="file" accept=".zip,application/zip" onChange={e => {const selected=e.target.files?.[0] ?? null;setResult(null);if(selected && selected.size > 50 * 1024 * 1024){setFile(null);setError('O arquivo excede o limite de 50 MB.');return}setFile(selected);setError('')}} /></label>
-            <button className="primary-btn" disabled={!file || busy} onClick={runAnalysis}>{busy ? 'Waiting for analysis…' : 'Analyze source archive'} <ChevronRight size={17}/></button>
-            {busy && <div className="analysis-progress"><span>{analysisStatus === 'queued' ? 'Na fila — aguardando um worker disponível…' : analysisStatus === 'running' ? 'Análise em execução…' : 'Enviando arquivo…'}</span>{analysisStatus === 'queued' && activeJobId && <button className="auth-switch" onClick={()=>void cancelQueuedJob()}>Cancelar na fila</button>}</div>}
+          <section className="panel" id="code-analyzer"><div className="panel-icon purple"><FolderCode size={21}/></div><div className="panel-title"><h3>{t('sourceAnalysis')}</h3><span className="available">{t('available')}</span></div><p>{t('sourceDescription')}</p>
+            <label className="dropzone"><UploadCloud size={26}/><b>{file ? file.name : t('dropZip')}</b><span>{file ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : t('browseZip')}</span><input type="file" accept=".zip,application/zip" onChange={e => {const selected=e.target.files?.[0] ?? null;setResult(null);if(selected && selected.size > 50 * 1024 * 1024){setFile(null);setError(t('fileTooLarge));return}setFile(selected);setError('')}} /></label>
+            <button className="primary-btn" disabled={!file || busy} onClick={runAnalysis}>{busy ? t('waitingAnalysis') : (language === 'pt-BR' ? 'Analisar arquivo-fonte' : 'Analyze source archive')} <ChevronRight size={17}/></button>
+            {busy && <div className="analysis-progress"><span>{analysisStatus === 'queued' ? t('queuedStatus') : analysisStatus === 'running' ? t('runningStatus') : t('uploadingStatus')}</span>{analysisStatus === 'queued' && activeJobId && <button className="auth-switch" onClick={()=>void cancelQueuedJob()}>{t('cancelQueued')}</button>}</div>}
             {error && <div className="error">{error}</div>}
-            {result && <div className="result"><b><FileArchive size={16}/> {result.status === 'partial' ? 'Analysis partially completed' : result.status === 'failed' ? 'Analysis failed' : 'Analysis completed'}</b>{result.status === 'partial' && <div className="error">Cobertura parcial: alguns arquivos ou ferramentas foram limitados, desativados ou ficaram indisponíveis. Consulte os detalhes dos scanners antes de interpretar a ausência de achados.</div>}<p>{result.file_count} files · {result.detected_technologies.join(', ') || 'No known stack markers detected'}</p><small>{result.notice}</small>
-              <div className="findings-summary"><AlertTriangle size={16}/> {result.finding_count} potential finding(s)</div>
-              {result.scanner_tools && <div className="tool-status"><b>Static tools</b>{result.scanner_tools.tools.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {tool.status}{tool.files_scanned !== undefined ? ' · ' + tool.files_scanned + '/' + (tool.files_available ?? tool.files_scanned) + ' files' : ''}</span>)}{result.scanner_tools.security_tools?.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {tool.status}{tool.coverage?.truncated ? ' · coverage limited' : ''}{tool.reason ? ' · ' + tool.reason : ''}</span>)}</div>}
-              {result.coverage && <div className="dependency-inventory"><b>Analysis coverage</b><span>Heuristics: {result.coverage.heuristics?.candidate_files ?? 0} candidate files · {result.coverage.heuristics?.files_over_file_limit ?? 0} above per-file limit · {result.coverage.heuristics?.files_over_total_limit ?? 0} above total limit</span>{result.coverage.python_tools && <span>Python scanners: {result.coverage.python_tools.python_files_scanned ?? 0}/{result.coverage.python_tools.python_files_available ?? 0} files</span>}</div>}
+            {result && <div className="result"><b><FileArchive size={16}/> {result.status === 'partial' ? t('partialAnalysis') : result.status === 'failed' ? t('failedAnalysis') : t('completedAnalysis')}</b>{result.status === 'partial' && <div className="error">{t('partialCoverage')}</div>}<p>{result.file_count} {t('files')} · {result.detected_technologies.join(', ') || t('noStackMarkers')}</p><small>{result.notice}</small>
+              <div className="findings-summary"><AlertTriangle size={16}/> {result.finding_count} {t('potentialFindings')}</div>
+              {result.scanner_tools && <div className="tool-status"><b>{t('staticTools')}</b>{result.scanner_tools.tools.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {tool.status}{tool.files_scanned !== undefined ? ' · ' + tool.files_scanned + '/' + (tool.files_available ?? tool.files_scanned) + ' files' : ''}</span>)}{result.scanner_tools.security_tools?.map(tool => <span key={tool.name} className={tool.status}>{tool.name}: {tool.status}{tool.coverage?.truncated ? ' · {t('limitedCoverage')}' : ''}{tool.reason ? ' · ' + tool.reason : ''}</span>)}</div>}
+              {result.coverage && <div className="dependency-inventory"><b>{t('coverage')}</b><span>{t('heuristics')}:  {result.coverage.heuristics?.candidate_files ?? 0} candidate files · {result.coverage.heuristics?.files_over_file_limit ?? 0} {t('overFileLimit')} · {result.coverage.heuristics?.files_over_total_limit ?? 0} {t('overTotalLimit')}</span>{result.coverage.python_tools && <span>{t('pythonScanners')}:  {result.coverage.python_tools.python_files_scanned ?? 0}/{result.coverage.python_tools.python_files_available ?? 0} files</span>}</div>}
               {result.dependencies && <div className="dependency-inventory">
-                <b>Dependency manifests · {result.dependencies.manifest_count}</b>
+                <b>{t('dependencyManifests')} · {result.dependencies.manifest_count}</b>
                 <small>{result.dependencies.notice}</small>
-                {result.dependencies.manifests.map(item => <span key={item.file}>{item.file} · {item.ecosystem}{item.dependency_count !== null ? ' · ' + item.dependency_count + ' dependencies' : ''}</span>)}
+                {result.dependencies.manifests.map(item => <span key={item.file}>{item.file} · {item.ecosystem}{item.dependency_count !== null ? ' · ' + item.dependency_count + ' ' + t('dependencies') : ''}</span>)}
               </div>}
               {result.findings.map((finding, index) => <article className="finding" key={finding.rule_id + finding.file + finding.line + index}>
                 <div className="finding-heading"><b>{finding.title}</b><span className={'severity ' + finding.severity}>{finding.severity.toUpperCase()}</span></div>
-                <small>{finding.rule_id} · {finding.file}:{finding.line ?? '—'} · confidence: {finding.confidence} · not verified</small>
+                <small>{finding.rule_id} · {finding.file}:{finding.line ?? '—'} · {t('confidence')}: {finding.confidence} · {t('notVerified')}</small>
                 {finding.package && <small>{finding.package.ecosystem}:{finding.package.name}@{finding.package.version}</small>}
                 {finding.aliases?.length ? <small>Aliases: {finding.aliases.join(', ')}</small> : null}
-                {finding.references?.map(url => <small key={url}><a href={url} target="_blank" rel="noreferrer">Advisory reference</a></small>)}
+                {finding.references?.map(url => <small key={url}><a href={url} target="_blank" rel="noreferrer">{t('advisoryReference')}</a></small>)}
                 <pre>{finding.evidence}</pre><p>{finding.recommendation}</p>
               </article>)}
-              <details><summary>Inspected paths ({result.sample_paths.length} shown)</summary><ul>{result.sample_paths.slice(0,20).map(p=><li key={p}>{p}</li>)}</ul></details>
+              <details><summary>{t('inspectedPaths')} ({result.sample_paths.length} {t('shown')})</summary><ul>{result.sample_paths.slice(0,20).map(p=><li key={p}>{p}</li>)}</ul></details>
             </div>}
           </section>
-          <section className="panel"><div className="panel-icon cyan"><Globe size={21}/></div><div className="panel-title"><h3>Website scanner</h3><span className="coming">COMING IN PHASE 3</span></div><p>Review HTTPS configuration, security headers, cookie attributes, and exposed information on authorized targets.</p><div className="disabled-input"><Globe size={17}/><span>https://your-authorized-domain.com</span><LockKeyhole size={15}/></div><button className="secondary-btn" disabled>Website scanning is not enabled yet</button><div className="safety-note"><LockKeyhole size={15}/> Active checks will require explicit authorization and safe scope controls.</div></section>
+          <section className="panel"><div className="panel-icon cyan"><Globe size={21}/></div><div className="panel-title"><h3>{t('websiteScanner')}</h3><span className="coming">{t('soon')}</span></div><p>{t('websiteDescription')}</p><div className="disabled-input"><Globe size={17}/><span>https://your-authorized-domain.com</span><LockKeyhole size={15}/></div><button className="secondary-btn" disabled>{t('websiteNotEnabled')}</button><div className="safety-note"><LockKeyhole size={15}/> {t('websiteSafety')}</div></section>
         </div>
-        <section className="panel audit-history" id="audit-history"><div className="section-heading"><div><h2>Audit history</h2><p>Latest completed assessments saved in this workspace.</p></div><button className="secondary-btn" onClick={() => void refreshHistory()}>Refresh</button></div>{historyError && <div className="error">{historyError}</div>}{history.length === 0 && !historyError ? <p>No saved audits yet.</p> : <div className="history-list">{history.map(item => <article className="history-item" key={item.id}><div><b>{item.target}</b><small>{item.analysis_type.replaceAll("_", " ")} · {new Date(item.created_at).toLocaleString()}</small></div><span className="findings-summary">{item.finding_count} finding(s)</span><button className="history-view" onClick={() => void openAudit(item.id)}>Ver relatório</button></article>)}</div>}{detailBusy && <p>Carregando relatório…</p>}{selectedAudit && <div className="audit-detail"><div className="audit-detail-heading"><div><h3>{selectedAudit.target}</h3><small>{selectedAudit.analysis_type.replaceAll('_', ' ')} · {new Date(selectedAudit.created_at).toLocaleString()}</small></div><button className="history-view" onClick={() => setSelectedAudit(null)}>Fechar</button></div><p>{selectedAudit.finding_count} achado(s) registrado(s)</p>{selectedAudit.result.findings?.length ? selectedAudit.result.findings.map((finding, index) => <article className="finding" key={(finding.rule_id ?? 'finding') + index}><div className="finding-heading"><b>{finding.title ?? finding.rule_id ?? 'Achado de segurança'}</b><span className={'severity ' + (finding.severity ?? 'unknown')}>{(finding.severity ?? 'unknown').toUpperCase()}</span></div><small>{finding.rule_id ?? '—'} · {finding.file ?? finding.url ?? '—'}{finding.line ? ':' + finding.line : ''}</small>{finding.evidence && <pre>{finding.evidence}</pre>}{finding.recommendation && <p>{finding.recommendation}</p>}</article>) : <p>Nenhum detalhe de achado foi armazenado neste registro.</p>}</div>}</section>
-        <div className="bottom-note"><ShieldCheck size={17}/><span><b>Built with security in mind.</b> Uploaded code is treated as untrusted input and is never executed by this service.</span></div>
-        <footer>VULNSCAN · SECURITY INTELLIGENCE · FOR AUTHORIZED SECURITY TESTING</footer>
+        <section className="panel audit-history" id="audit-history"><div className="section-heading"><div><h2>{t('auditHistoryTitle')}</h2><p>{t('latestAssessments')}</p></div><button className="secondary-btn" onClick={() => void refreshHistory()}>{t('refresh')}</button></div>{historyError && <div className="error">{historyError}</div>}{history.length === 0 && !historyError ? <p>{t('noAudits')}</p> : <div className="history-list">{history.map(item => <article className="history-item" key={item.id}><div><b>{item.target}</b><small>{item.analysis_type.replaceAll("_", " ")} · {new Date(item.created_at).toLocaleString()}</small></div><span className="findings-summary">{item.finding_count} finding(s)</span><button className="history-view" onClick={() => void openAudit(item.id)}>{t('viewReport')}</button></article>)}</div>}{detailBusy && <p>{t('loadingReport')}</p>}{selectedAudit && <div className="audit-detail"><div className="audit-detail-heading"><div><h3>{selectedAudit.target}</h3><small>{selectedAudit.analysis_type.replaceAll('_', ' ')} · {new Date(selectedAudit.created_at).toLocaleString()}</small></div><button className="history-view" onClick={() => setSelectedAudit(null)}>{t('close')}</button></div><p>{selectedAudit.finding_count} {t('findingsRecorded')}</p>{selectedAudit.result.findings?.length ? selectedAudit.result.findings.map((finding, index) => <article className="finding" key={(finding.rule_id ?? 'finding') + index}><div className="finding-heading"><b>{finding.title ?? finding.rule_id ?? 'Achado de segurança'}</b><span className={'severity ' + (finding.severity ?? 'unknown')}>{(finding.severity ?? 'unknown').toUpperCase()}</span></div><small>{finding.rule_id ?? '—'} · {finding.file ?? finding.url ?? '—'}{finding.line ? ':' + finding.line : ''}</small>{finding.evidence && <pre>{finding.evidence}</pre>}{finding.recommendation && <p>{finding.recommendation}</p>}</article>) : <p>{t('noFindingDetails')}</p>}</div>}</section>
+        <div className="bottom-note"><ShieldCheck size={17}/><span><b>{t('builtSecurely')}</b> {t('uploadedCodeNotice')}</span></div>
+        <footer>VULNSCAN · SECURITY INTELLIGENCE · {t('authorizedTesting')}</footer>
       </section>
     </main>
   </div>
