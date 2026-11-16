@@ -39,11 +39,11 @@ A visão oficial, os limites de escopo e os princípios do produto estão em [PR
 ## Priority 3 — Code Analyzer depth
 
 - [ ] Improve scan coverage and publish independent limits for upload size, expanded size, file count, per-file bytes, total source bytes, tool timeouts and findings.
-- [x] Add the first deterministic, severity/confidence-weighted Code Analyzer Security Score with explicit coverage caps, methodology version and regression tests. Historical score comparisons remain pending.
+- [x] Add the first deterministic, severity/confidence-weighted Code Analyzer Security Score with explicit coverage caps, methodology version and regression tests.
 - [ ] Expand language/framework support and explain findings with context-specific examples.
 - [ ] Add GitHub repository import with explicit read-only authorization and least-privilege permissions.
 - [ ] Add local directory selection in the desktop application.
-- [ ] Support comparisons between analysis runs and exportable reports.
+- [x] Support authenticated comparisons between analysis runs, including added/resolved finding counts and Security Score deltas when model versions match.\n- [ ] Add richer finding-level diffs and exportable reports.
 
 ## Priority 4 — Website Scanner
 
