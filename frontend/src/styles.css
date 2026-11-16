@@ -513,3 +513,9 @@ nav a.nav-disabled {
 :root[data-theme="light"] .comparison-stats>div{background:#fff;border-color:#dce4ef}
 :root[data-theme="light"] .comparison-stats small,:root[data-theme="light"] .audit-comparison>p{color:#52627a}
 @media(max-width:760px){.history-item{align-items:flex-start;flex-wrap:wrap}.history-item>div{width:100%}.history-item .findings-summary{margin:0}.comparison-stats{grid-template-columns:1fr}}
+
+
+.audit-comparison details{margin-top:12px;padding-top:8px;border-top:1px solid #293953}
+.audit-comparison details .finding{margin-top:9px}
+.audit-comparison details>small{display:block;margin-top:8px;color:#8494ad;font-size:9px}
+:root[data-theme="light"] .audit-comparison details{border-top-color:#dce4ef}
