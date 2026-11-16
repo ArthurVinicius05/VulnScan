@@ -57,3 +57,39 @@ def test_long_lines_are_bounded_and_do_not_crash():
     data = make_zip([("app.py", "x" * 200_000 + "\neval(user_input)\n")])
     findings = analyze_source_zip(data)
     assert any(item["rule_id"] == "PY001" for item in findings)
+
+
+
+def test_reports_actual_scan_coverage_for_decodable_files():
+    data = make_zip([("app.py", "eval(user_input)\n")])
+    coverage = {}
+    findings = analyze_source_zip(data, coverage=coverage)
+    assert coverage["files_scanned"] == 1
+    assert coverage["unreadable_files"] == 0
+    assert coverage["stopped_at_finding_limit"] is False
+    assert findings[0]["rule_id"] == "PY001"
+
+
+def test_binary_source_extension_is_reported_as_unreadable():
+    data = make_zip([("app.py", b"\x00\x01\x02")])
+    coverage = {}
+    assert analyze_source_zip(data, coverage=coverage) == []
+    assert coverage["files_scanned"] == 0
+    assert coverage["unreadable_files"] == 1
+    assert coverage["binary_files"] == 1
+
+
+def test_invalid_utf8_source_is_reported_as_unreadable():
+    data = make_zip([("app.py", b"\xff\xfe\xfa")])
+    coverage = {}
+    assert analyze_source_zip(data, coverage=coverage) == []
+    assert coverage["files_scanned"] == 0
+    assert coverage["unreadable_files"] == 1
+
+
+def test_finding_limit_is_explicit_in_coverage():
+    data = make_zip([("app.py", "eval(user_input)\n" * 205)])
+    coverage = {}
+    findings = analyze_source_zip(data, coverage=coverage)
+    assert len(findings) == 200
+    assert coverage["stopped_at_finding_limit"] is True
