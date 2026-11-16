@@ -5,4 +5,4 @@ router = APIRouter(tags=["system"])
 
 @router.get("/health")
 def health():
-    return {"status": "ok", "service": "vulnscan-pro"}
+    return {"status": "ok", "service": "vulnscan"}
