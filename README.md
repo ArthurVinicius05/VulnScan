@@ -1,6 +1,6 @@
-# VulnScan Pro
+# VulnScan
 
-Plataforma de auditoria de segurança para avaliações autorizadas de aplicações web e análise estática de código-fonte. O projeto combina inspeção segura de arquivos, scanners isolados, análise de dependências e relatórios por conta.
+Plataforma Security Intelligence para análise de código-fonte e avaliação de segurança de websites autorizados. O VulnScan ajuda desenvolvedores de todos os níveis a identificar problemas, compreender riscos e aprender a corrigi-los.
 
 > **Build 0.4.0 — hardening em andamento.** O repositório agora possui fila durável, quotas por conta, MFA, locks de dependências, proxy de saída SMTP, backups criptografados e métricas Prometheus. Isso melhora a base operacional, mas não equivale a auditoria independente nem significa que uma implantação pública esteja aprovada.
 
@@ -52,7 +52,7 @@ O ambiente local pode ativar contas automaticamente quando SMTP não está confi
 - O arquivo original de um job em dead-letter fica disponível por no máximo 72 horas (configurável por `DEAD_LETTER_ARCHIVE_RETENTION_HOURS`); depois disso, só é possível recuperar com novo upload.
 - Análises ainda na fila podem ser canceladas pelo usuário; o upload temporário é descartado e a vaga de concorrência liberada. Jobs em execução não podem ser cancelados nesta versão.
 - Os arquivos originais são removidos quando a análise termina normalmente; em dead-letter, permanecem apenas durante a janela curta de recuperação e depois são apagados.
-- Quotas padrão por conta: 30 análises/mês, 2 análises simultâneas e 50 MB de arquivos pendentes. O limite padrão de upload individual é 25 MB. Ajuste os valores conforme a capacidade real.
+- Quotas padrão por conta: 30 análises/mês, 2 análises simultâneas e 100 MB de arquivos pendentes. O limite padrão de upload individual é 50 MB. Ajuste os valores conforme a capacidade real.
 - O histórico é isolado por usuário; os resultados heurísticos podem conter falsos positivos e negativos.
 
 ### Retenção
@@ -155,7 +155,7 @@ Consulte:
 - SECURITY.md — divulgação responsável.
 - PRIVACY.md — rascunho de privacidade e retenção.
 - TERMS.md — termos e escopo de uso.
-- docs/ARCHITECTURE.md — arquitetura.
+- docs/PRODUCT_VISION.md — visão oficial do produto, plataformas e roadmap funcional.\n- docs/ARCHITECTURE.md — arquitetura.
 - docs/TESTING.md — inicialização local e roteiro de testes manuais.
 - docs/PRODUCTION_READINESS.md — gates de lançamento.
 - docs/OPERATIONS_RUNBOOK.md — procedimentos de implantação, egress, TLS, backups e resposta a incidentes.
