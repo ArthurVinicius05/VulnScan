@@ -424,7 +424,6 @@ export default function App() {
           </form>
           <div className="safety-note"><LockKeyhole size={15}/> {t('websiteResultNotice')}</div>
           <div className="website-local-help">{t('websiteDisabledHelp')}</div>
-          <div className="website-local-help">{t('websiteDisabledHelp')}</div>
           {websiteError && <div className="error">{websiteError}</div>}
           {websiteResult && <div className="website-result"><h2>{t('websiteScanResult')}</h2><p><b>{websiteResult.target ?? websiteUrl}</b></p><div className="website-result-meta"><span>{t('websiteHttpStatus')}: {websiteResult.http_status ?? '—'}</span>{websiteResult.tls?.version && <span>{t('websiteTls')}: {websiteResult.tls.version}</span>}</div>{websiteResult.redirect_chain?.length ? <div><b>{t('websiteRedirects')}</b><ol>{websiteResult.redirect_chain.map((url,index)=><li key={url+index}>{url}</li>)}</ol></div> : null}<p>{websiteResult.finding_count ?? 0} {t('potentialFindings')}</p>{websiteResult.findings?.length ? websiteResult.findings.map((finding,index)=><article className="website-finding" key={finding.rule_id+index}><div className="finding-heading"><b>{finding.title}</b><span className={'severity '+finding.severity}>{translateSeverity(language,finding.severity)}</span></div><p>{finding.evidence}</p><small>{finding.remediation}</small></article>) : <p>{t('websiteNoFindings')}</p>}{websiteResult.notice && <small>{websiteResult.notice}</small>}</div>}
         </section>}
