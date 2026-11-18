@@ -34,7 +34,15 @@ def _is_public_address(value: str) -> bool:
     # unspecified, reserved and documentation ranges.
     if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped:
         address = address.ipv4_mapped
-    return address.is_global
+
+    # is_global alone is not sufficient: Python considers multicast
+    # destinations globally scoped. They are not valid website scan targets.
+    return (
+        address.is_global
+        and not address.is_multicast
+        and not address.is_reserved
+        and not address.is_unspecified
+    )
 
 
 def _resolve_public_addresses(hostname: str, port: int) -> tuple[str, ...]:
