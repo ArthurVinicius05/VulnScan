@@ -33,7 +33,7 @@ def test_production_settings_require_a_separate_operations_secret():
         mfa_encryption_key=Fernet.generate_key().decode(),
         monthly_analysis_limit=10,
         max_concurrent_analyses=2,
-        max_queued_storage_mb=50,
+        max_queued_storage_mb=250,
         dead_letter_archive_retention_hours=72,
     )
     validate_production_settings(valid)
@@ -56,7 +56,7 @@ def test_production_settings_require_a_separate_operations_secret():
         mfa_encryption_key=valid.mfa_encryption_key,
         monthly_analysis_limit=10,
         max_concurrent_analyses=2,
-        max_queued_storage_mb=50,
+        max_queued_storage_mb=250,
         dead_letter_archive_retention_hours=72,
     )
     import pytest
@@ -65,9 +65,9 @@ def test_production_settings_require_a_separate_operations_secret():
         validate_production_settings(invalid)
 
 
-def test_source_upload_defaults_allow_50mb_with_bounded_queue_storage():
+def test_source_upload_defaults_allow_100mb_with_bounded_queue_storage():
     settings = Settings(_env_file=None)
-    assert settings.max_upload_mb == 50
-    assert settings.max_queued_storage_mb == 100
+    assert settings.max_upload_mb == 100
+    assert settings.max_queued_storage_mb == 250
     # Expanded archive size remains independently capped to limit ZIP bombs.
     assert settings.max_extracted_mb == 100

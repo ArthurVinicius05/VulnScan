@@ -1,6 +1,6 @@
 # Guia de testes do VulnScan
 
-Este guia ajuda a validar o estado integrado do VulnScan localmente. Use a branch `main` para testar a versão integrada mais recente ou uma branch de tarefa específica quando precisar validar uma mudança ainda não promovida. Mantenha o serviço acessível apenas na sua máquina.
+Este guia ajuda a validar o VulnScan localmente. Para testar a atualização de experiência de produto desta PR, use exatamente a branch `feat/product-experience-refresh` e confirme o SHA indicado abaixo. Mantenha o serviço acessível apenas na sua máquina.
 
 ## 1. Pré-requisitos
 
@@ -19,22 +19,24 @@ docker compose version
 
 ## 2. Baixar a versão que será testada
 
-Para testar a versão integrada mais recente:
+Para testar esta atualização (PR #35):
 
 ```bash
 git clone https://github.com/ArthurVinicius05/VulnScan.git
 cd VulnScan
-git switch main
-git pull --ff-only origin main
+git fetch origin
+git switch --track origin/feat/product-experience-refresh
 ```
 
-Para testar uma alteração ainda não integrada, troque para a branch indicada na respectiva PR:
+Se você já clonou o repositório, use:
 
 ```bash
 git fetch origin
-git switch nome-da-branch
-git pull --ff-only origin nome-da-branch
+git switch feat/product-experience-refresh
+git pull --ff-only origin feat/product-experience-refresh
 ```
+
+**Não use `main` para este teste:** a atualização ainda está em revisão e não foi integrada.
 
 Confirme o commit exato que está testando:
 
@@ -42,7 +44,7 @@ Confirme o commit exato que está testando:
 git rev-parse HEAD
 ```
 
-Compare o SHA com o commit exibido na branch ou na PR correspondente. A branch `main` representa o estado integrado; `develop` recebe o trabalho preparado para a próxima integração.
+Compare o SHA com o commit mais recente exibido no topo da PR #35 antes de iniciar o teste. A PR tem como destino `develop`; ela ainda não foi mesclada.
 
 ## 3. Iniciar a aplicação
 
@@ -87,14 +89,19 @@ Use um e-mail de teste e um projeto ZIP pequeno, sem credenciais, tokens, dados 
 - [ ] Login e logout funcionam; rotas privadas não ficam acessíveis sem sessão.
 - [ ] Recuperação de senha e confirmação de e-mail apresentam o comportamento esperado no ambiente local. Sem SMTP configurado, o modo de desenvolvimento pode ativar contas automaticamente; isso não representa o fluxo real de produção.
 - [ ] Ative MFA/TOTP, valide um código, saia e entre novamente; teste também um código de recuperação e confirme que ele não pode ser reutilizado.
-- [ ] Envie um ZIP pequeno com código-fonte de teste autorizado.
+- [ ] Em Code Analyzer, envie um ZIP pequeno com código-fonte de teste autorizado; confirme estados de fila, execução, conclusão e erro.
 - [ ] A API aceita o envio e cria um job; acompanhe o estado até concluir.
 - [ ] O resultado, a cobertura da análise e a contagem de achados aparecem no painel/histórico da conta correta.
-- [ ] O menu de perfil mostra o e-mail da conta e o status de verificação corretos; o atalho de segurança leva à seção de MFA e exclusão.
+- [ ] Navegue por Overview, Website Scanner, Code Analyzer, Audit History, Settings e Profile; confirme URL, atualização ao voltar/avançar no navegador e foco no conteúdo principal.
+- [ ] O menu de perfil mostra o e-mail da conta e o status de verificação corretos; Settings apresenta MFA e preferências.
 - [ ] Um usuário não consegue consultar o histórico ou os jobs de outra conta.
-- [ ] Teste um ZIP inválido, corrompido ou acima do limite e confirme que a aplicação rejeita o envio sem travar.
+- [ ] Teste ZIP inválido/corrompido e um arquivo acima de 100 MB; confirme rejeição clara sem travar. O limite expandido do arquivo continua independente do tamanho compactado.
+- [ ] Abra um relatório no histórico e teste a exportação JSON; valide que o arquivo baixado contém o relatório correto.
 - [ ] Cancele um job ainda na fila, se conseguir fazê-lo antes de o worker iniciá-lo.
 - [ ] Confira que sair e entrar novamente não expõe dados de outra conta.
+- [ ] Teste tema claro e escuro em todas as rotas e verifique se não há texto ilegível ou elementos cortados.
+- [ ] Teste navegação por teclado e rótulos acessíveis; a automação ainda não substitui uma avaliação com leitor de tela.
+- [ ] Teste o Website Scanner apenas com um domínio público que você controla ou tem autorização para avaliar: configure MFA conforme `docs/LOCAL_DEVELOPMENT.md`, habilite `ENABLE_WEBSITE_SCAN=true` e suba o perfil `website-scan`. Confirme status HTTP, TLS, redirecionamentos e limitações exibidas.
 - [ ] Teste exclusão da conta somente com uma conta descartável, pois a operação remove os dados ativos dessa conta.
 
 Não interprete achados heurísticos como prova definitiva de vulnerabilidade: podem existir falsos positivos e falsos negativos.
