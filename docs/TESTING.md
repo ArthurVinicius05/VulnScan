@@ -44,7 +44,7 @@ Confirme o commit exato que está testando:
 git rev-parse HEAD
 ```
 
-Compare o SHA com o commit exibido na PR #35. O commit preparado para este teste é `c46c96d7b85e17b7e5a6992d8c7bc83b9d22c7ae` (confira novamente na PR caso novos commits sejam adicionados). A PR tem como destino `develop`; ela ainda não foi mesclada.
+Compare o SHA com o commit mais recente exibido no topo da PR #35 antes de iniciar o teste. A PR tem como destino `develop`; ela ainda não foi mesclada.
 
 ## 3. Iniciar a aplicação
 
