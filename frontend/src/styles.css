@@ -619,3 +619,57 @@ nav a.nav-disabled {
 .analyzer-page .scan-grid { grid-template-columns: minmax(0, 1fr); }
 .source-archive-notice { display: block; margin: 10px 0 14px; color: #91a5c1; font-size: 11px; line-height: 1.6; }
 :root[data-theme="light"] .source-archive-notice { color: #52627a; }
+
+
+/* Mobile workspace navigation: keep every destination visible and labeled. */
+@media (max-width: 680px) {
+  .app-shell { min-height: 100vh; flex-direction: column; }
+  .sidebar {
+    width: 100%;
+    min-width: 0;
+    padding: 12px 14px 10px;
+    border-right: 0;
+    border-bottom: 1px solid #1c2740;
+    gap: 8px;
+  }
+  .brand { padding: 0 4px 4px; }
+  .brand > div:last-child { display: block; }
+  .brand small { display: none; }
+  .nav-label { display: none; }
+  .sidebar nav {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: 3px;
+    scrollbar-width: thin;
+  }
+  .sidebar nav a,
+  .sidebar nav a:not(.active) {
+    display: inline-flex;
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    gap: 8px;
+    width: auto;
+    min-height: 40px;
+    padding: 0 11px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .sidebar-bottom { margin-top: 0; }
+  .sidebar-bottom > a {
+    display: inline-flex;
+    justify-content: flex-start;
+    width: auto;
+    min-height: 40px;
+    margin: 0;
+    padding: 0 11px;
+    font-size: 11px;
+  }
+  .main { width: 100%; min-width: 0; }
+  .topbar { min-height: 60px; height: auto; padding: 10px 14px; gap: 10px; }
+  .top-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .content { width: 100%; padding: 22px 14px; }
+}
+.main:focus { outline: none; }
+.main:focus-visible { outline: 2px solid #60a5fa; outline-offset: -3px; }
