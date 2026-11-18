@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import AccountRecovery from './AccountRecovery'
 import LanguageToggle from './LanguageToggle'
 import ThemeToggle, { type Theme } from './ThemeToggle'
@@ -74,6 +74,8 @@ export default function App() {
     return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
   })
   const t = (key: TranslationKey) => translate(language, key)
+  const mainRef = useRef<HTMLElement>(null)
+  const previousSection = useRef(activeSection)
   function navigateTo(section: string) {
     setActiveSection(section)
     const path = section === 'overview' ? '/overview' : `/${section}`
@@ -89,6 +91,13 @@ export default function App() {
     window.addEventListener('popstate', syncRoute)
     return () => { window.removeEventListener('hashchange', syncRoute); window.removeEventListener('popstate', syncRoute) }
   }, [])
+  useEffect(() => {
+    if (previousSection.current !== activeSection) {
+      mainRef.current?.focus({ preventScroll: true })
+      previousSection.current = activeSection
+    }
+  }, [activeSection])
+
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
   const [activeJobId, setActiveJobId] = useState<string | null>(null)
@@ -353,15 +362,15 @@ export default function App() {
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark"><ShieldCheck size={22}/></div><div><strong>VulnScan</strong><small>SECURITY INTELLIGENCE</small></div></div>
       <div className="nav-label">{t('workspace').toUpperCase()}</div>
-      <nav>
-        <a className={activeSection === "overview" ? "active" : ""} href="/overview" onClick={e=>{e.preventDefault();navigateTo('overview')}}><LayoutDashboard size={18}/> {t('overview')}</a>
-        <a className={activeSection === "website-scanner" ? "active" : ""} href="/website-scanner" onClick={e=>{e.preventDefault();navigateTo('website-scanner')}}><Globe size={18}/> {t('websiteScanner')}</a>
-        <a className={activeSection === "code-analyzer" ? "active" : ""} href="/code-analyzer" onClick={e=>{e.preventDefault();navigateTo('code-analyzer')}}><FolderCode size={18}/> {t('codeAnalyzer')}</a>
-        <a className={activeSection === "audit-history" ? "active" : ""} href="/audit-history" onClick={e=>{e.preventDefault();navigateTo('audit-history')}}><History size={18}/> {t('auditHistory')}</a>
+      <nav aria-label={t("workspace")}>
+        <a className={activeSection === "overview" ? "active" : ""} aria-current={activeSection === "overview" ? "page" : undefined} href="/overview" onClick={e=>{e.preventDefault();navigateTo('overview')}}><LayoutDashboard size={18}/> {t('overview')}</a>
+        <a className={activeSection === "website-scanner" ? "active" : ""} aria-current={activeSection === "website-scanner" ? "page" : undefined} href="/website-scanner" onClick={e=>{e.preventDefault();navigateTo('website-scanner')}}><Globe size={18}/> {t('websiteScanner')}</a>
+        <a className={activeSection === "code-analyzer" ? "active" : ""} aria-current={activeSection === "code-analyzer" ? "page" : undefined} href="/code-analyzer" onClick={e=>{e.preventDefault();navigateTo('code-analyzer')}}><FolderCode size={18}/> {t('codeAnalyzer')}</a>
+        <a className={activeSection === "audit-history" ? "active" : ""} aria-current={activeSection === "audit-history" ? "page" : undefined} href="/audit-history" onClick={e=>{e.preventDefault();navigateTo('audit-history')}}><History size={18}/> {t('auditHistory')}</a>
       </nav>
-      <div className="sidebar-bottom"><a className={activeSection === "settings" ? "active" : ""} href="/settings" onClick={e=>{e.preventDefault();navigateTo('settings')}}><Settings size={18}/> {t('settings')}</a></div>
+      <div className="sidebar-bottom"><a className={activeSection === "settings" ? "active" : ""} aria-current={activeSection === "settings" ? "page" : undefined} href="/settings" onClick={e=>{e.preventDefault();navigateTo('settings')}}><Settings size={18}/> {t('settings')}</a></div>
     </aside>
-    <main className="main">
+    <main ref={mainRef} className="main" tabIndex={-1}>
       <header className="topbar"><div className="crumb">{t('workspace')} <ChevronRight size={14}/> <b>{activeSection === 'settings' ? t('settings') : activeSection === 'profile' ? t('profileTitle') : activeSection === 'website-scanner' ? t('websiteScanner') : activeSection === 'code-analyzer' ? t('codeAnalyzer') : activeSection === 'audit-history' ? t('auditHistory') : t('overview')}</b></div><div className="top-actions"><ThemeToggle theme={theme} onChange={setTheme} language={language}/><LanguageToggle language={language} onChange={setLanguage}/><details className="profile-menu"><summary><div className="avatar">AV</div><span>{t('account')}</span></summary><div className="profile-menu-content"><b>{t('account')}</b><small>{emailVerified ? t('verifiedEmail') : t('unverifiedEmail')}</small><a href="/profile" onClick={e=>{e.preventDefault();navigateTo('profile')}}>{t('profileTitle')}</a><a href="/settings" onClick={e=>{e.preventDefault();navigateTo('settings')}}>{t('securitySettings')}</a><button type="button" onClick={()=>void endSession()}>{t('signOut')}</button></div></details></div></header>
       <section className="content">
 {activeSection === 'overview' && <div className="route-page overview-page">
