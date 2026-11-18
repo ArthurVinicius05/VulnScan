@@ -25,6 +25,8 @@ def test_accepts_public_https_domain_and_normalizes_url():
     "http://10.0.0.1",
     "http://169.254.169.254/latest/meta-data",
     "http://[::1]",
+    "http://224.0.0.1",
+    "http://[ff02::1]",
     "http://localhost",
     "http://service.internal",
     "http://example.org:8080",
@@ -33,6 +35,15 @@ def test_accepts_public_https_domain_and_normalizes_url():
 def test_rejects_unsafe_or_unsupported_targets(url):
     with pytest.raises(TargetValidationError):
         validate_target_url(url, resolver=public_resolver)
+
+
+@pytest.mark.parametrize("address", ["224.0.0.1", "ff02::1"])
+def test_rejects_multicast_dns_answers(address):
+    def multicast_resolver(hostname, port):
+        return (address,)
+
+    with pytest.raises(TargetValidationError, match="não público"):
+        validate_target_url("https://example.org", resolver=multicast_resolver)
 
 
 def test_rejects_domain_if_any_dns_answer_is_private():
