@@ -52,7 +52,7 @@ O ambiente local pode ativar contas automaticamente quando SMTP não está confi
 - O arquivo original de um job em dead-letter fica disponível por no máximo 72 horas (configurável por `DEAD_LETTER_ARCHIVE_RETENTION_HOURS`); depois disso, só é possível recuperar com novo upload.
 - Análises ainda na fila podem ser canceladas pelo usuário; o upload temporário é descartado e a vaga de concorrência liberada. Jobs em execução não podem ser cancelados nesta versão.
 - Os arquivos originais são removidos quando a análise termina normalmente; em dead-letter, permanecem apenas durante a janela curta de recuperação e depois são apagados.
-- Quotas padrão por conta: 30 análises/mês, 2 análises simultâneas e 100 MB de arquivos pendentes. O limite padrão de upload individual é 50 MB. Ajuste os valores conforme a capacidade real.
+- Quotas padrão por conta: 30 análises/mês, 2 análises simultâneas e 250 MB de armazenamento enfileirado. O limite padrão de upload individual é 100 MB; o tamanho expandido do ZIP continua limitado separadamente a 100 MB. Ajuste os valores conforme a capacidade real.
 - O histórico é isolado por usuário; os resultados heurísticos podem conter falsos positivos e negativos.
 
 ### Retenção
