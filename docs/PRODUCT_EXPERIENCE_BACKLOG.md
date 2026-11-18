@@ -8,7 +8,9 @@ This backlog records the product feedback collected during the first hands-on re
 - [x] Keep Overview focused on summary metrics, recent activity, and clear next actions.
 - [x] Move account security/MFA and preferences into Settings sub-pages or clearly separated sections.
 - [x] Move account identity to a compact profile destination/menu; do not show the full email persistently in the sidebar.
-- [x] Add responsive route transitions.\n- [ ] Add accessible focus management and keyboard-navigation acceptance tests.
+- [x] Add responsive route transitions.
+- [x] Move keyboard focus to the main content after in-app route changes.
+- [ ] Add keyboard-navigation and screen-reader acceptance tests.
 
 ## P0 — Make existing workflows understandable
 - [x] Explain required server-side configuration when MFA cannot be initialized; never ask users to invent or paste arbitrary secrets.
@@ -19,7 +21,8 @@ This backlog records the product feedback collected during the first hands-on re
 
 ## P0 — Website Scanner
 - [x] Integrate the existing passive website scanner with a dedicated UI and explicit authorization confirmation (local worker profile required).
-- [x] Display HTTP status, TLS details when available, redirect chain, findings, and scan limitations.\n- [ ] Add an explicit normalized-scope summary to the result view.
+- [x] Display HTTP status, TLS details when available, redirect chain, findings, and scan limitations.
+- [ ] Add an explicit normalized-scope summary to the result view.
 - [ ] Preserve the isolated worker, public-IP validation, DNS pinning, redirect revalidation, strict timeouts, and bounded response sampling.
 - [ ] Add integration tests for the UI/API/worker path and SSRF edge cases before enabling this feature in any public deployment.
 - [ ] Keep the production feature flag disabled until independent egress and SSRF validation is complete.
